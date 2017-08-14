@@ -1,0 +1,236 @@
+---
+title: "Microarray Analysis Report"
+output: pdf_document
+params:
+  gVars: NA
+  input: NA
+---
+
+## NORMALIZATION
+
+### Box Plot
+
+#### Before Normalization
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$norm.data), "Waiting for normalization...")
+)
+filt.data <- params$gVars$filt.data()
+boxplot(log2(filt.data), las=2, cex=0.7, main="Before Normalization")
+```
+
+#### After Normalization
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$norm.data), "Waiting for normalization...")
+)
+norm.data <- params$gVars$norm.data
+boxplot(norm.data, las=2, cex=0.7, main="After Normalization")
+```
+
+### Density Plot
+
+#### Before Normalization
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$norm.data), "Waiting for normalization...")
+)
+rgList <- params$gVars$rgList
+plotDensities(rgList, main="Before Normalization")
+```
+
+#### After Normalization
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$norm.data), "Waiting for normalization...")
+)
+phTable <- params$gVars$phTable
+dyeColID <- params$gVars$dyeColID
+norm.data <- params$gVars$norm.data
+
+gSampleCount <- table(phTable[,dyeColID])[[1]]
+rSampleCount <- table(phTable[,dyeColID])[[2]]
+ttlSampleCount <- gSampleCount+rSampleCount
+
+rgList.norm <- new("RGList", list(G=norm.data[,c(1:gSampleCount)], R=norm.data[,c((gSampleCount+1):ttlSampleCount)]))
+plotDensities(rgList.norm, main="After Normalization")
+```
+
+### Mean-Difference Plot
+
+#### Before Normalization
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$norm.data), "Waiting for normalization...")
+)
+rgList <- params$gVars$rgList
+plotMD(rgList, main="Before Normalization")
+```
+
+#### After Normalization
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$norm.data), "Waiting for normalization...")
+)
+phTable <- params$gVars$phTable
+dyeColID <- params$gVars$dyeColID
+norm.data <- params$gVars$norm.data
+
+gSampleCount <- table(phTable[,dyeColID])[[1]]
+rSampleCount <- table(phTable[,dyeColID])[[2]]
+ttlSampleCount <- gSampleCount+rSampleCount
+rgList.norm <- new("RGList", list(G=norm.data[,c(1:gSampleCount)], R=norm.data[,c((gSampleCount+1):ttlSampleCount)]))
+plotMD(rgList.norm, main="After Normalization")
+```
+
+### Confounding Plot
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$norm.data), "Waiting for normalization...")
+)
+ph <- params$gVars$phTable
+ph <- as.data.frame(apply(ph, 2, factor))
+test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
+confounding(ph[,test], margins = c(10,10))
+```
+
+### Prince Plot
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$norm.data), "Waiting for normalization...")
+)
+ph <- params$gVars$phTable
+ph <- as.data.frame(apply(ph, 2, factor))
+data <- params$gVars$norm.data
+npc = 10
+test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
+pr <- prince(data, ph[,test], top=npc)
+# generate the prince plot
+prince.plot(prince=pr, margins = c(15,15))
+```
+
+### Hierarchical Clustering
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$norm.data), "Waiting for normalization...")
+)
+ph <- params$gVars$phTable
+ph <- as.data.frame(apply(ph, 2, factor))
+data <- params$gVars$norm.data
+print(head(data))
+test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
+# hc plot
+hca.plot(data, ph[,test], method = "correlation")
+```
+
+## Batch Correction
+
+### Multidimensional Scaling Plot
+
+#### Before Correction
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$norm.data), "Waiting for normalization...")
+)
+norm.data <- params$gVars$norm.data
+phTable <- params$gVars$phTable
+phTable <- as.data.frame(apply(phTable, 2, factor))
+limma:::plotMDS(norm.data, top=500, labels=phTable[,params$input$varI], col=as.numeric(phTable[,params$input$varI]), gene.selection="common", main = "Before removing any batch.")
+```
+
+#### Known Corrected
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$comb.data), "Waiting for batch correction...")
+)
+
+comb.data <- params$gVars$comb.data
+phTable <- params$gVars$phTable
+phTable <- as.data.frame(apply(phTable, 2, factor))
+limma:::plotMDS(comb.data, top=500, labels=phTable[,params$input$varI], col=as.numeric(phTable[,params$input$varI]), gene.selection="common", main = "After removing batches.")
+```
+
+#### Unknown Corrected
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$comb.sva.data), "No Unknown Batches Removed...")
+)
+
+comb.data <- params$gVars$comb.sva.data
+phTable <- params$gVars$phTable
+phTable <- as.data.frame(apply(phTable, 2, factor))
+limma:::plotMDS(comb.data, top=500, labels=phTable[,params$input$varI], col=as.numeric(phTable[,params$input$varI]), gene.selection="common", main = "After removing unknown batches.")
+```
+
+#### After Aggregation
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$agg.data), "Waiting for batch correction...")
+)
+
+agg.data <- params$gVars$agg.data
+phTable <- params$gVars$phTable
+phTable <- as.data.frame(apply(phTable, 2, factor))
+limma:::plotMDS(agg.data, top=500, labels=phTable[,params$input$varI], col=as.numeric(phTable[,params$input$varI]), gene.selection="common", main = "After removing batches.")
+```
+
+### Hierarchical Clustering
+
+#### Known Corrected
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$comb.data), "Waiting for batch correction...")
+)
+ph <- params$gVars$phTable
+ph <- as.data.frame(apply(ph, 2, factor))
+data <- params$gVars$comb.data
+print(head(data))
+test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
+# hc plot
+hca.plot(data, ph[,test], method = "correlation")
+```
+
+#### Unknown Corrected
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$comb.sva.data), "No unknown batches removed...")
+)
+ph <- params$gVars$phTable
+ph <- as.data.frame(apply(ph, 2, factor))
+data <- params$gVars$comb.sva.data
+print(head(data))
+test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
+# hc plot
+hca.plot(data, ph[,test], method = "correlation")
+```
+
+### Prince Plot
+
+```{r echo=F}
+shiny::validate(
+	need(!is.null(params$gVars$comb.data), "Waiting for normalization...")
+)
+ph <- params$gVars$phTable
+ph <- as.data.frame(apply(ph, 2, factor))
+data <- params$gVars$comb.data
+npc = 10
+test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
+pr <- prince(data, ph[,test], top=npc)
+# generate the prince plot
+prince.plot(prince=pr, margins = c(15,15))
+```
