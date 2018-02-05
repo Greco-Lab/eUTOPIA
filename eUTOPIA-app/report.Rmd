@@ -22,6 +22,14 @@ isAgg <- !is.null(params$gVars$agg.data)
 isDeg <- !is.null(params$gVars$deg.list)
 ```
 
+```{r check_heat_comps, echo=F}
+isComps <- !is.null(params$input$heatComps)
+```
+
+```{r check_heat_conitions, echo=F}
+isConds <- !is.null(params$input$conditionsHeat)
+```
+
 ```{r check_expr, echo=F}
 isExpr <- !is.null(params$gVars$expr.data)
 ```
@@ -33,7 +41,8 @@ isExpr <- !is.null(params$gVars$expr.data)
 <!-- ```{r boxplot_before_normalization, echo=F, fig.height=4, fig.width=9, eval=isNorm} -->
 ```{r boxplot_before_normalization, echo=F, fig.height=4, fig.width=9, eval=isNorm}
 if(isNorm){
-        filt.data <- params$gVars$filt.data()
+        #filt.data <- params$gVars$filt.data()
+        filt.data <- params$gVars$filt.data
         if(params$input$arrType=="af_exp"){
                 print("No plot for Affymetrix data!")
         }else if(params$input$arrType=="il_methyl"){
@@ -97,7 +106,11 @@ if(isNorm){
                 print("No plot for Agilent single color data!")
         }else if(params$input$arrType=="il_methyl"){
                 Mset <- params$gVars$Mset
-                minfi::densityPlot(Mset, main="After Normalization", xlab="Beta")
+                if(is(Mset, "RGChannelSet") || is(Mset, "MethylSet")){
+                        minfi::densityPlot(Mset, main="After Normalization", xlab="Beta")
+                }else{
+                        print("No plot for this nomalization method!")
+                }
         }else{
                 rgList.norm <- params$gVars$rgList.norm
                 plotDensities(rgList.norm, main="After Normalization")
@@ -180,7 +193,7 @@ if(isNorm){
         ph <- params$gVars$phTable
         rownames(ph) <- ph[,params$gVars$sampleColID]
         data <- params$gVars$norm.data
-        npc = 10
+        npc <- 10
         test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
         ph <- as.data.frame(apply(ph, 2, factor))
         ph <- ph[,test]
@@ -189,6 +202,9 @@ if(isNorm){
                         svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
                         ph <- cbind(ph, svaSV) 
                 }
+        }
+        if(npc>ncol(data)){
+                npc <- ncol(data)
         }
         pr <- prince(data, ph, top=npc)
         # generate the prince plot
@@ -207,8 +223,11 @@ if(isCorr){
         rownames(ph) <- ph[,params$gVars$sampleColID]
         ph <- as.data.frame(apply(ph, 2, factor))
         data <- params$gVars$comb.data
-        npc = 10
+        npc <- 10
         test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
+        if(npc>ncol(data)){
+                npc <- ncol(data)
+        }
         pr <- prince(data, ph[,test], top=npc)
         #generate the prince plot
         prince.plot(prince=pr, margins = c(5,5), note=TRUE, notecex=0.5)
@@ -335,7 +354,8 @@ if(isAgg){
 if(isDeg){
         p <- params$gVars$volGGplot()
         deg <- params$gVars$volDeg
-        degSel <- deg[deg$y>=params$input$adjPvThr & abs(deg$x)>=params$input$lfcThr,]
+        adjPvThr <- -log10(as.numeric(params$input$adjPvThr))
+        degSel <- deg[deg$y>=adjPvThr & abs(deg$x)>=params$input$lfcThr,]
 
         p <- p +
         geom_point(data = degSel, color = "red") +
@@ -429,37 +449,41 @@ if(isExpr){
         genes <- params$input$expGenes
         conditions <- params$input$conditions
 
-        isCond <- FALSE 
-        if(!is.na(conditions) && conditions!="NA")
         isCond <-TRUE 
+        if(is.null(conditions) || is.na(conditions) || conditions=="NA")
+        isCond <- FALSE 
 
-        if(length(genes)>=1 && isCond){
-                dataCols <- as.integer(gsub("X", "", colnames(data)))
-                dataColsVarI <- phTable[,varI]
+        if(isCond){
+                if(length(genes)>=1){
+                        dataCols <- as.integer(gsub("X", "", colnames(data)))
+                        dataColsVarI <- phTable[,varI]
 
-                tmp.data <- data
-                colnames(tmp.data) <- dataColsVarI
+                        tmp.data <- data
+                        colnames(tmp.data) <- dataColsVarI
 
-                selCols <- which(colnames(tmp.data) %in% conditions)
-                selRows <- which(rownames(tmp.data) %in% genes)
-                melted.tmp.data <- melt(tmp.data[selRows, selCols])
-                if(ncol(melted.tmp.data)==1){
-                        melted.tmp.data <- data.frame(Var1=rownames(tmp.data)[selRows], Var2=colnames(tmp.data)[selCols], value=melted.tmp.data, stringsAsFactors=F)
+                        selCols <- which(colnames(tmp.data) %in% conditions)
+                        selRows <- which(rownames(tmp.data) %in% genes)
+                        melted.tmp.data <- melt(tmp.data[selRows, selCols])
+                        if(ncol(melted.tmp.data)==1){
+                                melted.tmp.data <- data.frame(Var1=rownames(tmp.data)[selRows], Var2=colnames(tmp.data)[selCols], value=melted.tmp.data, stringsAsFactors=F)
+                        }
+                        p <- ggplot(melted.tmp.data, aes(x=Var2, y=value, fill=Var2)) +
+                        geom_boxplot() +
+                        geom_jitter(aes(Var2,value),
+                                position=position_jitter(width=0.1,height=0),
+                                alpha=0.6,
+                                size=3,
+                        show.legend=FALSE) +
+                        facet_grid(.~Var1, scales="free") +
+                        labs(x="Condition", y="Expression Values") +
+                        scale_fill_discrete(name="Condition") +
+                        theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_blank(), panel.grid.major.x = element_blank(), panel.background = element_rect(fill='#f5f5f5', color='#e8e8e8'), axis.text.x=element_text(angle=90, hjust=1))
+                        p
+                }else{
+                        print("Need at least 1 gene to create boxplot!")
                 }
-                p <- ggplot(melted.tmp.data, aes(x=Var2, y=value, fill=Var2)) +
-                geom_boxplot() +
-                geom_jitter(aes(Var2,value),
-                        position=position_jitter(width=0.1,height=0),
-                        alpha=0.6,
-                        size=3,
-                show.legend=FALSE) +
-                facet_grid(.~Var1, scales="free") +
-                labs(x="Condition", y="Expression Values") +
-                scale_fill_discrete(name="Condition") +
-                theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_blank(), panel.grid.major.x = element_blank(), panel.background = element_rect(fill='#f5f5f5', color='#e8e8e8'), axis.text.x=element_text(angle=90, hjust=1))
-                p
         }else{
-                print("Need at least 1 gene to create boxplot!")
+                print("No conditions provided!")
         }
 }else{
         print("Normalized expression matrix not found!")
@@ -470,7 +494,7 @@ if(isExpr){
 
 <!-- ```{r expression_heatmap, echo=F, fig.height=9, fig.width=9, eval=isDeg} -->
 ```{r expression_heatmap, echo=F, fig.height=9, fig.width=9}
-if(isDeg){
+if(isDeg && isComps && isConds){
         deg.list <- params$gVars$deg.list
         data <- params$gVars$expr.data
 

@@ -1,10 +1,14 @@
 suppressMessages(library(shiny))
 suppressMessages(library(DT))
+suppressMessages(library(rhandsontable))
 suppressMessages(library(shinyjs))
 suppressMessages(library(shinyBS))
 suppressMessages(library(shinydashboard))
 suppressMessages(library(shinyFiles))
 suppressMessages(library(limma))
+suppressMessages(library(affy))
+suppressMessages(library(affyQCReport))
+suppressMessages(library(arrayQualityMetrics))
 suppressMessages(library(sva))
 suppressMessages(library(swamp))
 suppressMessages(library(ggplot2))
@@ -27,6 +31,7 @@ suppressMessages(library(IlluminaHumanMethylation450kmanifest))
 suppressMessages(library(IlluminaHumanMethylation450kanno.ilmn12.hg19))
 suppressMessages(library(IlluminaHumanMethylationEPICmanifest))
 suppressMessages(library(IlluminaHumanMethylationEPICanno.ilm10b2.hg19))
+suppressMessages(library(devtools))
 print("Print Source Directory")
 print(dirname(getSrcDirectory(function(x){x})))
 array_pipeline_R <- file.path(dirname(getSrcDirectory(function(x){x})), "agilent_twocolors_array_analysis_pipe_fixed.R")
@@ -40,6 +45,22 @@ celTable <- NULL
 phTable <- NULL
 extractedList <- NULL
 
+#Function to hide bsCollapsePanel
+hideBSCollapsePanel <- function(session, panel.name)
+{
+	#print("In hideBSCollapsePanel")
+	session$sendCustomMessage(type='hideBSCollapsePanelMessage', message=list(name=panel.name))
+	#print("Exiting hideBSCollapsePanel")
+}
+
+#Function to get names of columns with datatype character
+factorize_cols <- function(phTable, idx){
+        for(i in idx){
+                phTable[,i] <- factor(phTable[,i])
+        }
+        return(phTable)
+}
+
 shinyServer(
 	function(input, output, session){
                 gVars <- shiny::reactiveValues(phTable=NULL, rgList=NULL, celDir=NULL, totalSamples=NULL, filteredSamples=NULL, removedSamples=NULL, norm.data=NULL, celDir=NULL, pcChoices=NULL, comb.data=NULL, agg.data=NULL, comps=list())
@@ -49,159 +70,6 @@ shinyServer(
 		gVars$pvAdjChoices <- c("Holm"="holm", "Hochberg"="hochberg", "Hommel"="hommel", "Bonferroni"="bonferroni", "Benjamini & Hochberg"="BH", "Benjamini & Yekutieli"="BY", "False Detection Rate"="fdr", "None"="none")
 		gVars$normChoices <- c("Between Arrays"="BA", "Quantile"="quantile", "Variance Stabilizing"="vsn", "Cyclic Loess"="cl")
 		gVars$baChoices <- c("None"="none", "Scale"="scale", "Quantile"="quantile", "Cyclic Loess"="cyclicloess")
-	
-                gVars$bsPanelPh <- bsCollapsePanel("LOAD PHENOTYPE DATA", style="warning",
-                        fluidRow(
-                                column(12, align="center",
-                                        shinyBS::bsButton("import_pheno_submit", label="Import Phenotype Data", style="danger", icon=icon("exclamation-circle")),
-                                        shinyBS::bsTooltip("import_pheno_submit", "Launch a graphical window, to configure import of phenotype data from a file!", placement="bottom")
-                                )
-                        )
-                )
-
-                gVars$bsPanelRaw <- bsCollapsePanel("LOAD RAW DATA", style="danger",
-                        fluidRow(
-                                column(1, align="center",
-                                        p("")
-                                ),column(11, align="left",
-                                        shinyDirButton("dirButton", label="Browse", title="Select Directory", buttonType="default"),
-                                        shinyBS::bsTooltip("dirButton", "Browse local system directories and select the directory containing the RAW data files!", placement="bottom")
-                                )
-                        ),fluidRow(
-                                column(1, align="center",
-                                        p("")
-                                ),column(11, align="left",
-                                        textOutput("dirText")
-                                )
-                        ),fluidRow(
-                                column(12,
-                                        hr(),
-                                        div(id="affAnnDiv", class="contentDiv",
-                                                h4("Select Annotation"),
-                                                fluidRow(
-                                                        column(1, align="center",
-                                                                p("")
-                                                        ),column(11,
-                                                                actionButton("launch_cdf_modal", label="Install Missing CDF Annotation")
-                                                        )
-                                                ),fluidRow(column(12,
-                                                                uiOutput("selAffCDF")
-                                                        )
-                                                )
-                                        )
-                                )
-                        ),fluidRow(
-                                column(1, align="center",
-                                        p("")
-                                ),column(11, align="left",
-                                        actionButton("upload_raw_submit", "Upload")
-                                )
-                        )
-                )
-
-                gVars$bsPanelFilt <- bsCollapsePanel("PROBE FILTERING", style="danger",
-                        fluidRow(
-                                column(12,
-                                        sliderInput("filtDist", "Quantile Based Cutoff", min=0.10, max=1.0, value=0.75, step=0.05, round=2),
-                                        selectInput("detectPV", "P.value detection threshold", choices=c(0.01, 0.05), selected=0.01),
-                                        sliderInput("perSamples", "Percentage of Samples", min=1, max=100, value=75, step=1)
-                                )
-                        ),fluidRow(
-                                column(12, align="center",
-                                        textOutput("percProbesText")
-                                ),column(12, align="center",
-                                        textOutput("numProbesText")
-                                )
-                        )
-                )
-
-                gVars$bsPanelNorm <- bsCollapsePanel("NORMALIZATION", style="danger",
-                        fluidRow(
-                                column(12,
-                                        uiOutput("selNormMethod"),
-                                        uiOutput("selNormMethod2")
-                                )
-                        ),fluidRow(
-                                column(12, align="center",
-                                        actionButton("norm_submit", "Run Normalization")
-                                )
-                        )
-                )
-
-                gVars$bsPanelBatch <- bsCollapsePanel("BATCH CORRECTION", style="danger",
-                        fluidRow(
-                                column(12,
-                                        #selectInput("corrType", "Correction With", choices=c("SVA+ComBat"="sc", "ComBat"="c", "Nothing"="n"), selected="sc")
-                                        selectInput("corrType", "Correction With", choices=c("SVA+ComBat"="sc", "ComBat"="c", "SVA"="s", "Nothing"="n"), selected="n")
-                                )
-                        ),fluidRow(
-                                column(12, align="left",
-                                        div(id="svaDiv",
-                                                shinyBS::bsButton("launch_sva_modal", label="Launch SVA Module", style="danger", icon=icon("exclamation-circle")),
-                                                p(" ")
-                                        )
-                                )
-                        ),fluidRow(
-                                column(12, align="left",
-                                        div(id="combatDiv",
-                                                shinyBS::bsButton("launch_combat_modal", label="Launch ComBat Module", style="danger", icon=icon("exclamation-circle")),
-                                                p(" ")
-                                        )
-                                )
-                        ),fluidRow(
-                                column(12, align="left",
-                                        shinyBS::bsButton("launch_ann_modal", label="Import Annotation", style="danger", icon=icon("exclamation-circle")),
-                                        p(" ")
-                                )
-                        ),fluidRow(
-                                column(12, align="left",
-                                        div(id="skipDiv",
-                                                actionButton("skip_submit", "SKIP")
-                                        )
-                                )
-                        )
-                )
-
-                gVars$bsPanelDiff <- bsCollapsePanel("DIFFERENTIAL ANALYSIS", style="danger",
-                        fluidRow(
-                                column(12,
-                                        div(id="limmaModelDiv", class="contentDiv",
-                                                h4("Limma Model"),
-                                                fluidRow(
-                                                        column(12,
-                                                                uiOutput("selVarILimma"),
-                                                                uiOutput("selCoVarLimma")
-                                                        )
-                                                )
-                                        )
-                                )
-                        ),fluidRow(
-                                column(12,
-                                        uiOutput("selTreatment")
-                                )
-                        ),fluidRow(
-                                column(12,
-                                        uiOutput("selControl")
-                                )
-                        ),fluidRow(
-                                column(12, align="center",
-                                        actionButton("add_comp_submit", "Add Comparison")
-                                )
-                        ),fluidRow(
-                                column(12,
-                                        uiOutput("selComps")
-                                )
-                        ),fluidRow(
-                                column(12, align="center",
-                                        uiOutput("selPvAdjMethod")
-                                )
-                        ),fluidRow(
-                                column(12, align="center",
-                                        hr(),
-                                        actionButton("de_submit", "Run Differential Analysis")
-                                )
-                        )
-                )
 
                 ## Get available Affymetrix CDF annotations
 		allPkgNames <- rownames(installed.packages())
@@ -251,10 +119,29 @@ shinyServer(
                         return(celDir)
                 })
 
-                gVars$annDF <- eventReactive(input$load_ann_submit, {
+                #gVars$annDF <- eventReactive(input$load_ann_submit, {
+                observeEvent(input$load_ann_submit, {
 			if(is.null(input$fAnno))
 			return(NULL)
 
+                        correctionLvl <- gVars$correctionLvl
+                        if(is.null(correctionLvl)){
+                                expr.data <- gVars$norm.data
+                        }else if(correctionLvl==1){
+                                expr.data <- gVars$comb.data
+                        }else{
+                                shinyjs::info("Could not locate expression data!")
+                                return(NULL)
+                        }
+                        if(is.null(expr.data)){
+                                shinyjs::info("Expression data is NULL!")
+                                return(NULL)
+                        }else if(nrow(expr.data)==0){
+                                shinyjs::info("Expression data is empty!")
+                                return(NULL)
+                        }
+
+                        gVars$annDF <- NULL
 			annFile <- input$fAnno
 			sepS <- input$sepSAnno
 			sepT <- input$sepTAnno
@@ -283,20 +170,38 @@ shinyServer(
                         }
 
                         annDF <- read.csv(annFile$datapath, header=TRUE, sep=sepChar, stringsAsFactors=FALSE, quote="")
+
+                        chkIdx <- which(rownames(expr.data) %in% annDF[,1])
+                        if(length(chkIdx) == 0){
+                                shinyjs::info(paste0("No ProbeName from the raw data could be mapped to annotation file '", input$fAnno, "'\n\n, Please check and provide appropriate annotation file!"))
+                                return(NULL)
+                        }
+
+                        chkPerc <- (length(chkIdx)/nrow(expr.data))*100
+                        if(chkPerc < 85){
+                                shinyjs::info(paste0("Mapped only ", chkPerc, "% of ProbeNamesfrom the raw data to annotation file '", input$fAnno, "'\n\n, Please check and provide appropriate annotation file!"))
+                                return(NULL)
+                        }
+
 			gVars$annLoaded <- 1
-                        #mis <- apply(annDF[,-1], 2, function(x){sum(sum(is.na(x)), is.null(x),sum(x==""))})
-                        #percMis <- round(100-(mis/nrow(annDF)*100))
-                        #percMisStr <- paste0(names(percMis), "[", percMis, "%", "]")
-                        #shinyjs::html("annMaps", paste0("Mapping Potential: ", paste(percMisStr, collapse=", ")))
-			return(annDF)
+                        mis <- apply(annDF[chkIdx,-1], 2, function(x){sum(sum(is.na(x)), is.null(x),sum(x==""))})
+                        percMis <- round(100-(mis/nrow(annDF)*100))
+                        percMisStr <- paste0(names(percMis), "[", percMis, "%", "]")
+                        dispStr <- paste0("<p>", paste(percMisStr, collapse=", "), "</p>")
+
+			#return(annDF)
+                        gVars$annDF <- annDF
+                        gVars$annMapDispStr <- dispStr
 		})
 
 		output$annDT <- DT::renderDataTable({
 			shiny::validate(
-				need(!is.null(gVars$annDF()), "No Annotation file!")
+				#need(!is.null(gVars$annDF()), "No Annotation file!")
+				need(!is.null(gVars$annDF), "No Annotation file!")
 			)
 
-                        annDF <- gVars$annDF()
+                        #annDF <- gVars$annDF()
+                        annDF <- gVars$annDF
 			DT::datatable(annDF, filter="none", 
 				options = list(
 					ch=list(regex=TRUE, caseInsensitive=FALSE), 
@@ -309,7 +214,8 @@ shinyServer(
 		},server=TRUE)
 
 		gVars$idChoices <- reactive({
-                        annDF <- gVars$annDF()
+                        #annDF <- gVars$annDF()
+                        annDF <- gVars$annDF
 			if (is.null(annDF))
                         return("Waiting for annotation file!")
 
@@ -451,27 +357,53 @@ shinyServer(
                         }
                         print("str(phTable) -- after:")
                         print(str(phTable))
+                        
 			return(phTable)
 		})
 
+                gVars$phColTypes <- reactive({
+                        if(is.null(gVars$inputPh()))
+                        return(NULL)
+
+                        phTable <- gVars$inputPh()
+                        colNames <- list("c"=NULL,"n"=NULL)
+                        coltypes <- unlist(lapply(phTable, class))
+                        coltypes.charOnly.idx <- which(coltypes=="character")
+                        coltypes.nonChar.idx <- which(!coltypes=="character")
+                        coltypes.charOnly.len <- length(coltypes.charOnly.idx)
+                        coltypes.nonChar.len <- length(coltypes.nonChar.idx)
+                        if(coltypes.charOnly.len>0){
+                                colNames[["c"]] <- colnames(phTable)[coltypes.charOnly.idx]
+                        }
+                        if(coltypes.nonChar.len>0){
+                                colNames[["n"]] <- colnames(phTable)[coltypes.nonChar.idx]
+                        }
+                        print(str(colNames))
+                        return(colNames)
+                })
+
 		output$phRowsText <- renderText({
-			if(is.null(gVars$phLoaded)){
+			#if(is.null(gVars$phLoaded)){
+                        if(is.null(gVars$inputPh())){
 				nRow <- "NA"
 			}else{
 				nRow <- nrow(gVars$inputPh())
 			}
 
-			return(paste0("Rows: ", nRow))
+			#return(paste0("Rows: ", nRow))
+			return(paste0("Samples: ", nRow))
 		})
 
 		output$phColsText <- renderText({
-			if(is.null(gVars$phLoaded)){
+			#if(is.null(gVars$phLoaded)){
+                        if(is.null(gVars$inputPh())){
 				nCol <- "NA"
 			}else{
 				nCol <- ncol(gVars$inputPh())
 			}
 
-			return(paste0("Columns: ", nCol))
+			#return(paste0("Columns: ", nCol))
+			return(paste0("Vairables: ", nCol))
 		})
 
 		gVars$phColChoices <- reactive({
@@ -479,7 +411,8 @@ shinyServer(
 			return(c("NA"))
 
 			choicesVec <- seq(1,ncol(gVars$inputPh()))
-			choicesNames <- paste0("Column ", choicesVec)
+			#choicesNames <- paste0("Column ", choicesVec)
+			choicesNames <- paste0("Variable ", choicesVec)
 			names(choicesVec) <- choicesNames
 			return(choicesVec)
 		})
@@ -502,6 +435,60 @@ shinyServer(
 			)
 		},server=TRUE)
 
+                output$phenoTypesRH <- rhandsontable::renderRHandsontable({
+			shiny::validate(
+				need(!is.null(gVars$inputPh()), "No phenotype file!")
+			)
+
+                        phTable <- gVars$inputPh()
+                        colNames <- paste0(colnames(phTable), " [", c(1:ncol(phTable)), "]")
+                        colTypesList <- gVars$phColTypes()
+                        print(str(colTypesList))
+                        colClass <- unlist(lapply(phTable, class))
+                        print(str(colClass))
+                        #colTypesDF <- data.frame(Column=colNames, Type="-", Class=colClass, t(head(phTable)), stringsAsFactors=FALSE)
+                        #colnames(colTypesDF)[c(4:ncol(colTypesDF))] <- paste0("Row", c(1:(ncol(colTypesDF)-3)))
+                        colTypesDF <- data.frame(Variable=colNames, Type="-", Class=colClass, t(head(phTable)), stringsAsFactors=FALSE)
+                        colnames(colTypesDF)[c(4:ncol(colTypesDF))] <- paste0("Sample", c(1:(ncol(colTypesDF)-3)))
+                        if(!is.null(colTypesList[["c"]])){
+                                print("In colTypes C...")
+                                cIdx <- which(colnames(phTable) %in% colTypesList[["c"]])
+                                print(cIdx)
+                                if(length(cIdx>0)){
+                                       colTypesDF[cIdx,"Type"] <- "factor"
+                                }
+                        }
+                        if(!is.null(colTypesList[["n"]])){
+                                print("In colTypes N...")
+                                nIdx <- which(colnames(phTable) %in% colTypesList[["n"]])
+                                print(nIdx)
+                                if(length(nIdx>0)){
+                                       colTypesDF[nIdx,"Type"] <- "vector"
+                                }
+                        }
+                        print("Making rhandsontable...")
+			#rhandsontable::rhandsontable(colTypesDF, rowHeaders=NULL, readOnly=TRUE, contextMenu=FALSE, stretchH="all") %>% 
+			rhandsontable::rhandsontable(colTypesDF, rowHeaders=NULL, readOnly=TRUE, contextMenu=FALSE) %>% 
+                                #hot_cols(renderer = "function (instance, td, row, col, prop, value, cellProperties) {
+                                #        Handsontable.renderers.NumericRenderer.apply(this, arguments);
+                                #        if (value == 'factor') {
+                                #                    td.style.background = 'lightblue';
+                                #        } else if (value == 'vector') {
+                                #                    td.style.background = 'lightgreen';
+                                #        }
+                                #}") %>%
+                                hot_col("Type", readOnly=FALSE, type="dropdown", source=c("factor","vector"), 
+                                        renderer = "function (instance, td, row, col, prop, value, cellProperties) {
+                                                Handsontable.renderers.NumericRenderer.apply(this, arguments);
+                                                if (value == 'factor') {
+                                                            td.style.background = 'lightblue';
+                                                } else if (value == 'vector') {
+                                                            td.style.background = 'lightgreen';
+                                                }
+                                        }"
+                                )
+		})
+
                 observeEvent(input$upload_pheno_submit, {
 			shiny::validate(
 				need(!is.null(gVars$inputPh()), "No Phenotype File Provided!")
@@ -521,12 +508,30 @@ shinyServer(
                                 shinyjs::info(paste0("Sample IDs contain BLANK and/or NA values!\n\nPlease check the phenotype data and ensure that the selected Sample ID column has complete information!"))
                                 return(NULL)
                         }
-
+                        
 			if(arrType=="ag_exp2"){
 				dyeColID <- as.integer(input$dyeCol)
 				phTable <- phTable[order(phTable[,dyeColID], phTable[,fileNameColID]),]
 			}
+
+                        #Create factorized phTable
+                        print("Create factorized phTable")
+                        print(is.null(input$phenoTypesRH))
+                        print(str(input$phenoTypesRH))
+                        phRH <- rhandsontable::hot_to_r(input$phenoTypesRH)
+                        print(str(phRH))
+                        factorIdx <- which(phRH$Type=="factor")
+                        print(factorIdx)
+                        if(length(factorIdx)>0){
+                                phFactor <- factorize_cols(phTable, factorIdx)
+                        }else{
+                                phFactor <- phTable
+                        }
+                        print(str(phFactor))
+                        print(str(phTable))
+
                         gVars$phTable <- phTable
+                        gVars$phFactor <- phFactor
 			gVars$dyeColID <- dyeColID
 			gVars$fileNameColID <- fileNameColID
 			gVars$sampleColID <- sampleColID
@@ -535,6 +540,7 @@ shinyServer(
                         gVars$removedSamples <- 0
 			gVars$removedSamplesInfo <- NULL
 
+			shinyBS::toggleModal(session, "importPhenoModal", toggle="close")
                         shinyBS::updateButton(session, "import_pheno_submit", style="success", icon=icon("check-circle"))
                         shinyBS::updateCollapse(session, "bsSidebar", open="LOAD RAW DATA", style=list("LOAD PHENOTYPE DATA"="success", "LOAD RAW DATA"="warning"))
                 })
@@ -554,7 +560,8 @@ shinyServer(
 
                         if(!is.null(gVars$svaSV)){
                                 svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
-                                svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
+                                #svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
+                                svaSVc <- gVars$svaSVc
                                 phTable <- cbind(phTable, svaSV, svaSVc)
                         }
 			return(colnames(phTable))
@@ -584,6 +591,7 @@ shinyServer(
                         phRowsSel <- as.integer(input$filtered_rows_selected)
 			print("Sel Rows:")
 			print(phRowsSel)
+                        phRows2Remove <- NULL
                         removedSampleIDs <- NULL
 			if (length(phRowsSel)>0){
 				#phRows2Remove <- which(rownames(phTable) %in% phRowsSel)
@@ -593,7 +601,132 @@ shinyServer(
                                 removedSampleIDs <- phTable[phRows2Remove,sampleColID]
 				removedSamplesInfo <- phTable[phRows2Remove,c(fileNameColID, dyeColID)]
 				phTable <- phTable[-phRows2Remove,]
+                                cat("Removed Sample IDs :", paste0(removedSampleIDs, collapse=","), "\n")
 			}
+
+                        #Update expression objects
+                        if(!is.null(gVars$norm.data)){
+                                print("Subsetting gVars$norm.data")
+                                rmIdx <- which(colnames(gVars$norm.data) %in% removedSampleIDs)
+                                if(length(rmIdx)>1){
+                                        cat("Removing index ", rmIdx, " from gVars$norm.data matrix!\n")
+                                        gVars$norm.data <- gVars$norm.data[,-rmIdx]
+                                }else{
+                                        print("Nothing was removed!")
+                                }
+                        }
+                        if(!is.null(gVars$rgList)){
+                                print("Subsetting gVars$rgList")
+                                removedArrays <- phTable[phRows2Remove,fileNameColID]
+                                removedArrays <- gsub("\\.[a-zA-Z]+$", "", removedArrays)
+                                array2Remove <- names(which(table(removedArrays)>1))
+                                if(length(array2Remove)>1){
+                                        gVars$rgList <- gVars$rgList[,-array2Remove]
+                                }else{
+                                        print("Nothing was removed!")
+                                }
+                        }
+                        if(!is.null(gVars$rgList.norm)){
+                                print("Subsetting gVars$rgList.norm")
+                                rIdx <- which(colnames(gVars$rgList.norm$R) %in% removedSampleIDs)
+                                rmCheck <- 0
+                                if(length(rIdx)>0){
+                                        cat("Removing index ", rIdx, " from R matrix!\n")
+                                        gVars$rgList.norm$R <- gVars$rgList.norm$R[,-rIdx]
+                                        rmCheck <- 1
+                                }
+                                gIdx <- which(colnames(gVars$rgList.norm$G) %in% removedSampleIDs)
+                                if(length(gIdx)>0){
+                                        cat("Removing index ", gIdx, " from G matrix!\n")
+                                        gVars$rgList.norm$G <- gVars$rgList.norm$G[,-gIdx]
+                                        rmCheck <- 1
+                                }
+                                if(rmCheck==0){
+                                        print("Nothing was removed!")
+                                }
+                        }
+                        if(!is.null(gVars$RGset)){
+                                print("Subsetting gVars$RGset")
+                                removedArrays <- phTable[phRows2Remove,fileNameColID]
+                                rmIdx <- which(sampleNames(gVars$RGset) %in% removedArrays)
+                                if(length(rmIdx)>1){
+                                        cat("Removing index ", rmIdx, " from gVars$RGset matrix!\n")
+                                        gVars$RGset <- gVars$RGset[,-rmIdx]
+                                }else{
+                                        print("Nothing was removed!")
+                                }
+                        }
+                        if(!is.null(gVars$Mset)){
+                                print("Subsetting gVars$Mset")
+                                removedArrays <- phTable[phRows2Remove,fileNameColID]
+                                rmIdx <- which(sampleNames(gVars$Mset) %in% removedArrays)
+                                if(length(rmIdx)>1){
+                                        cat("Removing index ", rmIdx, " from gVars$Mset matrix!\n")
+                                        gVars$Mset <- gVars$Mset[,-rmIdx]
+                                }else{
+                                        print("Nothing was removed!")
+                                }
+                        }
+                        if(!is.null(gVars$expr.data)){
+                                print("Subsetting gVars$expr.data")
+                                rmIdx <- which(colnames(gVars$expr.data) %in% removedSampleIDs)
+                                if(length(rmIdx)>1){
+                                        cat("Removing index ", rmIdx, " from gVars$expr.data matrix!\n")
+                                        gVars$expr.data <- gVars$expr.data[,-rmIdx]
+                                }else{
+                                        print("Nothing was removed!")
+                                }
+                        }
+                        if(!is.null(gVars$nc.data)){
+                                print("Subsetting gVars$nc.data")
+                                rmIdx <- which(colnames(gVars$nc.data) %in% removedSampleIDs)
+                                if(length(rmIdx)>1){
+                                        cat("Removing index ", rmIdx, " from gVars$nc.data matrix!\n")
+                                        gVars$nc.data <- gVars$nc.data[,-rmIdx]
+                                }else{
+                                        print("Nothing was removed!")
+                                }
+                        }
+                        if(!is.null(gVars$c.data)){
+                                print("Subsetting gVars$c.data")
+                                rmIdx <- which(colnames(gVars$c.data) %in% removedSampleIDs)
+                                if(length(rmIdx)>1){
+                                        cat("Removing index ", rmIdx, " from gVars$c.data matrix!\n")
+                                        gVars$c.data <- gVars$c.data[,-rmIdx]
+                                }else{
+                                        print("Nothing was removed!")
+                                }
+                        }
+                        if(!is.null(gVars$comb.data)){
+                                print("Subsetting gVars$comb.data")
+                                rmIdx <- which(colnames(gVars$comb.data) %in% removedSampleIDs)
+                                if(length(rmIdx)>1){
+                                        cat("Removing index ", rmIdx, " from gVars$comb.data matrix!\n")
+                                        gVars$comb.data <- gVars$comb.data[,-rmIdx]
+                                }else{
+                                        print("Nothing was removed!")
+                                }
+                        }
+                        if(!is.null(gVars$agg.data)){
+                                print("Subsetting gVars$agg.data")
+                                rmIdx <- which(colnames(gVars$agg.data) %in% removedSampleIDs)
+                                if(length(rmIdx)>1){
+                                        cat("Removing index ", rmIdx, " from gVars$agg.data matrix!\n")
+                                        gVars$agg.data <- gVars$agg.data[,-rmIdx]
+                                }else{
+                                        print("Nothing was removed!")
+                                }
+                        }
+                        if(!is.null(gVars$comb.sva.data)){
+                                print("Subsetting gVars$comb.sva.data")
+                                rmIdx <- which(colnames(gVars$comb.sva.data) %in% removedSampleIDs)
+                                if(length(rmIdx)>1){
+                                        cat("Removing index ", rmIdx, " from gVars$comb.sva.data matrix!\n")
+                                        gVars$comb.sva.data <- gVars$comb.sva.data[,-rmIdx]
+                                }else{
+                                        print("Nothing was removed!")
+                                }
+                        }
 
                         #Remove columns with single level data
                         nrlevels <- apply(phTable, 2, function(x){length(levels(factor(x)))})
@@ -641,12 +774,16 @@ shinyServer(
 		},server=TRUE)
 
                 observeEvent(input$upload_raw_submit, {
-			shiny::validate(
-				need(!is.null(gVars$phTable), "No Phenotype File Provided!")
-			)
-			shiny::validate(
-				need(!is.null(gVars$celDir()), "No directory selected!")
-			)
+                        if(is.null(gVars$phTable) || is.null(gVars$celDir())){
+                                return(NULL)
+                        }
+
+			#shiny::validate(
+			#	need(!is.null(gVars$phTable), "No Phenotype File Provided!")
+			#)
+			#shiny::validate(
+			#	need(!is.null(gVars$celDir()), "No directory selected!")
+			#)
 
 			progress <- shiny::Progress$new()
 			updateProgress <- function(value=NULL, detail=NULL){
@@ -802,14 +939,16 @@ shinyServer(
 				#colnames(data) <- phTable[,sampleColID] ## Update colnames wish sample names
                                 print("EXPR Colnames")
                                 print(colnames(data))
-				nc.data <- data[which(rgList$genes$ControlType==0),]
-				c.data  <- data[which(rgList$genes$ControlType==-1),]
+                                ncIdx <- which(rgList$genes$ControlType==0)
+                                cIdx <- which(rgList$genes$ControlType==-1)
+				nc.data <- data[ncIdx,]
+				c.data  <- data[cIdx,]
 				updateProgress(detail="Completed!", value=2/3)
 				
 				gVars$rgList <- rgList
 				gVars$nc.data <- nc.data
 				gVars$c.data <- c.data
-				shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("LOAD RAW DATA"="success", "PROBE FILTERING"="warning"))
+				#shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("LOAD RAW DATA"="success", "PROBE FILTERING"="warning"))
 			}else if(arrType=="ag_exp1"){
 				eListRaw <- read.maimages(files=fileNames, source="agilent.median", path=celDir, green.only=T, other.columns=c("gIsGeneDetected"),verbose=TRUE)
                                 data <- eListRaw$E
@@ -835,7 +974,8 @@ shinyServer(
 				gVars$nc.data <- nc.data
 				gVars$c.data <- c.data
                                 gVars$map <- map
-				shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("LOAD RAW DATA"="success", "PROBE FILTERING"="warning"))
+                                gVars$eListRaw <- eListRaw
+				#shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("LOAD RAW DATA"="success", "PROBE FILTERING"="warning"))
 			}else if(arrType=="af_exp"){
                                 tmpFile <- file.path(celDir, fileNames[1])
                                 celHeader <- affyio::read.celfile.header(tmpFile)
@@ -856,9 +996,19 @@ shinyServer(
 				exprs <- exprs(eset)
 				gVars$norm.data <- exprs
 				gVars$expr.data <- exprs
+
+                                #Create affyBatch object for QC
+                                err <- 0
+                                tryCatch(simpleaffy::setQCEnvironment(input$affCDF), error=function(e){err<<-1})
+                                #if(!err){
+                                        celFilePaths <- file.path(celDir, fileNames)
+                                        gVars$affyBatchObject <- affy::read.affybatch(filenames=celFilePaths, phenoData=pheno, cdfname=affCDF)
+                                #}
+                                gVars$cdfQCerr <- err
+
                                 tmpChoices <- rownames(gVars$expr.data)
                                 updateSelectizeInput(session=session, inputId='expGenes', choices=tmpChoices, server=TRUE)
-				shinyBS::updateCollapse(session, "bsSidebar", open="BATCH CORRECTION", style=list("LOAD RAW DATA"="success", "BATCH CORRECTION"="warning"))
+				#shinyBS::updateCollapse(session, "bsSidebar", open="BATCH CORRECTION", style=list("LOAD RAW DATA"="success", "BATCH CORRECTION"="warning"))
                                 shiny::updateTabsetPanel(session, "display", selected="normTab")
 			}else if(arrType=="il_methyl"){
                                 pdFactor <- as.data.frame(apply(phTable, 2, factor))
@@ -867,11 +1017,26 @@ shinyServer(
                                 detP <- minfi::detectionP(RGset)
                                 gVars$RGset <- RGset
                                 gVars$detP <- detP
-				shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("LOAD RAW DATA"="success", "PROBE FILTERING"="warning"))
+				#shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("LOAD RAW DATA"="success", "PROBE FILTERING"="warning"))
 			}
+                        shinyBS::updateCollapse(session, "bsSidebar", open="QUALITY CONTROL", style=list("LOAD RAW DATA"="success", "QUALITY CONTROL"="warning"))
+                        gVars$loadedRaw <- TRUE
 		})
-		
-		gVars$filt.data <- reactive({
+	
+                observeEvent(input$qc_skip_submit, {
+                        if(input$arrType=="af_exp"){
+                                shinyBS::updateCollapse(session, "bsSidebar", open="BATCH CORRECTION", style=list("QUALITY CONTROL"="success", "BATCH CORRECTION"="warning"))
+                        }else if(input$arrType=="ag_exp2"){
+                                shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("QUALITY CONTROL"="success", "PROBE FILTERING"="warning"))
+                        }else if(input$arrType=="ag_exp1"){
+                                shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("QUALITY CONTROL"="success", "PROBE FILTERING"="warning"))
+                        }else if(input$arrType=="il_methyl"){
+                                shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("QUALITY CONTROL"="success", "PROBE FILTERING"="warning"))
+                        }
+                })	
+
+		#gVars$filt.data <- reactive({
+		observeEvent(input$filt_submit, {
                         arrType <- input$arrType
                         RGset <- gVars$RGset
                         detP <- gVars$detP
@@ -896,7 +1061,10 @@ shinyServer(
 				}
 				progress$set(value = value, detail = detail)
 			}
-                        on.exit(progress$close())
+                        on.exit({
+                                progress$close()
+                                shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
+                        })
                         progress$set(message="Filtering:", value=0)
 
                         updateProgress(detail="...", value=1/2)
@@ -911,15 +1079,18 @@ shinyServer(
                                 filt.data <- filt.by.neg.probes(nc.data, c.data, qdist=qfilt, perc=perc, verbose=T)
                         }
                         updateProgress(detail="Completed!", value=2/2)
-                        shinyBS::updateCollapse(session, "bsSidebar", style = list("PROBE FILTERING"="success", "NORMALIZATION"="warning"))
-			return(filt.data)
+                        shinyBS::updateCollapse(session, "bsSidebar", open="NORMALIZATION", style=list("PROBE FILTERING"="success", "NORMALIZATION"="warning"))
+			#return(filt.data)
+                        gVars$filt.data <- filt.data
 		})
 
 		output$percProbesText <- renderText({
-			if(is.null(gVars$filt.data()))
+			#if(is.null(gVars$filt.data()))
+			if(is.null(gVars$filt.data))
 			return("Probes Removed: NA")
 
-			filt.data <- gVars$filt.data()
+			#filt.data <- gVars$filt.data()
+			filt.data <- gVars$filt.data
 			nc.data <- gVars$nc.data
                         arrType <- input$arrType
                         RGset <- gVars$RGset
@@ -937,10 +1108,12 @@ shinyServer(
 		})
 
 		output$numProbesText <- renderText({
-			if(is.null(gVars$filt.data()))
+			#if(is.null(gVars$filt.data()))
+			if(is.null(gVars$filt.data))
 			return("Probes Remaining: NA")
 			
-			filt.data <- gVars$filt.data()
+			#filt.data <- gVars$filt.data()
+			filt.data <- gVars$filt.data
 			countProbes <- nrow(filt.data)
 
 			numProbesText <- paste0("Probes Remaining: ", countProbes)
@@ -948,7 +1121,11 @@ shinyServer(
 		})
 
                 observeEvent(input$norm_submit,{
-			shiny::validate(need(!is.null(gVars$filt.data()), "Waiting for the probe filter step!"))
+			##shiny::validate(need(!is.null(gVars$filt.data()), "Waiting for the probe filter step!"))
+			#shiny::validate(need(!is.null(gVars$filt.data), "Waiting for the probe filter step!"))
+			if(is.null(gVars$filt.data)){
+                                return(NULL)
+                        }
 
                         progress <- shiny::Progress$new()
 			updateProgress <- function(value=NULL, detail=NULL){
@@ -960,11 +1137,12 @@ shinyServer(
 			}
                         on.exit({
                                 progress$close()
-                                shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")    
+                                shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
                         })
                         progress$set(message="Normalization:", value=0)
 
-			filt.data <- gVars$filt.data()
+			#filt.data <- gVars$filt.data()
+			filt.data <- gVars$filt.data
                         method <- input$normMethod
                         method2 <- input$normMethod2
 			phTable <- gVars$phTable
@@ -999,7 +1177,25 @@ shinyServer(
                                 print(dim(MsetRaw))
                                 print("~~~~~~~~~~~~~~~~~~~~MsetRawSummary:")
                                 print(summary(getM(MsetRaw)[,1]))
-                                Mset <- minfi::preprocessSWAN(RGset)
+                                if(method=="SWAN"){
+                                        print("Running preprocessSWAN...")
+                                        Mset <- minfi::preprocessSWAN(RGset)
+                                }else if(method=="Raw"){
+                                        print("Running preprocessRaw...")
+                                        Mset <- minfi::preprocessRaw(RGset)
+                                }else if(method=="Quantile"){
+                                        print("Running preprocessQuantile...")
+                                        Mset <- minfi::preprocessQuantile(RGset)
+                                }else if(method=="Illumina"){
+                                        print("Running preprocessIllumina...")
+                                        Mset <- minfi::preprocessIllumina(RGset)
+                                }else if(method=="FunNorm"){
+                                        print("Running preprocessFunnorm...")
+                                        Mset <- minfi::preprocessFunnorm(RGset)
+                                }else if(method=="Noob"){
+                                        print("Running preprocessNoob...")
+                                        Mset <- minfi::preprocessNoob(RGset)
+                                }
                                 Mset <- Mset[keep,]
                                 print("~~~~~~~~~~~~~~~~~~~~Mset DIM:")
                                 print(dim(Mset))
@@ -1048,6 +1244,7 @@ shinyServer(
                         updateSelectizeInput(session=session, inputId='expGenes', choices=tmpChoices, server=TRUE)
                         shiny::updateTabsetPanel(session, "display", selected="normTab")
                         shinyBS::updateCollapse(session, "bsSidebar", open="BATCH CORRECTION", style=list("NORMALIZATION"="success", "BATCH CORRECTION"="warning"))
+                        gVars$normalized <- TRUE
                 })
 
                 observeEvent(input$normMethod, {
@@ -1161,10 +1358,13 @@ shinyServer(
                                 #return(NULL)
                         }
                         updateProgress(detail="Completed...", value=3/3)
+
                         gVars$varISva <- varI
                         gVars$svaSV <- svaSV
                         gVars$svaSVc <- svaSVc
                         gVars$svaStep <- svaStep
+
+			shinyBS::toggleModal(session, "svaModal", toggle="close")
 			shinyBS::updateButton(session, "launch_sva_modal", style="success", icon=icon("check-circle"))
                         shiny::updateTabsetPanel(session, "display", selected="tvTab")
                         shiny::updateTabsetPanel(session, "mtv", selected="confPlotTab")
@@ -1208,8 +1408,9 @@ shinyServer(
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
                                         svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
-                                        #phTable <- cbind(phTable, svaSV)
-                                        svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
+                                        ##phTable <- cbind(phTable, svaSV)
+                                        #svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
+                                        svaSVc <- gVars$svaSVc
                                         phTable <- cbind(phTable, svaSV, svaSVc)
                                         #svaSV <- gVars$svaSV
                                         #phTable <- cbind(phTable, svaSV, stringsAsFactors=F)
@@ -1220,7 +1421,11 @@ shinyServer(
 
                         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~In ComBat Submit!!!!!!!!!")
                         updateProgress(detail="Correcting Batch Effects...", value=1/3)
-			comb.data <- remove.batch.effects(data, phTable, 10, batchCorVar, method="Combat", plot=F, verbose=T)
+                        npc <- 10
+                        if(npc>ncol(data)){
+                                npc <- ncol(data)
+                        }
+			comb.data <- remove.batch.effects(data, phTable, npc, batchCorVar, method="Combat", plot=F, verbose=T)
                         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~After Correcting!!!!!!!!!")
                         if(is.character(comb.data)){
                                 shinyjs::info(comb.data)
@@ -1257,9 +1462,13 @@ shinyServer(
 
 			shinyBS::updateButton(session, "launch_combat_modal", style="success", icon=icon("check-circle"))
 			shinyBS::updateButton(session, "launch_ann_modal", style="danger", icon=icon("exclamation-circle"))
-                        if(arrType!="ag_exp2"){
+                        if(arrType=="ag_exp2"){
+                                shinyBS::updateCollapse(session, "bsSidebar", open="ANNOTATION", style=list("BATCH CORRECTION"="success", "ANNOTATION"="warning"))
+                        }else{
                                 shinyBS::updateCollapse(session, "bsSidebar", open="DIFFERENTIAL ANALYSIS", style=list("BATCH CORRECTION"="success", "DIFFERENTIAL ANALYSIS"="warning"))
                         }
+
+			shinyBS::toggleModal(session, "combatModal", toggle="close")
                         shiny::updateTabsetPanel(session, "display", selected="tvTab")
                         shiny::updateTabsetPanel(session, "mtv", selected="mdsTab")
                         shiny::updateTabsetPanel(session, "mdsBox", selected="postCorTab")
@@ -1269,6 +1478,8 @@ shinyServer(
                         #shiny::validate(need(!is.null(gVars$expr.data), "No expression data to analyze!"))
                         if(is.null(gVars$expr.data))
                         return(NULL)
+
+                        shinyjs::html(id="loadingText", "LOADING ANNOTATION")
 
 			progress <- shiny::Progress$new()
 			updateProgress <- function(value=NULL, detail=NULL){
@@ -1305,21 +1516,22 @@ shinyServer(
                         map <- NULL
                         if(arrType=="ag_exp2"){
                                 updateProgress(detail="Aggregating Probes by ID...", value=2/3)
-                                if(input$annType=="file"){
-                                        annDF <- gVars$annDF()
+                                #if(input$annType=="file"){
+                                #        #annDF <- gVars$annDF()
+                                        annDF <- gVars$annDF
                                         idIDX <- which(colnames(annDF)==input$ID)
                                         map <- annDF[,c(1,idIDX)]
-                                }else if(input$annType=="mart"){
-                                        mart <- gVars$mart()
-                                        map <- getBM(mart, attributes=c(input$probeID, input$mapID), filters=c(input$probeID), values=rownames(expr.data))
-                                        if(nrow(map)==0){
-                                            shinyjs::alert("Ensembl query returned 0 mapping!")
-                                            return(NULL)
-                                        }
-                                        
-                                        if(length(which(complete.cases(map)==FALSE))>0)
-                                        map <- map[complete.cases(map),]
-                                }
+                                #}else if(input$annType=="mart"){
+                                #        mart <- gVars$mart()
+                                #        map <- getBM(mart, attributes=c(input$probeID, input$mapID), filters=c(input$probeID), values=rownames(expr.data))
+                                #        if(nrow(map)==0){
+                                #            shinyjs::alert("Ensembl query returned 0 mapping!")
+                                #            return(NULL)
+                                #        }
+                                #        
+                                #        if(length(which(complete.cases(map)==FALSE))>0)
+                                #        map <- map[complete.cases(map),]
+                                #}
                                 agg.data <- aggreg.probes.2(expr.data, map)
                                 agg.data <- as.matrix(agg.data)
                                 expr.data <- agg.data
@@ -1333,18 +1545,92 @@ shinyServer(
                         tmpChoices <- rownames(gVars$expr.data)
                         updateSelectizeInput(session=session, inputId='expGenes', choices=tmpChoices, server=TRUE)
 
+			shinyBS::toggleModal(session, "importAnnModal", toggle="close")
 			shinyBS::updateButton(session, "launch_ann_modal", style="success", icon=icon("check-circle"))
-                        shinyBS::updateCollapse(session, "bsSidebar", open="DIFFERENTIAL ANALYSIS", style=list("BATCH CORRECTION"="success", "DIFFERENTIAL ANALYSIS"="warning"))
+                        #shinyBS::updateCollapse(session, "bsSidebar", open="DIFFERENTIAL ANALYSIS", style=list("BATCH CORRECTION"="success", "DIFFERENTIAL ANALYSIS"="warning"))
+                        shinyBS::updateCollapse(session, "bsSidebar", open="DIFFERENTIAL ANALYSIS", style=list("ANNOTATION"="success", "DIFFERENTIAL ANALYSIS"="warning"))
+                        shiny::updateTabsetPanel(session, "display", selected="tvTab")
+                        shiny::updateTabsetPanel(session, "mtv", selected="mdsTab")
+                        shiny::updateTabsetPanel(session, "mdsBox", selected="postAggTab")
+                })
+
+                observeEvent(input$submit_ann, {
+                        if(is.null(gVars$expr.data))
+                        return(NULL)
+
+                        shinyjs::html(id="loadingText", "ANNOTATION & AGGREGATION")
+
+			progress <- shiny::Progress$new()
+			updateProgress <- function(value=NULL, detail=NULL){
+				if (is.null(value)) {
+					value <- progress$getValue()
+					value <- value + (progress$getMax() - value) / 5
+				}
+				progress$set(value = value, detail = detail)
+			}
+                        on.exit({
+                                progress$close()
+                                shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")    
+                        })
+                        progress$set(message="Annotation:", value=0)
+                        
+                        correctionLvl <- gVars$correctionLvl
+			arrType <- input$arrType
+                        if(is.null(correctionLvl)){
+                                expr.data <- gVars$norm.data
+                        }else if(correctionLvl==1){
+                                expr.data <- gVars$comb.data
+                        }else{
+                                shinyjs::info("Could not locate expression data!")
+                                return(NULL)
+                        }
+                        if(is.null(expr.data)){
+                                shinyjs::info("Expression data is NULL!")
+                                return(NULL)
+                        }else if(nrow(expr.data)==0){
+                                shinyjs::info("Expression data is empty!")
+                                return(NULL)
+                        }
+                        agg.data <- NULL
+                        rgList <- gVars$rgList
+                        ncIdx <- which(rgList$genes$ControlType==0)
+                        #map <- data.frame(rgList$genes$ProbeName[ncIdx], rgList$genes$SystematicName[ncIdx], stringsAsFactors=FALSE)
+                        map <- data.frame("ProbeName"=rgList$genes$ProbeName[ncIdx], "SystematicName"=rgList$genes$SystematicName[ncIdx], stringsAsFactors=FALSE)
+                        print(str(rgList$genes))
+                        dups <- which(duplicated(map[,1]))
+                        if(length(dups)>0){
+                                map <- map[-dups,]
+                        }
+                        print(str(map))
+                        agg.data <- aggreg.probes.2(expr.data, map)
+                        agg.data <- as.matrix(agg.data)
+                        expr.data <- agg.data
+                        correctionLvl <- 2
+
+                        updateProgress(detail="Completed!", value=2/2)
+
+                        gVars$map <- map
+                        gVars$agg.data <- agg.data
+                        gVars$expr.data <- expr.data ## exprt.data here is agg.data, see above.
+
+                        tmpChoices <- rownames(gVars$expr.data)
+                        updateSelectizeInput(session=session, inputId='expGenes', choices=tmpChoices, server=TRUE)
+
+			shinyBS::updateButton(session, "launch_ann_modal", style="success", icon=icon("check-circle"))
+                        shinyBS::updateCollapse(session, "bsSidebar", open="DIFFERENTIAL ANALYSIS", style=list("ANNOTATION"="success", "DIFFERENTIAL ANALYSIS"="warning"))
                         shiny::updateTabsetPanel(session, "display", selected="tvTab")
                         shiny::updateTabsetPanel(session, "mtv", selected="mdsTab")
                         shiny::updateTabsetPanel(session, "mdsBox", selected="postAggTab")
                 })
 
                 observeEvent(input$skip_submit, {
+                        print("In Skip Submit!!!")
                         if(is.null(gVars$expr.data)){
+                                print("expr.data is null!!!")
                                 return(NULL)
                         }
 			arrType <- input$arrType
+                        print(paste0("arrType: ", arrType))
                         if(arrType!="ag_exp2"){
                                 if(arrType=="ag_exp1"){
                                         expr.data <- gVars$norm.data
@@ -1384,7 +1670,9 @@ shinyServer(
                                 }
                                 shinyBS::updateCollapse(session, "bsSidebar", open="DIFFERENTIAL ANALYSIS", style=list("BATCH CORRECTION"="success", "DIFFERENTIAL ANALYSIS"="warning"))
                         }else{
-                                return(NULL)
+                                shinyBS::updateCollapse(session, "bsSidebar", open="ANNOTATION", style=list("BATCH CORRECTION"="success", "ANNOTATION"="warning"))
+                                print("IN if context for ag2, updating collapse panel!")
+                                #return(NULL)
                         }
                 })
 
@@ -1414,6 +1702,8 @@ shinyServer(
                         if(is.null(gVars$expr.data))
                         return(NULL)
 
+                        shinyjs::html(id="loadingText", "DIFFERENTIAL ANALYSIS")
+
 			progress <- shiny::Progress$new()
 			updateProgress <- function(value=NULL, detail=NULL){
 				if (is.null(value)) {
@@ -1434,7 +1724,8 @@ shinyServer(
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
                                         svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
-                                        svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
+                                        #svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
+                                        svaSVc <- gVars$svaSVc
                                         phTable <- cbind(phTable, svaSV, svaSVc)
                                 }
                         }
@@ -1473,6 +1764,25 @@ shinyServer(
 
 			updateProgress(detail="Evaluating Expression...", value=2/3)
 			deg.list <- diff.gene.expr(data, des, contrasts=input$comps, pvalue=1, fcvalue=0, p.adjust.method=pvAdjMethod, annot=annDF, plot=F, verbose=T)
+
+                        print("Filtering Differential Expresssion Table...")
+			comp <- input$comps[1]
+			print(paste0("COMP SEL: ", comp))
+			degDF <- deg.list[[comp]]
+			
+			lfc <- as.numeric(input$lfcThr)
+			adjPv <- -log10(as.numeric(input$adjPvThr))
+			selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
+			if(length(selVec)==0){
+                                degDF <- NULL
+                        }else{
+                                degDF <- degDF[selVec,]
+                        }
+			gVars$filteredDeTable <- degDF
+                        gVars$compFilt <- comp
+			gVars$adjPvFilt <- input$adjPvThr
+			gVars$lfcFilt <- input$lfcThr
+
                         updateProgress(detail="Completed!", value=3/3)
 
 			gVars$deg.list <- deg.list
@@ -1482,15 +1792,18 @@ shinyServer(
 
 			tmpMethod <- names(gVars$pvAdjChoices[which(gVars$pvAdjChoices %in% pvAdjMethod)])
                         gVars$pvAdjMethod <- tmpMethod
-			updateSliderInput(session, "adjPvThr", label=paste0("Adj. P.Value Threshold (", tmpMethod, ")"))
+			#updateSliderInput(session, "adjPvThr", label=paste0("Adj. P.Value Threshold (", tmpMethod, ")"))
+			updateNumericInput(session, "adjPvThr", label=paste0("Adj. P.Value Threshold (", tmpMethod, ")"))
                         shiny::updateTabsetPanel(session, "display", selected="diffTab")
+                        shiny::updateTabsetPanel(session, "diffTBox", selected="diffSummTableTab")
                         shinyBS::updateCollapse(session, "bsSidebar", style = list("DIFFERENTIAL ANALYSIS"="success"))
 		})
 		
 		output$preBoxPlot <- renderPlot({
                         shiny::validate(need(input$arrType!="af_exp", "No plot for Affymetrix data!"))
                         shiny::validate(need(!is.null(gVars$norm.data), "Waiting for normalization..."))
-			filt.data <- gVars$filt.data()
+			#filt.data <- gVars$filt.data()
+			filt.data <- gVars$filt.data
                         if(input$arrType=="il_methyl"){
                                 filt.data <- minfi::preprocessRaw(filt.data)
                                 filt.data <- minfi::getMethSignal(filt.data, "M")
@@ -1525,7 +1838,14 @@ shinyServer(
                         shiny::validate(need(!is.null(gVars$norm.data), "Waiting for normalization..."))
                         if(input$arrType=="il_methyl"){
                                 Mset <- gVars$Mset
+                                shiny::validate(
+                                        need(any(is(Mset, "RGChannelSet"), is(Mset, "MethylSet")), "No plot for this nomalization method!")
+                                )
+                                #if(is(Mset, "RGChannelSet") || is(Mset, "MethylSet")){
                                 minfi::densityPlot(Mset, main="After Normalization", xlab="Beta")
+                                #}else{
+                                #        return("No plot for this nomalization method!")
+                                #}
                         }else{
                                 rgList.norm <- gVars$rgList.norm
                                 plotDensities(rgList.norm, main="After Normalization")
@@ -1562,11 +1882,14 @@ shinyServer(
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
                                         svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
-                                        #ph <- cbind(ph, svaSV) 
-                                        svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
+                                        ##ph <- cbind(ph, svaSV) 
+                                        #svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
+                                        svaSVc <- gVars$svaSVc
                                         ph <- cbind(ph, svaSV, svaSVc) 
                                 }
                         }
+                        print("Printing str(ph):")
+                        print(str(ph))
 			confounding(ph, margins = c(10,10))
 		},
 		height = function(){
@@ -1610,10 +1933,14 @@ shinyServer(
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
                                         svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
-                                        #ph <- cbind(ph, svaSV) 
-                                        svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
+                                        ##ph <- cbind(ph, svaSV) 
+                                        #svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
+                                        svaSVc <- gVars$svaSVc
                                         ph <- cbind(ph, svaSV, svaSVc) 
                                 }
+                        }
+                        if(npc>ncol(data)){
+                                npc <- ncol(data)
                         }
 			pr <- prince(data, ph, top=npc)
 			# generate the prince plot
@@ -1659,8 +1986,9 @@ shinyServer(
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
                                         svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
-                                        #ph <- cbind(ph, svaSV) 
-                                        svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
+                                        ##ph <- cbind(ph, svaSV) 
+                                        #svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
+                                        svaSVc <- gVars$svaSVc
                                         ph <- cbind(ph, svaSV, svaSVc) 
                                 }
                         }
@@ -1853,10 +2181,14 @@ shinyServer(
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
                                         svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
-                                        #ph <- cbind(ph, svaSV) 
-                                        svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
+                                        ##ph <- cbind(ph, svaSV) 
+                                        #svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
+                                        svaSVc <- gVars$svaSVc
                                         ph <- cbind(ph, svaSV, svaSVc) 
                                 }
+                        }
+                        if(npc>ncol(data)){
+                                npc <- ncol(data)
                         }
 			pr <- prince(data, ph[,test], top=npc)
 			# generate the prince plot
@@ -1887,6 +2219,9 @@ shinyServer(
 			data <- gVars$comb.sva.data
 			npc = 10
 			test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
+                        if(npc>ncol(data)){
+                                npc <- ncol(data)
+                        }
 			pr <- prince(data, ph[,test], top=npc)
 			# generate the prince plot
 			prince.plot(prince=pr, margins=c(15,15), note=TRUE)
@@ -1906,52 +2241,83 @@ shinyServer(
 			}
 		})
                 
-		observeEvent(input$compDE, {
-			if(is.null(gVars$deg.list))
-			return(NULL)
+		#observeEvent(input$compDE, {
+		#	if(is.null(gVars$deg.list))
+		#	return(NULL)
 
-			print("Comps Sel")
-			deg.list <- gVars$deg.list
-			comp <- input$compDE
-			print(paste0("COMP DE: ", input$compDE))
-			degDF <- deg.list[[comp]]
-			updateSliderInput(session, "adjPvThr", 
-				#min=ceiling(min(-log10(degDF$adj.P.Val))), 
-				min=0, 
-				max=floor(max(-log10(degDF$adj.P.Val)))#, 
-			)
-			updateSliderInput(session, "lfcThr", 
-				min=floor(min(abs(degDF$logFC))), 
-				max=floor(max(abs(degDF$logFC)))#, 
-			)
-		})
+		#	print("Comps Sel")
+		#	deg.list <- gVars$deg.list
+		#	comp <- input$compDE
+		#	print(paste0("COMP DE: ", input$compDE))
+		#	degDF <- deg.list[[comp]]
+		#	updateSliderInput(session, "adjPvThr", 
+		#		#min=ceiling(min(-log10(degDF$adj.P.Val))), 
+		#		min=0, 
+		#		max=floor(max(-log10(degDF$adj.P.Val)))#, 
+		#	)
+		#	updateSliderInput(session, "lfcThr", 
+		#		min=floor(min(abs(degDF$logFC))), 
+		#		max=floor(max(abs(degDF$logFC)))#, 
+		#	)
+		#})
 		
-                gVars$filteredDeTable <- reactive({
+                #gVars$filteredDeTable <- reactive({
+                observeEvent(input$filterDE_submit, {
 			if(is.null(gVars$deg.list) || is.null(input$compDE))
 			return(NULL)
 
+                        progress <- shiny::Progress$new()
+			updateProgress <- function(value=NULL, detail=NULL){
+				if (is.null(value)) {
+					value <- progress$getValue()
+					value <- value + (progress$getMax() - value) / 5
+				}
+				progress$set(value = value, detail = detail)
+			}
+                        on.exit({
+                                progress$close()
+                        })
+                        progress$set(message="Filtering DE:", value=0)
+
+                        updateProgress(detail="...", value=1/2)
                 	deg.list <- gVars$deg.list
 			comp <- input$compDE
 			print(paste0("COMP SEL: ", input$compDE))
 			degDF <- deg.list[[comp]]
 			
 			lfc <- as.numeric(input$lfcThr)
-			adjPv <- as.numeric(input$adjPvThr)
+			#adjPv <- as.numeric(input$adjPvThr)
+			adjPv <- -log10(as.numeric(input$adjPvThr))
 			selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
 			if(length(selVec)==0)
 			return(NULL)
 
-			degDF <- degDF[selVec,]
+			#degDF <- degDF[selVec,]
+			gVars$filteredDeTable <- degDF[selVec,]
+                        gVars$compFilt <- comp
+			gVars$adjPvFilt <- input$adjPvThr
+			gVars$lfcFilt <- input$lfcThr
 		})
+
+                output$deSummTable <- DT::renderDataTable({
+			shiny::validate(need(!is.null(gVars$deg.list), "Waiting for Differential Analysis Results..."))
+			shiny::validate(need(length(gVars$deg.list)>0, "Waiting for Differential Analysis Results..."))
+
+                	deg.list <- gVars$deg.list
+                        summDF <- get_deg_summary(deg_list=deg.list, names=names(deg.list))
+			DT::datatable(summDF, filter=list(position='top', clear=FALSE), options=list(search=list(regex=TRUE, caseInsensitive=FALSE), scrollX=TRUE))
+		},server=TRUE)
 
 		output$deTable <- DT::renderDataTable({
 			shiny::validate(need(!is.null(gVars$deg.list), "Waiting for Differential Analysis Results..."))
 			shiny::validate(need(length(gVars$deg.list)>0, "Waiting for Differential Analysis Results..."))
-			shiny::validate(need(!is.null(gVars$filteredDeTable()), "Filtered Differential Table is Empty!..."))
+			#shiny::validate(need(!is.null(gVars$filteredDeTable()), "Filtered Differential Table is Empty!..."))
+			shiny::validate(need(!is.null(gVars$filteredDeTable), "Filtered Differential Table is Empty!..."))
 
-			comp <- input$compDE
+			#comp <- input$compDE
 			arrType <- input$arrType
-			degDF <- gVars$filteredDeTable()
+			#degDF <- gVars$filteredDeTable()
+			degDF <- gVars$filteredDeTable
                         if(arrType=="il_methyl"){
                                 degDF <- as.data.frame(cbind(degDF, Other[degDF$ID, c(3:ncol(Other))]), stringsAsFactors=F)
                         }
@@ -1965,7 +2331,8 @@ shinyServer(
 			content = function(con){
                                 deg.list <- gVars$deg.list
 				lfc <- as.numeric(input$lfcThr)
-				adjPv <- as.numeric(input$adjPvThr)
+				#adjPv <- as.numeric(input$adjPvThr)
+				adjPv <- -log10(as.numeric(input$adjPvThr))
 
 				#Update Names
 				names(deg.list) <- strtrim(paste0(c(1:length(deg.list)), ".", names(deg.list)), 30)
@@ -1996,11 +2363,55 @@ shinyServer(
 			}
 		)
 
-                output$exportRpt <- shiny::downloadHandler(
+                output$exportNormMat <- shiny::downloadHandler(
 			filename = function(){
-				paste("eUTOPIA_Analysis_Report_", Sys.Date(), '.PDF', sep='')
+				paste("Expression_Matrix_Normalized_", Sys.Date(), '.txt', sep='')
 			},
 			content = function(con){
+                                data <- gVars$norm.data
+				write.table(data, con, row.names=TRUE, col.names=TRUE, quote=FALSE, sep="\t")
+			}
+		)
+
+                output$exportFiltMat <- shiny::downloadHandler(
+			filename = function(){
+				paste("Expression_Matrix_Filtered_", Sys.Date(), '.txt', sep='')
+			},
+			content = function(con){
+                                #data <- gVars$filt.data()
+                                data <- gVars$filt.data
+				write.table(data, con, row.names=TRUE, col.names=TRUE, quote=FALSE, sep="\t")
+			}
+		)
+
+                output$exportCorrMat <- shiny::downloadHandler(
+			filename = function(){
+				paste("Expression_Matrix_Corrected_", Sys.Date(), '.txt', sep='')
+			},
+			content = function(con){
+                                data <- gVars$comb.data
+				write.table(data, con, row.names=TRUE, col.names=TRUE, quote=FALSE, sep="\t")
+			}
+		)
+
+                output$exportAggMat <- shiny::downloadHandler(
+			filename = function(){
+				paste("Expression_Matrix_Aggregated_", Sys.Date(), '.txt', sep='')
+			},
+			content = function(con){
+                                data <- gVars$agg.data
+				write.table(data, con, row.names=TRUE, col.names=TRUE, quote=FALSE, sep="\t")
+			}
+		)
+
+                output$exportRpt <- shiny::downloadHandler(
+			filename = function(){
+				paste("eUTOPIA_Analysis_Report_", Sys.Date(), '.pdf', sep='')
+			},
+			content = function(con){
+                                on.exit({
+                                        shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
+                                })
                                 #Disable Warning
                                 oldw <- getOption("warn")
                                 options(warn = -1)
@@ -2023,14 +2434,17 @@ shinyServer(
                         if(is.null(gVars$deg.list)){
                                return(NULL)
                         }
+                        adjPv <- -log10(as.numeric(gVars$adjPvFilt))
                         deg.list <- gVars$deg.list
-			comp <- input$compDE
+			#comp <- input$compDE
+			comp <- gVars$compFilt
 			deg <- deg.list[[comp]]
 			deg <- data.frame(x=as.numeric(deg$logFC), y=-log10(as.numeric(deg$adj.P.Val)), ID=rownames(deg))
 			p <- ggplot(deg, aes(x, y, label= ID)) + geom_point() +
 			geom_vline(xintercept = input$lfcThr, color = "blue") + 
 			geom_vline(xintercept = -input$lfcThr, color = "blue") + 
-			geom_hline(yintercept = input$adjPvThr, color = "red") +  
+			#geom_hline(yintercept = input$adjPvThr, color = "red") +  
+			geom_hline(yintercept = adjPv, color = "red") +  
 			labs(x="log2(Fold-change)", y="-log10(P.Value)")
                         gVars$volDeg <- deg
                         return(p)
@@ -2040,11 +2454,16 @@ shinyServer(
                         shiny::validate(need(!is.null(gVars$deg.list), "Waiting for Differential Analysis Results..."))
                         #shiny::validate(need(!is.null(gVars$volDeg), "Waiting for Differential Analysis Results..."))
 
+                        #adjPvThr <- -log10(as.numeric(input$adjPvThr))
+                        adjPv <- -log10(as.numeric(gVars$adjPvFilt))
+                        lfc <- gVars$lfcFilt
+
                         p <- gVars$volGGplot()
                         deg <- gVars$volDeg
                         print("str(deg)")
                         print(str(deg))
-                        degSel <- deg[deg$y>=input$adjPvThr & abs(deg$x)>=input$lfcThr,]
+                        #degSel <- deg[deg$y>=adjPvThr & abs(deg$x)>=input$lfcThr,]
+                        degSel <- deg[deg$y>=adjPv & abs(deg$x)>=lfc,]
 
 			p <- p +
                         geom_point(data = degSel, color = "red") +
@@ -2064,8 +2483,11 @@ shinyServer(
                 output$intersectPlot <- renderPlot({
                         shiny::validate(need(!is.null(gVars$deg.list), "Waiting for Differential Analysis Results..."))
 			deg.list <- gVars$deg.list
-			lfc <- as.numeric(input$lfcThr)
-			adjPv <- as.numeric(input$adjPvThr)
+			#lfc <- as.numeric(input$lfcThr)
+			##adjPv <- as.numeric(input$adjPvThr)
+			#adjPv <- -log10(as.numeric(input$adjPvThr))
+			lfc <- as.numeric(gVars$lfcFilt)
+			adjPv <- -log10(as.numeric(gVars$adjPvFilt))
 			intersectComps <- input$intersectComps
 
 			deg.item.list <- list()
@@ -2255,11 +2677,12 @@ shinyServer(
 			if(is.null(gVars$annLoaded)){
 				dispStr <- "<p 'style color:red'><b>Waiting for upload!</b></p>"
 			}else{
-                                annDF <- gVars$annDF()
-                                mis <- apply(annDF[,-1], 2, function(x){sum(sum(is.na(x)), is.null(x),sum(x==""))})
-                                percMis <- round(100-(mis/nrow(annDF)*100))
-                                percMisStr <- paste0(names(percMis), "[", percMis, "%", "]")
-                                dispStr <- paste0("<p>", paste(percMisStr, collapse=", "), "</p>")
+                                #annDF <- gVars$annDF()
+                                #mis <- apply(annDF[,-1], 2, function(x){sum(sum(is.na(x)), is.null(x),sum(x==""))})
+                                #percMis <- round(100-(mis/nrow(annDF)*100))
+                                #percMisStr <- paste0(names(percMis), "[", percMis, "%", "]")
+                                #dispStr <- paste0("<p>", paste(percMisStr, collapse=", "), "</p>")
+                                dispStr <- gVars$annMapDispStr
                         }
 
 			HTML(dispStr)
@@ -2337,21 +2760,93 @@ shinyServer(
 			)
 		})
 
+                output$exportQC <- shiny::downloadHandler(
+			filename = function(){
+                                if(input$arrType=="af_exp"){
+                                        if(gVars$cdfQCerr){
+                                                exn <- ".txt"
+                                        }else{
+                                                exn <- ".pdf"
+                                        }
+                                        resStr <- paste0("eUTOPIA_Affymetrix_QC_Report_", Sys.Date(), exn)
+                                }else if(grepl("ag_exp.*", input$arrType)){
+                                        exn <- ".tar.gz"
+                                        resStr <- paste0("eUTOPIA_Agilent_QC_Report_", Sys.Date(), exn)
+                                }else if(input$arrType=="il_methyl"){
+                                        exn <- ".pdf"
+                                        resStr <- paste0("eUTOPIA_Illumina_Methylation_QC_Report_", Sys.Date(), exn)
+                                }
+                                #paste0("eUTOPIA_Array_QC_Report_", Sys.Date(), exn)
+                                return(resStr)
+			},
+			content = function(con){
+                                on.exit({
+                                        shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
+                                })
+                                if(input$arrType=="af_exp"){
+                                        if(gVars$cdfQCerr){
+                                                #tempReportDir <- file.path(tempdir(), Sys.Date())
+                                                #arrayQualityMetrics::arrayQualityMetrics(expressionset=gVars$affyBatchObject, outdir=tempReportDir, force=TRUE, do.logtransform=TRUE)
+                                                #tar(tarfile=con, files=tempReportDir, compression="gzip", tar="tar")
+                                                resStr <- paste0("Could not find .qcdef file for '", input$affCDF, "'!\n\n No QC was performed.")
+                                                #shinyjs::info(resStr)
+                                                write.table(resStr, file=con, sep="\t")
+                                                return(NULL)
+                                        }else{
+                                                #affyQCReport::QCReport(gVars$affyBatchObject, file=con)
+                                                tempReportDir <- file.path(tempdir(), Sys.Date())
+                                                plotFilename <- file.path(tempReportDir, "plot.pdf")
+                                                qobj <- yaqcaffy::yaqc(gVars$affyBatchObject)
+                                                pdf(plotFilename, width=10, height=10)
+                                                plot(qobj)
+                                                dev.off()
+                                                file.copy(plotFilename, con)
+                                        }
+                                        shinyBS::updateCollapse(session, "bsSidebar", open="BATCH CORRECTION", style=list("QUALITY CONTROL"="success", "BATCH CORRECTION"="warning"))
+                                }else if(input$arrType=="ag_exp2"){
+                                        tempReportDir <- file.path(tempdir(), Sys.Date())
+                                        arrayQualityMetrics::arrayQualityMetrics(expressionset=gVars$rgList, outdir=tempReportDir, force=TRUE, reporttitle=paste0("Array Quality Metrics"))
+                                        tar(tarfile=con, files=tempReportDir, compression="gzip", tar="tar")
+                                        shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("QUALITY CONTROL"="success", "PROBE FILTERING"="warning"))
+                                }else if(input$arrType=="ag_exp1"){
+                                        eset <- ExpressionSet(assayData=assayDataNew(exprs=gVars$eListRaw$E))
+                                        tempReportDir <- file.path(tempdir(), Sys.Date())
+                                        arrayQualityMetrics::arrayQualityMetrics(expressionset=eset, outdir=tempReportDir, force=TRUE, reporttitle=paste0("Array Quality Metrics"))
+                                        tar(tarfile=con, files=tempReportDir, compression="gzip", tar="tar")
+                                        shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("QUALITY CONTROL"="success", "PROBE FILTERING"="warning"))
+                                }else if(input$arrType=="il_methyl"){
+                                        minfi::qcReport(gVars$RGset, sampNames=NULL, sampGroups=NULL, pdf=con, maxSamplesPerPage=24, controls=c("BISULFITE CONVERSION I", "BISULFITE CONVERSION II", "EXTENSION", "HYBRIDIZATION", "NON-POLYMORPHIC", "SPECIFICITY I", "SPECIFICITY II", "TARGET REMOVAL"))
+                                        shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("QUALITY CONTROL"="success", "PROBE FILTERING"="warning"))
+                                }
+			}
+		)
+
 		##DYNAMIC UI WIDGETS
+
+                output$loading_text <- renderText({
+                        #loadingText <- gVars$loadingText
+                        loadingText <- "LOADING"
+                        return(loadingText)
+                })
+
 		output$selFileNameCol <- renderUI({
-			selectInput("fileNameCol", "Filename Column", choices=gVars$phColChoices())
+			#selectInput("fileNameCol", "Filename Column", choices=gVars$phColChoices())
+			selectInput("fileNameCol", "Filename Variable", choices=gVars$phColChoices())
 		})
 
 		output$selDyeCol <- renderUI({
-			selectInput("dyeCol", "Dye Column", choices=gVars$phColChoices())
+			#selectInput("dyeCol", "Dye Column", choices=gVars$phColChoices())
+			selectInput("dyeCol", "Dye Variable", choices=gVars$phColChoices())
 		})
 
 		output$selSampleIDCol <- renderUI({
-			selectInput("sampleIDCol", "Sample ID Column", choices=gVars$phColChoices())
+			#selectInput("sampleIDCol", "Sample ID Column", choices=gVars$phColChoices())
+			selectInput("sampleIDCol", "Sample ID Variable", choices=gVars$phColChoices())
 		})
 
 		output$selSep <- renderUI({
-			selectInput("sepS", "Column Seperator", choices=gVars$sepChoices, selected=gVars$sepChoices[1])
+			#selectInput("sepS", "Column Seperator", choices=gVars$sepChoices, selected=gVars$sepChoices[1])
+			selectInput("sepS", "Field Seperator", choices=gVars$sepChoices, selected=gVars$sepChoices[1])
 		})
 
 		output$selQuote <- renderUI({
@@ -2359,7 +2854,8 @@ shinyServer(
 		})
 
                 output$selSepAnno <- renderUI({
-			selectInput("sepSAnno", "Column Seperator", choices=gVars$sepChoices, selected=gVars$sepChoices[1])
+			#selectInput("sepSAnno", "Column Seperator", choices=gVars$sepChoices, selected=gVars$sepChoices[1])
+			selectInput("sepSAnno", "Field Seperator", choices=gVars$sepChoices, selected=gVars$sepChoices[1])
 		})
 
 		output$selAffCDF <- renderUI({
@@ -2476,17 +2972,25 @@ shinyServer(
                 output$selProbeID <- renderUI({
 			selectInput("probeID", "Probe ID", choices=gVars$annChoices(), multiple=FALSE)
 		})
-		
-		#output$slideFiltDist <- renderUI({
-		#	sliderInput("filtDist", "Quantile Based Cutoff", min=0.10, max=1.0, value=0.75, step=0.05, round=2)
-		#})
-		#
-		#output$slidePerSamples <- renderUI({
-		#	sliderInput("perSamples", "Percentage of Samples", min=1, max=100, value=75, step=1)
-		#})
 
 		output$selNormMethod <- renderUI({
-			selectInput("normMethod", "Normalization Type", choices=gVars$normChoices, selected="BA", multiple=FALSE)
+                        if(input$arrType=="il_methyl"){
+			        selectInput("normMethod", "Normalization Method", 
+                                        choices=c(
+                                                #"Siubset-quantile Within Array Normalization"="SWAN",
+                                                "SWAN"="SWAN",
+                                                "Raw"="Raw",
+                                                "Quantile"="Quantile",
+                                                "Normal-exponent out-of-band"="Noob",
+                                                "Illumina"="Illumina",
+                                                "Functional Normalization"="FunNorm"
+                                        ), 
+                                        selected="SWAN", 
+                                        multiple=FALSE
+                                )
+                        }else{
+			        selectInput("normMethod", "Normalization Type", choices=gVars$normChoices, selected="BA", multiple=FALSE)
+                        }
 		})
 		
 		output$selNormMethod2 <- renderUI({
@@ -2532,22 +3036,23 @@ shinyServer(
 			selectInput("compDE", "Select Comparison", choices=deChoices, multiple=FALSE)
 		})
 		
-		output$slideLfcThr <- renderUI({
-                        sliderInput("lfcThr", "LogFC Threshold", min=0, max=3, value=0.8, step=0.1)
-		})
+		#output$slideLfcThr <- renderUI({
+                #        sliderInput("lfcThr", "LogFC Threshold", min=0, max=3, value=0.8, step=0.1)
+		#})
 
-		output$slideAdjPvThr <- renderUI({
-			#tmpTitle <- paste0("Adj. P.Value Threshold (", input$pvAdjMethod, ")")
-                        #sliderInput("adjPvThr", tmpTitle, min=1, max=15, value=5, step=1)
+		#output$slideAdjPvThr <- renderUI({
+		#	#tmpTitle <- paste0("Adj. P.Value Threshold (", input$pvAdjMethod, ")")
+                #        #sliderInput("adjPvThr", tmpTitle, min=1, max=15, value=5, step=1)
 
-                        #pvAdjMethod <- input$pvAdjMethod
-			#tmpMethod <- names(gVars$pvAdjChoices[which(gVars$pvAdjChoices %in% pvAdjMethod)])
-			tmpMethod <- gVars$pvAdjMethod
-                        if(is.null(tmpMethod)){
-                                tmpMethod <- "none"
-                        }
-                        sliderInput("adjPvThr", paste0("Adj. P.Value Threshold (", tmpMethod, ")"), min=0, max=15, value=5, step=1)
-		})
+                #        #pvAdjMethod <- input$pvAdjMethod
+		#	#tmpMethod <- names(gVars$pvAdjChoices[which(gVars$pvAdjChoices %in% pvAdjMethod)])
+		#	tmpMethod <- gVars$pvAdjMethod
+                #        if(is.null(tmpMethod)){
+                #                tmpMethod <- "none"
+                #        }
+                #        #sliderInput("adjPvThr", paste0("Adj. P.Value Threshold (", tmpMethod, ")"), min=0, max=15, value=5, step=1)
+                #        numericInput("adjPvThr", paste0("Adj. P.Value Threshold (", tmpMethod, ")"), value=0.05, min=0, max=1, step=0.001)
+		#})
 
 		output$htmlDegInfo <- renderUI({
                         shiny::validate(
@@ -2561,7 +3066,8 @@ shinyServer(
 			#}
 			deg.list <- gVars$deg.list
 			lfc <- as.numeric(input$lfcThr)
-			adjPv <- as.numeric(input$adjPvThr)
+			#adjPv <- as.numeric(input$adjPvThr)
+			adjPv <- -log10(as.numeric(input$adjPvThr))
 
 			degCounts <- unlist(lapply(deg.list, function(degDF) {
 				selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
@@ -2586,10 +3092,12 @@ shinyServer(
 		})
 
 		output$htmlValTable <- renderUI({
-			if(is.null(gVars$filteredDeTable())){
+			#if(is.null(gVars$filteredDeTable())){
+			if(is.null(gVars$filteredDeTable)){
 				lfc <- pv <- apv <- sc.min <- sc.max <- "NA"
 			}else{
-				degDF <- gVars$filteredDeTable()
+				#degDF <- gVars$filteredDeTable()
+				degDF <- gVars$filteredDeTable
 				lfc <- 2^input$lfcThr
 				pv <- sprintf("%11.2e", max(degDF$P.Value))
 				apv <- sprintf("%11.2e", max(degDF$adj.P.Val))
@@ -2684,6 +3192,57 @@ shinyServer(
 				shinyjs::enable("dirButton")
 			}
 
+                        if(is.null(gVars$phLoaded)){
+			        shinyjs::hide("phenoPreviewDiv")
+                        }else{
+				shinyjs::show("phenoPreviewDiv")
+                        }
+
+                        if(is.null(gVars$loadedRaw) && !isTRUE(gVars$loadedRaw)){
+			        shinyjs::disable("exportQC")
+                        }else{
+				shinyjs::enable("exportQC")
+                        }
+
+                        if(is.null(gVars$normalized) && !isTRUE(gVars$normalized)){
+			        shinyjs::disable("exportRpt")
+                        }else{
+				shinyjs::enable("exportRpt")
+                        }
+
+                        #if(is.null(gVars$expr.data)){
+			#        shinyjs::disable("exportMat")
+                        #}else{
+			#	shinyjs::enable("exportMat")
+                        #}
+
+                        #if(is.null(gVars$filt.data())){
+                        if(is.null(gVars$filt.data)){
+			        shinyjs::disable("exportFiltMat")
+				shinyjs::disable("norm_submit")
+                        }else{
+				shinyjs::enable("exportFiltMat")
+				shinyjs::enable("norm_submit")
+                        }
+
+                        if(is.null(gVars$norm.data)){
+			        shinyjs::disable("exportNormMat")
+                        }else{
+				shinyjs::enable("exportNormMat")
+                        }
+
+                        if(is.null(gVars$comb.data)){
+			        shinyjs::disable("exportCorrMat")
+                        }else{
+				shinyjs::enable("exportCorrMat")
+                        }
+
+                        if(is.null(gVars$agg.data)){
+			        shinyjs::disable("exportAggMat")
+                        }else{
+				shinyjs::enable("exportAggMat")
+                        }
+
 			if(input$arrType=="ag_exp2"){
 				shinyjs::show("selDyeCol")
 			}else if(input$arrType=="af_exp"){
@@ -2724,21 +3283,21 @@ shinyServer(
                                         shinyjs::enable("perSamples")
                                 }
                         }else{
-                                        shinyjs::enable("perSamples")
+                                shinyjs::enable("perSamples")
                         }
 
-			if(is.null(gVars$filt.data())){
-				shinyjs::disable("norm_submit")
-			}else{
-				shinyjs::enable("norm_submit")
-			}
+			#if(is.null(gVars$filt.data())){
+			#	shinyjs::disable("norm_submit")
+			#}else{
+			#	shinyjs::enable("norm_submit")
+			#}
 
-                        if(input$annType=="mart"){
-			        shinyjs::hide("annFile")
-				shinyjs::show("annQuery")
+                        if(input$annType=="raw"){
+			        shinyjs::hide("launchAnnModalDiv")
+				shinyjs::show("submitAnnDiv")
                         }else if(input$annType=="file"){
-			        shinyjs::hide("annQuery")
-				shinyjs::show("annFile")
+			        shinyjs::hide("submitAnnDiv")
+				shinyjs::show("launchAnnModalDiv")
                         }
 
 			if(!is.null(input$sepS) && input$sepS=="OTHER"){
@@ -2936,9 +3495,42 @@ shinyServer(
 		shinyBS::addTooltip(session, id="selControl", title="Select the corresponding control condition from the 'Variable of Interest'!", placement="top", trigger="focus")
 		shinyBS::addTooltip(session, id="selComps", title="Add/Remove the composed comparisons for differential analysis!", placement="top", trigger="focus")
 
-		shinyjs::onclick(id="upload_raw_submit", shinyjs::show(id="loading-content"))
-		shinyjs::onclick(id="norm_submit", shinyjs::show(id="loading-content"))
-		shinyjs::onclick(id="de_submit", shinyjs::show(id="loading-content"))
+		shinyjs::onclick(id="upload_raw_submit", {
+                        shinyjs::html(id="loadingText", "UPLOADING RAW DATA")
+                        shinyjs::show(id="loading-content")
+                })
+		shinyjs::onclick(id="exportQC", {
+                        shinyjs::html(id="loadingText", "CREATING QC REPORT")
+                        shinyjs::show(id="loading-content")
+                })
+		shinyjs::onclick(id="filt_submit", {
+                        shinyjs::html(id="loadingText", "FILTERING DATA")
+                        shinyjs::show(id="loading-content")
+                })
+		shinyjs::onclick(id="norm_submit", {
+                        shinyjs::html(id="loadingText", "NORMALIZING DATA")
+                        shinyjs::show(id="loading-content")
+                })
+		shinyjs::onclick(id="sva_submit", {
+                        shinyjs::html(id="loadingText", "SURROGATE VARIABLE ANALYSIS")
+                        shinyjs::show(id="loading-content")
+                })
+		shinyjs::onclick(id="combat_submit", {
+                        shinyjs::html(id="loadingText", "BATCH CORRECTION")
+                        shinyjs::show(id="loading-content")
+                })
+		shinyjs::onclick(id="de_submit", {
+                        shinyjs::html(id="loadingText", "DIFFERENTIAL ANALYSIS")
+                        shinyjs::show(id="loading-content")
+                })
+		shinyjs::onclick(id="submit_ann", {
+                        shinyjs::html(id="loadingText", "ANNOTATION & AGGREGATION")
+                        shinyjs::show(id="loading-content")
+                })
+                shinyjs::onclick(id="exportRpt", {
+                        shinyjs::html(id="loadingText", "CREATING ANALYSIS REPORT")
+                        shinyjs::show(id="loading-content")
+                })
 		#shinyjs::onclick(id="install_cdf_submit", shinyjs::show(id="loading-content"))
 
 		##Hide the loading message when the rest of the server function has executed
@@ -2951,35 +3543,30 @@ shinyServer(
                         arrType <- input$arrType
 			print(paste0("Array Type: ", arrType))
                         if(arrType=="ag_exp2"){
-				#shinyjs::hide("affCDF")
-				#shinyjs::hide("install_affCDF_submit")
 				shinyjs::hide("affAnnDiv")
 				shinyjs::hide("detectPV")
                         }else if(arrType=="af_exp"){
-				#shinyjs::show("affCDF")
-				#shinyjs::show("install_affCDF_submit")
 				shinyjs::show("affAnnDiv")
-				#shinyjs::hide("import_ann_submit")
 				shinyjs::hide("launch_ann_modal")
 				shinyjs::hide("detectPV")
+
+				#Test bsCollapsePanel hiding function
+				hideBSCollapsePanel(session, panel.name="PROBE FILTERING")
+				hideBSCollapsePanel(session, panel.name="NORMALIZATION")
+				hideBSCollapsePanel(session, panel.name="ANNOTATION")
                         }else if(arrType=="ag_exp1"){
-				#shinyjs::hide("affCDF")
-				#shinyjs::hide("install_affCDF_submit")
 				shinyjs::hide("affAnnDiv")
-				#shinyjs::hide("import_ann_submit")
 				shinyjs::hide("launch_ann_modal")
 				shinyjs::hide("detectPV")
+				hideBSCollapsePanel(session, panel.name="ANNOTATION")
                         }else if(arrType=="il_methyl"){
-				#shinyjs::hide("affCDF")
-				#shinyjs::hide("install_affCDF_submit")
 				shinyjs::show("detectPV")
-				shinyjs::hide("selNormMethod")
+				#shinyjs::hide("selNormMethod")
 				shinyjs::hide("selNormMethod2")
-				#shinyjs::hide("slideFiltDist")
 				shinyjs::hide("filtDist")
 				shinyjs::hide("affAnnDiv")
-				#shinyjs::hide("import_ann_submit")
 				shinyjs::hide("launch_ann_modal")
+				hideBSCollapsePanel(session, panel.name="ANNOTATION")
                         }
 		})
 

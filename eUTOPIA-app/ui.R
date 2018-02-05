@@ -4,6 +4,8 @@ suppressMessages(library(shinyBS))
 suppressMessages(library(shinydashboard))
 suppressMessages(library(shinyFiles))
 suppressMessages(library(DT))
+suppressMessages(library(rhandsontable))
+suppressMessages(library(shinycssloaders))
 
 jsCode <- "
 shinyjs.init = function() {
@@ -106,12 +108,26 @@ shinyjs.init = function() {
 		plotDivs[i].addEventListener('mouseup', replot);
 		//plotDivs[i].onresize = function() {resizePlot()};
 	}
+
+        //Function to hide unwanted bsCollapsePanel
+        Shiny.addCustomMessageHandler('hideBSCollapsePanelMessage',
+		function(message){
+			//alert('The value is ' + message.name);
+			//var html = $(\"div[value='\" + message.name + \"']\").html();
+			//var obj = $(\"div[value='\" + message.name + \"']\");
+			$(\"div[value='\" + message.name + \"']\").addClass(\"hidden\");
+			//alert('The obj HTML is ' + html);
+			//alert('The obj is ' + obj);
+		}
+	);
+
 }"
 
 appCSS <- "
 	//.main-header { z-index: 100000; }
 	.main-sidebar { background-color: white !important; width: 15%; }
 	.sidebar { color: black; max-height: 900px; overflow-y: scroll; }
+	.sidebar a { color: black !important; }
 	.content-wrapper { margin-left: 15%; }
 	//.panel { background-color: #222d32; }
 	.panel-title a { font-weight: bold; color: white !important; }
@@ -119,6 +135,7 @@ appCSS <- "
 	.panel-warning { border-color: #8de9ff; }
 	.panel-danger .panel-heading { background-color: #dd4b39; }
 	.panel-success .panel-heading { background-color: #00a65a; }
+	.panel-info .panel-heading { background-color: #7e46ff; }
 	//.info-box-icon { height: 40px; width: 40px; }
 	.sizeable { resize: both; overflow: auto; height: auto; width: 60%; padding: 5px 5px 5px 5px; box-shadow: 2px 2px 2px #888888; display: inline-block; }
         .sizeable:active { width: 0; height: 0; }
@@ -139,31 +156,39 @@ appCSS <- "
 		border-radius: 5px;
 	}
 
+        #buttonsDiv {
+                overflow: hidden;
+                width: auto;
+        }
+
 	#loading-content {
-		position: fixed;
-		background: #663399 !important;
-		//background: white !important;
-		opacity: 0.4;
+		//position: fixed;
+		position: absolute;
+		//background: #663399 !important;
+		background: white !important;
+		//background: #cfd7d7 !important;
+		opacity: 0.8;
 		z-index: 1000000;
 		left: 0;
 		right: 0;
 		top: 0;
-		padding-top: 50px;
+		//padding-top: 50%;
 		bottom: 0;
 		font-size: 50px;
 		text-align: center;
-		color: #FFFFFF;
+		color: #black;
 	}
 
 	#loading-gif { 
-		position: absolute;
+		//position: absolute;
 		opacity: 0.8; 
 		display: block;
 		margin-left: auto;
 		margin-right: auto;
+		vertical-align: middle;
 		z-index: 1000000;
-		left: 30%;
-		top: 20%;
+		//left: 30%;
+		//top: 20%;
 	}
 
 	.container-fluid { padding-left: 0px; padding-right: 0px; }
@@ -211,7 +236,11 @@ fluidPage(
 	tags$head(tags$script(src="resizing.js")),
 	inlineCSS(appCSS),
 	div(id="loading-content",
-		img(id="loading-gif", src="screen-loading.gif")
+		img(id="loading-gif", src="screen-loading.gif"),
+                #p("LOADING...")
+                #h1(textOutput("loading_text")),
+                p(id="loadingText", "LOADING"),
+                p("...")
 	),
 	div(id="sel-array-type",
 		div(id="widget-wrap",
@@ -242,7 +271,7 @@ fluidPage(
                                                 #shinyDirButton("dirButton", label="Browse", title="Select Directory", buttonType="default"),
 						#shinyBS::bsTooltip("dirButton", "Browse local system directories and select the directory containing the RAW data files!", placement="bottom")
                                                 div(id="outerDgxDiv", class="form-group shiny-input-container",
-                                                        tags$label("Differential Gene Expression Table"),
+                                                        tags$label("Select Directory"),
                                                         div(id="innerDgxDiv", class="input-group",
                                                                 div(id="dgxBtnDiv", class="input-group-btn",
                                                                         shinyDirButton("dirButton", label="Browse", title="Select Directory", buttonType="default"),
@@ -252,12 +281,12 @@ fluidPage(
                                                         )
                                                 )
                                         )
-                                ),fluidRow(
-                                        column(1, align="center",
-                                                p("")
-                                        ),column(11, align="left",
-                                                textOutput("dirText")
-                                        )
+                                #),fluidRow(
+                                #        column(1, align="center",
+                                #                p("")
+                                #        ),column(11, align="left",
+                                #                textOutput("dirText")
+                                #        )
                                 ),fluidRow(
 					column(12,
 						hr(),
@@ -276,20 +305,36 @@ fluidPage(
 						)
 					)
                                 ),fluidRow(
-                                        column(1, align="center",
-                                                p("")
-                                        ),column(11, align="left",
+                                        #column(1, align="center",
+                                        #        p("")
+                                        #),column(11, align="left",
+                                        column(12, align="center",
                                                 actionButton("upload_raw_submit", "Upload")
+                                        )
+                                )
+                        ),bsCollapsePanel("QUALITY CONTROL", style="danger",
+                                fluidRow(
+                                        column(12, align="center",
+                                        #column(12,
+                                                downloadButton("exportQC", "QC Report")
+                                        )
+                                ),fluidRow(
+                                        column(12, align="center",
+                                                actionButton("qc_skip_submit", "Skip QC")
                                         )
                                 )
                         ),bsCollapsePanel("PROBE FILTERING", style="danger",
                                 fluidRow(
                                         column(12,
-                                                #uiOutput("slideFiltDist"),
                                                 sliderInput("filtDist", "Quantile Based Cutoff", min=0.10, max=1.0, value=0.75, step=0.05, round=2),
                                                 selectInput("detectPV", "P.value detection threshold", choices=c(0.01, 0.05), selected=0.01),
-                                                sliderInput("perSamples", "Percentage of Samples", min=1, max=100, value=75, step=1)
-                                                #uiOutput("slidePerSamples")
+                                                sliderInput("perSamples", "Percentage of Samples", min=1, max=100, value=75, step=1),
+                                                hr()
+                                        )
+                                ),fluidRow(
+                                        column(12, align="center",
+                                                actionButton("filt_submit", "Filter"),
+                                                hr()
                                         )
                                 ),fluidRow(
                                         column(12, align="center",
@@ -337,17 +382,40 @@ fluidPage(
                                                 )
                                         )
                                 ),fluidRow(
-                                        column(12, align="left",
-                                                #actionButton("import_ann_submit", "Annotation Import Wizard"),
-                                                #shinyBS::bsButton("import_ann_submit", label="Import Annotation", style="danger", icon=icon("exclamation-circle")),
-                                                shinyBS::bsButton("launch_ann_modal", label="Import Annotation", style="danger", icon=icon("exclamation-circle")),
-						p(" ")
-                                        )
-                                ),fluidRow(
-                                        column(12, align="left",
+                                        column(12, align="center",
                                                 div(id="skipDiv",
                                                         actionButton("skip_submit", "SKIP")
                                                 )
+                                        )
+                                )
+                        ),bsCollapsePanel("ANNOTATION", style="danger",
+                                fluidRow(
+                                        column(12, align="left",
+                                                selectInput("annType", "Select Annotation Type", 
+                                                        choices=c(
+                                                                "From Raw Data"="raw", 
+                                                                "Annotation File"="file"
+                                                        ), 
+                                                        selected="file"
+                                                )
+                                        )
+                                ),fluidRow(
+                                        column(12,
+                                                div(id="launchAnnModalDiv",
+                                                        fluidRow(column(12, align="left",
+                                                                shinyBS::bsButton("launch_ann_modal", label="Annotate", style="danger", icon=icon("exclamation-circle")),
+                                                                p(" ")
+                                                        ))
+                                                )
+                                        )
+                                ),fluidRow(
+                                        column(12,
+                                                hidden(div(id="submitAnnDiv",
+                                                        fluidRow(column(12, align="left",
+                                                                shinyBS::bsButton("submit_ann", label="Annotate", style="success", icon=icon("angle-right")),
+                                                                p(" ")
+                                                        ))
+                                                ))
                                         )
                                 )
                         ),bsCollapsePanel("DIFFERENTIAL ANALYSIS", style="danger",
@@ -390,6 +458,31 @@ fluidPage(
                                                 actionButton("de_submit", "Run Differential Analysis")
                                         )
                                 )
+                        ),bsCollapsePanel("REPORTING", style="info",
+                                fluidRow(
+                                        column(12,
+                                                div(id="exportExprDiv", class="contentDiv",
+                                                        h4("Export Expression Matrix"),
+                                                        fluidRow(column(12, align="center",
+                                                                downloadButton("exportFiltMat", "Filtered"),
+                                                                p(" ")
+                                                        )),fluidRow(column(12, align="center",
+                                                                downloadButton("exportNormMat", "Normalized"),
+                                                                p(" ")
+                                                        )),fluidRow(column(12, align="center",
+                                                                downloadButton("exportCorrMat", "Corrected"),
+                                                                p(" ")
+                                                        )),fluidRow(column(12, align="center",
+                                                                downloadButton("exportAggMat", "Aggregated")
+                                                        ))
+                                                ),
+                                                p(" ")
+                                        )
+                                ),fluidRow(
+                                        column(12, align="center",
+                                                downloadButton("exportRpt", "Analysis Report")
+                                        )
+                                )
                         )
                 )
          ),
@@ -407,45 +500,54 @@ fluidPage(
 				)
 			),fluidRow(
 				column(1,
-					actionButton("load_pheno_submit", "Load")
+					actionButton("load_pheno_submit", "Preview")
 				),column(2, align="left",
 					textOutput("phRowsText"),
 					textOutput("phColsText")
 				)
 			),hr(),
 			fluidRow(
-				column(4,
-					uiOutput("selFileNameCol")
-				),column(4,
-					uiOutput("selSampleIDCol")
-				),column(4,
-					uiOutput("selDyeCol")
-				)
-			),fluidRow(
-				column(12, align="right",
-					#actionButton("upload_pheno_submit", "Import")
-					shinyBS::bsButton("upload_pheno_submit", label="Import", style="info", icon=icon("hand-o-right"))
-				)
-			),hr(),
-			fluidRow(
 				column(12,
-					DT::dataTableOutput("phenoDT")
-				)
-			)
+					hidden(div(id="phenoPreviewDiv",
+                                                fluidRow(
+                                                        column(12,
+                                                                rhandsontable::rHandsontableOutput("phenoTypesRH")
+                                                        )
+                                                ),hr(),
+                                                fluidRow(
+                                                #        column(12,
+                                                #                DT::dataTableOutput("phenoDT")
+                                                #        )
+                                                #),fluidRow(
+                                                        column(4,
+                                                                uiOutput("selFileNameCol")
+                                                        ),column(4,
+                                                                uiOutput("selSampleIDCol")
+                                                        ),column(4,
+                                                                uiOutput("selDyeCol")
+                                                        )
+                                                ),fluidRow(
+                                                        column(12, align="right",
+                                                                shinyBS::bsButton("upload_pheno_submit", label="Import", style="info", icon=icon("hand-o-right"))
+                                                        )
+                                                )
+                                        ))
+                                )
+                        )
 		),
-		#shinyBS::bsModal("importAnnModal", "Import Annotation", "import_ann_submit", size="large",
 		shinyBS::bsModal("importAnnModal", "Import Annotation", "launch_ann_modal", size="large",
 			fluidRow(
 				column(12, 
-					selectInput("annType", "Select Annotation Type", 
-						choices=c(
-							"Ensembl Biomart"="mart", 
-							"Annotation File"="file"
-						), 
-						selected="file"
-					) 
-				),column(12, 
-					hidden(div(id="annFile",
+				#	selectInput("annType", "Select Annotation Type", 
+				#		choices=c(
+				#			"Ensembl Biomart"="mart", 
+				#			"Annotation File"="file"
+				#		), 
+				#		selected="file"
+				#	) 
+				#),column(12, 
+					#hidden(div(id="annFile",
+					div(id="annFile",
                                                 fluidRow(
                                                         column(4,
                                                                 fileInput("fAnno", label="Microarray Annotation")
@@ -458,7 +560,7 @@ fluidPage(
                                                         column(12,
                                                                 #actionButton("load_ann_submit", "Import")
 								#shinyBS::bsButton("load_ann_submit", label="Import", style="info", icon=icon("hand-o-right"))
-                                                                actionButton("load_ann_submit", "Load")
+                                                                actionButton("load_ann_submit", "Preview")
                                                         )
                                                 ),hr(),
                                                 fluidRow(
@@ -476,24 +578,24 @@ fluidPage(
                                                                 uiOutput("selID")
                                                         )
                                                 )
-					)),div(id="annQuery",
-						selectInput("org", "Select Organism", 
-							choices=c(
-								"Human"="hsapiens_gene_ensembl", 
-								"Mouse"="mmusculus_gene_ensembl"
-							), 
-							selected="hsapiens_gene_ensembl"
-						),uiOutput("selProbeID"),
-						selectInput("mapID", "Select Mapping ID", 
-							choices=c(
-								"Ensembl Gene ID"="ensembl_gene_id", 
-								"Ensembl Transcript ID"="ensembl_transcript_id",
-								"EntrezGene ID"="entrezgene",
-								"Gene Symbol"="hgnc_symbol"
-							), 
-							selected="ensembl_gene_id"
-						)
-						#uiOutput("mapID")
+					#)),div(id="annQuery",
+					#	selectInput("org", "Select Organism", 
+					#		choices=c(
+					#			"Human"="hsapiens_gene_ensembl", 
+					#			"Mouse"="mmusculus_gene_ensembl"
+					#		), 
+					#		selected="hsapiens_gene_ensembl"
+					#	),uiOutput("selProbeID"),
+					#	selectInput("mapID", "Select Mapping ID", 
+					#		choices=c(
+					#			"Ensembl Gene ID"="ensembl_gene_id", 
+					#			"Ensembl Transcript ID"="ensembl_transcript_id",
+					#			"EntrezGene ID"="entrezgene",
+					#			"Gene Symbol"="hgnc_symbol"
+					#		), 
+					#		selected="ensembl_gene_id"
+					#	)
+					#	#uiOutput("mapID")
 					)
 				)
                         ),fluidRow(
@@ -545,9 +647,25 @@ fluidPage(
 				infoBoxOutput('filteredSampleBox'),
 				infoBoxOutput('removedSampleBox')
 			#),column(6,
-			#	valueBoxOutput('varIValueBox'),
-			#	valueBoxOutput('coVarValueBox'),
-			#	valueBoxOutput('batchValueBox')
+			##	valueBoxOutput('varIValueBox'),
+			##	valueBoxOutput('coVarValueBox'),
+			##	valueBoxOutput('batchValueBox')
+                        #        div(id="buttonsDiv", class="contentDiv",
+                        #                fluidRow(
+                        #                        column(4,
+                        #                                actionButton("load_expr_submit", "Load Expression Data")
+                        #                        ),column(4,
+                        #                                downloadButton("exportQC", "QC Report")
+                        #                        ),column(4,
+                        #                                #actionButton("analysis_report_submit", "Analysis Report")
+                        #                                downloadButton("exportRpt", "Analysis Report")
+                        #                        )
+                        #                ),fluidRow(
+                        #                        column(4,
+                        #                                downloadButton("exportMat", "Export Expression Matrix")
+                        #                        )
+                        #                )
+                        #        )
 			)
 		),fluidRow(
 			tabBox(id="display", title="", width=12,
@@ -568,25 +686,25 @@ fluidPage(
 							tabPanel(value="boxPlotTab", title="Box Plot", 
 								fluidRow(
 									column(6,
-										plotOutput('preBoxPlot')
+										shinycssloaders::withSpinner(plotOutput('preBoxPlot'), type=6)
 									),column(6,
-										plotOutput('postBoxPlot')
+										shinycssloaders::withSpinner(plotOutput('postBoxPlot'), type=6)
 									)
 								)
 							),tabPanel(value="densityPlotTab", title="Density Plot", 
 								fluidRow(
 									column(6,
-										plotOutput('preDensityPlot')
+										shinycssloaders::withSpinner(plotOutput('preDensityPlot'), type=6)
 									),column(6,
-										plotOutput('postDensityPlot')
+										shinycssloaders::withSpinner(plotOutput('postDensityPlot'), type=6)
 									)
 								)
 							),tabPanel(value="MDPlotTab", title="Mean-Difference Plot", 
 								fluidRow(
 									column(6,
-										plotOutput('preMDPlot')
+										shinycssloaders::withSpinner(plotOutput('preMDPlot'), type=6)
 									),column(6,
-										plotOutput('postMDPlot')
+										shinycssloaders::withSpinner(plotOutput('postMDPlot'), type=6)
 									)
 								)
 							)
@@ -600,7 +718,7 @@ fluidPage(
 									column(12,
 										#div(id="confPlotDiv", class="sizeable", 
 										div(id="confPlotDiv", class="jacket", 
-											plotOutput('confPlot', height="auto", width="auto")
+											shinycssloaders::withSpinner(plotOutput('confPlot', height="auto", width="auto"), type=6)
 										)
 									)
 								)
@@ -613,7 +731,7 @@ fluidPage(
                                                                                                         column(12,
                                                                                                                 #div(id="princePlotDiv", class="sizeable", 
                                                                                                                 div(id="princePlotDiv", class="jacket", 
-                                                                                                                        plotOutput('princePlot', height="auto", width="auto")
+                                                                                                                        shinycssloaders::withSpinner(plotOutput('princePlot', height="auto", width="auto"), type=6)
                                                                                                                 )
                                                                                                         )
                                                                                                 )
@@ -622,7 +740,7 @@ fluidPage(
                                                                                                         column(12,
                                                                                                                 #div(id="postPrincePlotDiv", class="sizeable", 
                                                                                                                 div(id="postPrincePlotDiv", class="jacket", 
-                                                                                                                        plotOutput('postPrincePlot', height="auto", width="auto")
+                                                                                                                        shinycssloaders::withSpinner(plotOutput('postPrincePlot', height="auto", width="auto"), type=6)
                                                                                                                 )	
                                                                                                         )
                                                                                                 )
@@ -641,7 +759,7 @@ fluidPage(
                                                                                                 fluidRow(
                                                                                                         column(12,
                                                                                                                 div(id="hcPlotDiv", class="jacket", 
-                                                                                                                        plotOutput('hcPlot', height="auto", width="auto")
+                                                                                                                        shinycssloaders::withSpinner(plotOutput('hcPlot', height="auto", width="auto"), type=6)
                                                                                                                 )
 													)	
                                                                                                 )
@@ -650,7 +768,7 @@ fluidPage(
                                                                                                         column(12,
                                                                                                                 #div(id="postHcPlotDiv", class="sizeable", 
                                                                                                                 div(id="postHcPlotDiv", class="jacket", 
-                                                                                                                        plotOutput('postHcPlot', height="auto", width="auto")
+                                                                                                                        shinycssloaders::withSpinner(plotOutput('postHcPlot', height="auto", width="auto"), type=6)
                                                                                                                 )
 													)	
                                                                                                 )
@@ -672,7 +790,7 @@ fluidPage(
                                                                                                 column(12,
 													#div(id="preCorMDSDiv", class="sizeable", 
 													div(id="preCorMDSDiv", class="jacket", 
-														plotOutput('preCorMDS', height="auto", width="auto")
+														shinycssloaders::withSpinner(plotOutput('preCorMDS', height="auto", width="auto"), type=6)
 													)	
                                                                                                 )
                                                                                         )
@@ -681,7 +799,7 @@ fluidPage(
                                                                                                 column(12,
 													#div(id="postCorMDSDiv", class="sizeable", 
 													div(id="postCorMDSDiv", class="jacket", 
-														plotOutput('postCorMDS', height="auto", width="auto")
+														shinycssloaders::withSpinner(plotOutput('postCorMDS', height="auto", width="auto"), type=6)
 													)	
                                                                                                 )
                                                                                         )
@@ -690,7 +808,7 @@ fluidPage(
                                                                                                 column(12,
 													#div(id="postAggMDSDiv", class="sizeable", 
 													div(id="postAggMDSDiv", class="jacket", 
-														plotOutput('postAggMDS', height="auto", width="auto")
+														shinycssloaders::withSpinner(plotOutput('postAggMDS', height="auto", width="auto"), type=6)
 													)	
                                                                                                 )
                                                                                         )
@@ -701,20 +819,22 @@ fluidPage(
 						)
 					))
 				),tabPanel(value="diffTab", title="Differential Expression",
-					fluidRow(column(4,
+					fluidRow(column(3,
+                                                        numericInput(inputId="lfcThr", "LogFC Threshold", value=0, min=0, max=20, step=0.1)
+                                                ),column(3,
                                                         uiOutput('selCompDeTable')
-                                                ),column(2,
-                                                        downloadButton("exportDE", "Export Differential Tables"),
-                                                        checkboxInput(inputId="chkExportDE", label="Export Unfiltered Tables", value=FALSE)
-                                                ),column(2,
-                                                        downloadButton("exportRpt", "Generate Report")
-                                                ),column(2,
-                                                        downloadButton("exportMat", "Export Expression Matrix")
+                                                ),column(3, align="right",
+                                                        checkboxInput(inputId="chkExportDE", label="Export Unfiltered Tables", value=FALSE),
+                                                        downloadButton("exportDE", "Export Differential Tables")
+                                                #),column(2,
+                                                #        downloadButton("exportRpt", "Generate Report")
+                                                #),column(2,
+                                                #        downloadButton("exportMat", "Export Expression Matrix")
                                                 )
 					),fluidRow(column(3,
-                                                        uiOutput("slideLfcThr")
+                                                        numericInput(inputId="adjPvThr", paste0("Adj. P.Value Threshold"), value=0.05, min=0, max=1, step=0.001)
                                                 ),column(3,
-                                                        uiOutput("slideAdjPvThr")
+                                                        actionButton("filterDE_submit", "Filter Differential Result")
 					        #),column(2,
                                                 #        fluidRow(column(12,
                                                 #                htmlOutput("htmlValTable")
@@ -727,7 +847,13 @@ fluidPage(
                                         ),
 					fluidRow(column(12,
 						tabBox(id="diffTBox", title="", width=12,
-							tabPanel(value="diffTableTab", title="Differential Expression Tables", 
+							tabPanel(value="diffSummTableTab", title="Differential Expression Summary", 
+								fluidRow(
+									column(12,
+										DT::dataTableOutput("deSummTable")
+                                                                        )
+								)
+							),tabPanel(value="diffTableTab", title="Differential Expression Tables", 
 								fluidRow(
 									column(12,
 										DT::dataTableOutput("deTable")
@@ -740,7 +866,7 @@ fluidPage(
 									),column(8,
                                                                                 #div(id="intersectPlotDiv", class="sizeable", 
                                                                                 div(id="intersectPlotDiv", class="jacket", 
-                                                                                        plotOutput('intersectPlot', height="auto", width="auto")
+                                                                                        shinycssloaders::withSpinner(plotOutput('intersectPlot', height="auto", width="auto"), type=6)
                                                                                 )
 									)
 								)
@@ -757,7 +883,7 @@ fluidPage(
 									)
 								),fluidRow(
 									column(12,
-										plotOutput('volcanoPlot', height="auto", width="auto")
+										shinycssloaders::withSpinner(plotOutput('volcanoPlot', height="auto", width="auto"), type=6)
 									)
 								)
 							)
@@ -774,7 +900,7 @@ fluidPage(
                                                                                 uiOutput("selVarIBoxPlot"),
                                                                                 uiOutput("selConditions")
                                                                         ),column(8,
-                                                                                plotOutput("expressionBoxPlot", height="auto", width="auto")
+                                                                                shinycssloaders::withSpinner(plotOutput("expressionBoxPlot", height="auto", width="auto"), type=6)
                                                                         )
                                                                 )
                                                         ),tabPanel(value="expHeatmap", title="Heatmap", 
@@ -784,7 +910,7 @@ fluidPage(
                                                                                 uiOutput("selHeatComps"),
                                                                                 uiOutput("selConditionsHeat")
                                                                         ),column(8,
-                                                                                plotOutput("expressionHeatmap", height="auto", width="auto")
+                                                                                shinycssloaders::withSpinner(plotOutput("expressionHeatmap", height="auto", width="auto"), type=6)
                                                                         )
                                                                 )
                                                         )

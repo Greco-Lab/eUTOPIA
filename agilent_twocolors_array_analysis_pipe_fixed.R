@@ -484,8 +484,12 @@ get.sva.batch.effects <- function(comb.data, pd, vars, npc = 10, verbose = T, cm
   form <- formula(string.formula)
   print(form)
   X <- sva(dat=comb.data, mod=model.matrix(form), method = "two-step")$sv
-  X <- discretize(as.matrix(X), disc="equalfreq", nbins=NROW(X)^(1/3))
+  cat("class(X) - ", class(X), "\n")
+  cat("dim(X) - ", dim(X), "\n")
   X.c <- X
+  cat("class(X.c) - ", class(X.c), "\n")
+  cat("dim(X.c) - ", dim(X.c), "\n")
+  X <- discretize(as.matrix(X), disc="equalfreq", nbins=NROW(X)^(1/3))
   X <- as.data.frame(X)
   if(verbose) print(X)
   colnames(X) <- paste("sva",c(1:ncol(X)),sep=".")
@@ -639,7 +643,7 @@ aggreg.probes.2 <- function(data, map, var.mds = NULL, plot = TRUE, verbose = TR
     unique.data <- data[-which(tmpRowNames %in% dupRowNames),]
     colnames(unique.data) <- make.names(colnames(unique.data))
     dup.data <- data[which(tmpRowNames %in% dupRowNames),]
-    dup.data <- data.frame(ProbeID=rownames(dup.data), dup.data)
+    dup.data <- data.frame(ProbeID=rownames(dup.data), dup.data, row.names=NULL)
     dup.datag <- aggregate(.~ProbeID, data = dup.data, median)
     rownames(dup.datag) <- dup.datag[,1]
     dup.datag <- dup.datag[,-1]
@@ -671,6 +675,8 @@ diff.gene.expr <- function(data, des, contrasts, pvalue, fcvalue, p.adjust.metho
     print(cont)
   }
   fit <- lmFit(data, des)
+  ##Added the print for contrast matrix
+  #print(contrasts.fit(fit, cont))
   fit2 <- eBayes(contrasts.fit(fit, cont))
   #max.ngenes <- read.input.number(" - indicate the max number of genes:")
   if(plot & length(contrasts) < 6) {
@@ -1246,3 +1252,28 @@ COLORS <- c("green3","blue","cyan","magenta","yellow","gray","red","orange",
             "deeppink","gold","Olivedrab1","dimgrey","cornflowerblue","darkgreen",
             "burlywood3","steelblue4","orangered","purple1","khaki1","azure4",
             "blue1","blue2","blue3","blue4","coral1","coral2","coral3","coral4")
+
+#Get Summary of Differential Expression Tables
+get_deg_summary <- function(deg_list, names){
+        cuts <- c(0.0001, 0.001, 0.01, 0.025, 0.05, 0.10, 1)
+        cat("\nStatistical significance summary:\n")
+        countsDF <- NULL
+        deg_list <- as.list(deg_list)
+        for(i in 1:length(deg_list)){
+                objectName <- names(deg_list)[i]
+                object <- deg_list[[objectName]]
+                counts <- sapply(cuts, function(x) c("P.Value"=sum(object$P.Value < x), "adj.P.Val"=sum(object$adj.P.Val < x)))
+                colnames(counts) <- paste("<", cuts, sep="")
+                countName <- names[i]
+                #rownames(counts) <- paste0(countName, ";", rownames(counts))
+                ##print(counts)
+                #countsDF <- rbind(countsDF, counts)
+                print(class(counts))
+                tmpDF <- data.frame(comparison=countName, score=rownames(counts), counts, stringsAsFactors=FALSE)
+                colnames(tmpDF)[3:ncol(tmpDF)] <- paste("<", cuts, sep="")
+                rownames(tmpDF) <- paste0(countName, ";", rownames(counts))
+                countsDF <- rbind(countsDF, tmpDF)
+        }
+        return(countsDF)
+}
+
