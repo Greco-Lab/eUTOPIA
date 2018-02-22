@@ -2324,8 +2324,10 @@ shinyServer(
 			shiny::validate(need(!is.null(gVars$deg.list), "Waiting for Differential Analysis Results..."))
 			shiny::validate(need(length(gVars$deg.list)>0, "Waiting for Differential Analysis Results..."))
 
+			lfc <- as.numeric(input$lfcThr)
                 	deg.list <- gVars$deg.list
-                        summDF <- get_deg_summary(deg_list=deg.list, names=names(deg.list))
+                        
+                        summDF <- get_deg_summary(deg_list=deg.list, names=names(deg.list), lfc=lfc)
 			DT::datatable(summDF, filter=list(position='top', clear=FALSE), options=list(search=list(regex=TRUE, caseInsensitive=FALSE), scrollX=TRUE))
 		},server=TRUE)
 
