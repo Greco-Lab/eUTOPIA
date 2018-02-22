@@ -28,10 +28,6 @@ Graphically accessible guided workflow for preprocessing and analysis of omics d
   devtools::install_github("hms-dbmi/UpSetR")
   
   #Install Bioconductor dependencies
-  #Install latest version of GOSemSim from GitHub
-  print("Installing GOSemSim from GitHub!")
-  devtools::install_github("GuangchuangYu/GOSemSim")
-  
   source("http://bioconductor.org/biocLite.R")
   bioc_pkgs <- c("limma", "sva", "Biobase", "biomaRt", "affy", "affyQCReport", "arrayQualityMetrics", "made4", "vsn", "minfi", 
   "IlluminaHumanMethylation450kmanifest", "IlluminaHumanMethylation450kanno.ilmn12.hg19", "IlluminaHumanMethylationEPICmanifest", 
@@ -46,6 +42,10 @@ Graphically accessible guided workflow for preprocessing and analysis of omics d
       print("Installed!!!")
     }
   }
+  
+  #Install latest version of GOSemSim from GitHub
+  print("Installing GOSemSim from GitHub!")
+  devtools::install_github("GuangchuangYu/GOSemSim")
 ```
 
 #### How to run INfORM from GitHub
