@@ -1254,15 +1254,24 @@ COLORS <- c("green3","blue","cyan","magenta","yellow","gray","red","orange",
             "blue1","blue2","blue3","blue4","coral1","coral2","coral3","coral4")
 
 #Get Summary of Differential Expression Tables
-get_deg_summary <- function(deg_list, names){
+get_deg_summary <- function(deg_list, names, lfc=0){
         cuts <- c(0.0001, 0.001, 0.01, 0.025, 0.05, 0.10, 1)
         cat("\nStatistical significance summary:\n")
         countsDF <- NULL
         deg_list <- as.list(deg_list)
+
         for(i in 1:length(deg_list)){
                 objectName <- names(deg_list)[i]
                 object <- deg_list[[objectName]]
-                counts <- sapply(cuts, function(x) c("P.Value"=sum(object$P.Value < x), "adj.P.Val"=sum(object$adj.P.Val < x)))
+                idx<-which(abs(object$logFC)>lfc); 
+                if(length(idx)>0){
+                        object <- object[idx,]
+                        counts <- sapply(cuts, function(x) c("P.Value"=sum(object$P.Value < x), "adj.P.Val"=sum(object$adj.P.Val < x)))
+                }else{
+                        counts <- data.frame(sapply(cuts, function(x){c(0,0)}))
+                        colnames(counts) <- cuts
+                        rownames(counts) <- c("P.Value", "adj.P.Val")
+                }
                 colnames(counts) <- paste("<", cuts, sep="")
                 countName <- names[i]
                 #rownames(counts) <- paste0(countName, ";", rownames(counts))
