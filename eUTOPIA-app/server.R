@@ -2557,7 +2557,8 @@ shinyServer(
 				setNames <- names(deg.item.list)
 				setColors <- rep("gray23", length(deg.item.list))
 				keepingOrder <- F
-				textScale <- 3
+				#textScale <- 3
+				textScale <- 1
 				intersectSize <- 10
 				xLabel <- "Set Size"
 				upset(deg.item.DF, nintersects=intersectSize, sets=setNames, order.by="freq", decreasing=T, line.size=0.1, sets.x.label=xLabel, keep.order=keepingOrder, text.scale=textScale, sets.bar.color=setColors)
