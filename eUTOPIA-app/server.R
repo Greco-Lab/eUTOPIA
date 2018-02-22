@@ -32,6 +32,11 @@ suppressMessages(library(IlluminaHumanMethylation450kanno.ilmn12.hg19))
 suppressMessages(library(IlluminaHumanMethylationEPICmanifest))
 suppressMessages(library(IlluminaHumanMethylationEPICanno.ilm10b2.hg19))
 suppressMessages(library(devtools))
+suppressMessages(library(httr))
+suppressMessages(library(affyio))
+suppressMessages(library(simpleaffy))
+suppressMessages(library(yaqcaffy))
+suppressMessages(library(randomcoloR))
 print("Print Source Directory")
 print(dirname(getSrcDirectory(function(x){x})))
 array_pipeline_R <- file.path(dirname(getSrcDirectory(function(x){x})), "agilent_twocolors_array_analysis_pipe_fixed.R")
@@ -63,7 +68,7 @@ factorize_cols <- function(phTable, idx){
 
 shinyServer(
 	function(input, output, session){
-                gVars <- shiny::reactiveValues(phTable=NULL, rgList=NULL, celDir=NULL, totalSamples=NULL, filteredSamples=NULL, removedSamples=NULL, norm.data=NULL, celDir=NULL, pcChoices=NULL, comb.data=NULL, agg.data=NULL, comps=list())
+                gVars <- shiny::reactiveValues(phTable=NULL, rgList=NULL, celDir=NULL, totalSamples=NULL, filteredSamples=NULL, removedSamples=NULL, norm.data=NULL, pcChoices=NULL, comb.data=NULL, agg.data=NULL, comps=list())
 
 		gVars$sepChoices <- c("TAB", ",", ";", "SPACE", "OTHER")
 		gVars$quoteChoices <- c(NA, "SINGLE", "DOUBLE")
@@ -108,12 +113,22 @@ shinyServer(
 	
                 ## Get raw data directory
                 roots <- c(wd="/")
+                #gVars$roots <- reactive({
+                #        if(is.null(gVars$phDir){
+                #            roots <- "/"
+                #        }else{
+                #            roots <- gVars$phDir
+                #        }
+                #        return(roots)
+                #})
+
                 shinyDirChoose(input, "dirButton", roots=roots)
                 gVars$celDir <- reactive({
                         if(is.null(input$dirButton))
                         return(NULL)
 
                         roots <- c(wd="/")
+                        #roots <- gVars$roots()
                         celDir <- parseDirPath(roots, input$dirButton)
 			updateTextInput(session, "dirTextDisp", value=celDir)
                         return(celDir)
@@ -358,6 +373,7 @@ shinyServer(
                         print("str(phTable) -- after:")
                         print(str(phTable))
                         
+                        #gVars$phDir <- sub("(^.*/).*", "\\1", phFile$datapath)
 			return(phTable)
 		})
 
@@ -1479,7 +1495,7 @@ shinyServer(
                         if(is.null(gVars$expr.data))
                         return(NULL)
 
-                        shinyjs::html(id="loadingText", "LOADING ANNOTATION")
+                        shinyjs::html(id="loadingText", "ANNOTATION & AGGREGATION")
 
 			progress <- shiny::Progress$new()
 			updateProgress <- function(value=NULL, detail=NULL){
@@ -1754,6 +1770,11 @@ shinyServer(
 			updateProgress(detail="Building Model...", value=1/3)
                         print(str(batchCorVar))
 			des <- build.model.matrix(phTable, intercept=-1, batchCorVar$var.int, batchCorVar$covariates, verbose=T) 
+                        ne <- limma::nonEstimable(des)
+                        if(!is.null(ne)){
+                                shinyjs::alert(paste0("Coefficients not estimable : ",paste(ne,collapse=", "),"\n\nPlease check your limma model definition!!! Possibly contains confounders."))
+                                return(NULL)
+                        }
 
 			annDF <- gVars$map
                         dupIdx <- which(duplicated(annDF[,2])==T)
@@ -2639,10 +2660,11 @@ shinyServer(
                         tmp.data.sel <- tmp.data[selRows, selCols]
                         print(dim(tmp.data.sel))
                         dataColsVarI.sel <- dataColsVarI[which(dataColsVarI %in% conditions)]
+			classPalette <- setNames(randomcoloR::distinctColorPalette(length(conditions)), conditions)
 
 			heatplot(tmp.data.sel, 
-				dend = "column", 
-				scale = "none", 
+				dend="column", 
+				scale="none", 
 				cols.default=F, 
 				lowcol="yellow", 
 				highcol="red", 
@@ -2651,12 +2673,14 @@ shinyServer(
 				labRow=rownames(tmp.data.sel), 
 				#classvec=colnames(tmp.data.sel), 
 				classvec=dataColsVarI.sel, 
-				classvecCol=c(1:length(conditions))
+				#classvecCol=c(1:length(conditions))
+				classvecCol=classPalette
 			)
 			par(lend = 1)           # square line ends for the color legend
 			legend("bottomleft",      # location of the legend on the heatmap plot
 				legend = conditions, # category labels
-				col = c(1:length(conditions)),  # color key
+				#col = c(1:length(conditions)),  # color key
+				col = classPalette,
 				bty = "n",
 				bg = "white",
 				border = "white",
@@ -3120,14 +3144,18 @@ shinyServer(
                         #        tmpChoices <- gVars$conditions
                         #}
                         phTable <- gVars$phTable
-                        rownames(phTable) <- phTable[,gVars$sampleColID]
-			phTable <- as.data.frame(apply(phTable, 2, factor))
-                        varI <- input$varIBoxPlot
-                        conditions <- levels(phTable[,varI])
-                        if(is.null(conditions)){
+                        if(is.null(phTable)){
                                 tmpChoices <- c("NA")
                         }else{
-                                tmpChoices <- conditions
+                                rownames(phTable) <- phTable[,gVars$sampleColID]
+                                phTable <- as.data.frame(apply(phTable, 2, factor))
+                                varI <- input$varIBoxPlot
+                                conditions <- levels(phTable[,varI])
+                                if(is.null(conditions)){
+                                        tmpChoices <- c("NA")
+                                }else{
+                                        tmpChoices <- conditions
+                                }
                         }
 			selectInput("conditions", "Select Conditions", choices=tmpChoices, multiple=TRUE, selected=tmpChoices)
 		})
@@ -3365,7 +3393,7 @@ shinyServer(
                                 }
 
                                 shinyBS::addTooltip(session, id="selVarILimma", title="Specified while performing batch correction!", placement="bottom")
-                                shinyjs::disable("selVarILimma")
+                                #shinyjs::disable("selVarILimma") #Commented because user should be able to choose a different varI after correction
                                 shinyBS::addTooltip(session, id="selVarIBoxPlot", title="Specified while performing batch correction!", placement="bottom")
                                 shinyjs::disable("selVarIBoxPlot")
                         }else if(input$corrType=="s"){
@@ -3403,7 +3431,7 @@ shinyServer(
                                 }
 
                                 shinyBS::addTooltip(session, id="selVarILimma", title="Specified while performing batch correction!", placement="bottom")
-                                shinyjs::disable("selVarILimma")
+                                #shinyjs::disable("selVarILimma") #Commented because user should be able to choose a different varI after correction
                                 shinyBS::addTooltip(session, id="selVarIBoxPlot", title="Specified while performing batch correction!", placement="bottom")
                                 shinyjs::disable("selVarIBoxPlot")
                         }else if(input$corrType=="c"){
@@ -3442,7 +3470,7 @@ shinyServer(
                                 shinyBS::addTooltip(session, id="launch_combat_modal", title="Launch a graphical window, to configure and run batch correction with ComBat!", placement="bottom")
                                 shinyjs::enable("launch_combat_modal")
                                 shinyBS::addTooltip(session, id="selVarILimma", title="Specified while performing batch correction!", placement="bottom")
-                                shinyjs::disable("selVarILimma")
+                                #shinyjs::disable("selVarILimma") #Commented because user should be able to choose a different varI after correction
                                 shinyBS::addTooltip(session, id="selVarIBoxPlot", title="Specified while performing batch correction!", placement="bottom")
                                 shinyjs::disable("selVarIBoxPlot")
                         }else if(input$corrType=="n"){
@@ -3524,6 +3552,10 @@ shinyServer(
                         shinyjs::show(id="loading-content")
                 })
 		shinyjs::onclick(id="submit_ann", {
+                        shinyjs::html(id="loadingText", "ANNOTATION & AGGREGATION")
+                        shinyjs::show(id="loading-content")
+                })
+		shinyjs::onclick(id="upload_ann_submit", {
                         shinyjs::html(id="loadingText", "ANNOTATION & AGGREGATION")
                         shinyjs::show(id="loading-content")
                 })

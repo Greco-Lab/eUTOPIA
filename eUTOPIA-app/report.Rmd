@@ -527,6 +527,7 @@ if(isDeg && isComps && isConds){
 
         tmp.data.sel <- tmp.data[selRows, selCols]
         dataColsVarI.sel <- dataColsVarI[which(dataColsVarI %in% conditions)]
+        classPalette <- setNames(randomcoloR::distinctColorPalette(length(conditions)), conditions)
 
         res <- heatplot(tmp.data.sel, 
                 dend = "column", 
@@ -538,12 +539,14 @@ if(isDeg && isComps && isConds){
                 margins=c(8,16), 
                 labRow=rownames(tmp.data.sel), 
                 classvec=dataColsVarI.sel, 
-                classvecCol=c(1:length(conditions))
+                #classvecCol=c(1:length(conditions))
+                classvecCol=classPalette
         )
         par(lend = 1)           # square line ends for the color legend
         legend("bottomleft",      # location of the legend on the heatmap plot
                 legend = conditions, # category labels
-                col = c(1:length(conditions)),  # color key
+                #col = c(1:length(conditions)),  # color key
+                col = classPalette,
                 bty = "n",
                 bg = "white",
                 border = "white",

@@ -818,7 +818,8 @@ fluidPage(
 							)
 						)
 					))
-				),tabPanel(value="diffTab", title="Differential Expression",
+				#),tabPanel(value="diffTab", title="Differential Expression",
+				),tabPanel(value="diffTab", title="Differential Results",
 					fluidRow(column(3,
                                                         numericInput(inputId="lfcThr", "LogFC Threshold", value=0, min=0, max=20, step=0.1)
                                                 ),column(3,
@@ -847,19 +848,22 @@ fluidPage(
                                         ),
 					fluidRow(column(12,
 						tabBox(id="diffTBox", title="", width=12,
-							tabPanel(value="diffSummTableTab", title="Differential Expression Summary", 
+							#tabPanel(value="diffSummTableTab", title="Differential Expression Summary", 
+							tabPanel(value="diffSummTableTab", title="Differential Summary", 
 								fluidRow(
 									column(12,
 										DT::dataTableOutput("deSummTable")
                                                                         )
 								)
-							),tabPanel(value="diffTableTab", title="Differential Expression Tables", 
+							#),tabPanel(value="diffTableTab", title="Differential Expression Tables", 
+							),tabPanel(value="diffTableTab", title="Differential Tables", 
 								fluidRow(
 									column(12,
 										DT::dataTableOutput("deTable")
                                                                         )
 								)
-							),tabPanel(value="diffVenn", title="Differential Gene Sets Intersection", 
+							#),tabPanel(value="diffVenn", title="Differential Gene Sets Intersection", 
+							),tabPanel(value="diffVenn", title="Differential Sets Intersection", 
 								fluidRow(
 									column(4,
                                                                                uiOutput("selIntersectComps")
@@ -879,7 +883,8 @@ fluidPage(
 									)
 								),fluidRow(
 									column(12,
-										checkboxInput("gName", "Display Gene Names", value=FALSE)
+										#checkboxInput("gName", "Display Gene Names", value=FALSE)
+										checkboxInput("gName", "Display Names", value=FALSE)
 									)
 								),fluidRow(
 									column(12,
@@ -889,10 +894,10 @@ fluidPage(
 							)
                                                 )
 					))
-				),tabPanel(value="visExp", title="Visualize Expression",
+				),tabPanel(value="visExp", title="Visualize Expression/Methylation",
 					fluidRow(column(12,
 						tabBox(id="visExpTBox", title="", width=12,
-                                                        tabPanel(value="expBoxplot", title="Boxplot", 
+                                                        tabPanel(value="expBoxplot", title="Box Plot", 
                                                                 fluidRow(
                                                                         column(4,
                                                                                 #uiOutput("selExpGenes"),
