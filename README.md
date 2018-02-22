@@ -39,7 +39,7 @@ Graphically accessible guided workflow for preprocessing and analysis of omics d
   }
   
   source("http://bioconductor.org/biocLite.R")
-  bioc_pkgs <- c("limma", "sva", "Biobase", "biomaRt", "affy", "affyQCReport", "arrayQualityMetrics", "vmade4", "vsn", "minfi", 
+  bioc_pkgs <- c("limma", "sva", "Biobase", "biomaRt", "affy", "affyQCReport", "arrayQualityMetrics", "made4", "vsn", "minfi", 
   "IlluminaHumanMethylation450kmanifest", "IlluminaHumanMethylation450kanno.ilmn12.hg19", "IlluminaHumanMethylationEPICmanifest", 
   "IlluminaHumanMethylationEPICanno.ilm10b2.hg19", "affyio", "simpleaffy", "yaqcaffy")
   bioc_pkgs.inst <- bioc_pkgs[!(bioc_pkgs %in% rownames(installed.packages()))]
