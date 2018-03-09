@@ -20,28 +20,18 @@ Graphically accessible guided workflow for preprocessing and analysis of omics d
   }
   
   #Install latest version of rhandsontable from GitHub
-  if(!"rhandsontable" %in% rownames(installed.packages())){
-    print("Installing rhandsontable from GitHub!")
-    devtools::install_github("jrowen/rhandsontable")
-  }
+  print("Installing rhandsontable from GitHub!")
+  devtools::install_github("jrowen/rhandsontable")
   
   #Install latest version of UpSetR from GitHub
-  if(!"UpSetR" %in% rownames(installed.packages())){
-    print("Installing UpSetR from GitHub!")
-    devtools::install_github("hms-dbmi/UpSetR")
-  }
+  print("Installing UpSetR from GitHub!")
+  devtools::install_github("hms-dbmi/UpSetR")
   
   #Install Bioconductor dependencies
-  #Install latest version of GOSemSim from GitHub
-  if(!"GOSemSim" %in% rownames(installed.packages())){
-    print("Installing GOSemSim from GitHub!")
-    devtools::install_github("GuangchuangYu/GOSemSim")
-  }
-  
   source("http://bioconductor.org/biocLite.R")
-  bioc_pkgs <- c("limma", "sva", "Biobase", "biomaRt", "affy", "affyQCReport", "arrayQualityMetrics", "vmade4", "vsn", "minfi", 
+  bioc_pkgs <- c("limma", "sva", "Biobase", "biomaRt", "affy", "affyQCReport", "arrayQualityMetrics", "made4", "vsn", "minfi", 
   "IlluminaHumanMethylation450kmanifest", "IlluminaHumanMethylation450kanno.ilmn12.hg19", "IlluminaHumanMethylationEPICmanifest", 
-  "IlluminaHumanMethylationEPICanno.ilm10b2.hg19", "affyio", "simpleaffy", "yaqcaffy")
+  "IlluminaHumanMethylationEPICanno.ilm10b2.hg19", "affyio", "simpleaffy", "yaqcaffy", "GO.db")
   bioc_pkgs.inst <- bioc_pkgs[!(bioc_pkgs %in% rownames(installed.packages()))]
   if(length(bioc_pkgs.inst)>0){
     source("http://bioconductor.org/biocLite.R")
@@ -52,6 +42,10 @@ Graphically accessible guided workflow for preprocessing and analysis of omics d
       print("Installed!!!")
     }
   }
+  
+  #Install latest version of GOSemSim from GitHub
+  print("Installing GOSemSim from GitHub!")
+  devtools::install_github("GuangchuangYu/GOSemSim")
 ```
 
 #### How to run INfORM from GitHub
@@ -74,5 +68,6 @@ Graphically accessible guided workflow for preprocessing and analysis of omics d
 
   # Start R session and run by using runApp()
   setwd("./eUTOPIA_clone")
+  library(shiny)
   runApp("eUTOPIA-app/")
 ```
