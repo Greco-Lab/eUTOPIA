@@ -1016,10 +1016,10 @@ shinyServer(
                                 #Create affyBatch object for QC
                                 err <- 0
                                 tryCatch(simpleaffy::setQCEnvironment(input$affCDF), error=function(e){err<<-1})
-                                #if(!err){
+                                if(!err){
                                         celFilePaths <- file.path(celDir, fileNames)
                                         gVars$affyBatchObject <- affy::read.affybatch(filenames=celFilePaths, phenoData=pheno, cdfname=affCDF)
-                                #}
+                                }
                                 gVars$cdfQCerr <- err
 
                                 tmpChoices <- rownames(gVars$expr.data)

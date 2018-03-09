@@ -245,7 +245,7 @@ fluidPage(
 	div(id="sel-array-type",
 		div(id="widget-wrap",
 			fluidRow(column(12, align="center",
-				selectInput("arrType", "Select Array Type", choices=c("Agilent Expression (2 color)"="ag_exp2", "Agilent Expression (1 color)"="ag_exp1", "Affymetrix Expression"="af_exp", "Illumina Methylation"="il_methyl"), selected="ag_exp2"),
+				selectInput("arrType", "Select Platform", choices=c("Agilent Expression (2 color)"="ag_exp2", "Agilent Expression (1 color)"="ag_exp1", "Affymetrix Expression"="af_exp", "Illumina Methylation"="il_methyl"), selected="ag_exp2"),
 				actionButton("submit_array_type", "Begin")
 			))
 		)
