@@ -515,8 +515,12 @@ shinyServer(
 			dyeColID <- NULL
 			sampleColID <- as.integer(input$sampleIDCol)
 			fileNameColID <- as.integer(input$fileNameCol)
+			dyeColName <- NULL
+			sampleColName <- colnames(phTable)[as.integer(input$sampleIDCol)]
+			fileNameColName <- colnames(phTable)[as.integer(input$fileNameCol)]
 
-                        sampleIDs <- phTable[,sampleColID]
+                        #sampleIDs <- phTable[,sampleColID]
+                        sampleIDs <- phTable[,sampleColName]
                         if(any(duplicated(sampleIDs))){
                                 shinyjs::info(paste0("Sample IDs are not unique!\n\nPlease check the phenotype data and ensure that the selected Sample ID column has unique values!"))
                                 return(NULL)
@@ -527,6 +531,7 @@ shinyServer(
                         
 			if(arrType=="ag_exp2"){
 				dyeColID <- as.integer(input$dyeCol)
+				dyeColName <- colnames(phTable)[as.integer(input$dyeCol)]
 				phTable <- phTable[order(phTable[,dyeColID], phTable[,fileNameColID]),]
 			}
 
@@ -551,6 +556,9 @@ shinyServer(
 			gVars$dyeColID <- dyeColID
 			gVars$fileNameColID <- fileNameColID
 			gVars$sampleColID <- sampleColID
+			gVars$dyeColName <- dyeColName
+			gVars$fileNameColName <- fileNameColName
+			gVars$sampleColName <- sampleColName
                         gVars$totalSamples <- nrow(phTable)
                         gVars$filteredSamples <- nrow(phTable)
                         gVars$removedSamples <- 0
@@ -603,6 +611,9 @@ shinyServer(
 			dyeColID <- gVars$dyeColID
 			fileNameColID <- gVars$fileNameColID
                         sampleColID <- gVars$sampleColID
+			dyeColName <- gVars$dyeColName
+			fileNameColName <- gVars$fileNameColName
+                        sampleColName <- gVars$sampleColName
                         phTable <- gVars$phTable
                         phRowsSel <- as.integer(input$filtered_rows_selected)
 			print("Sel Rows:")
@@ -614,8 +625,10 @@ shinyServer(
 				phRows2Remove <- phRowsSel
 				print("Rows to Remove:")
 				print(phRows2Remove)
-                                removedSampleIDs <- phTable[phRows2Remove,sampleColID]
-				removedSamplesInfo <- phTable[phRows2Remove,c(fileNameColID, dyeColID)]
+                                #removedSampleIDs <- phTable[phRows2Remove,sampleColID]
+				#removedSamplesInfo <- phTable[phRows2Remove,c(fileNameColID, dyeColID)]
+                                removedSampleIDs <- phTable[phRows2Remove,sampleColName]
+				removedSamplesInfo <- phTable[phRows2Remove,c(fileNameColName, dyeColName)]
 				phTable <- phTable[-phRows2Remove,]
                                 cat("Removed Sample IDs :", paste0(removedSampleIDs, collapse=","), "\n")
 			}
@@ -633,7 +646,8 @@ shinyServer(
                         }
                         if(!is.null(gVars$rgList)){
                                 print("Subsetting gVars$rgList")
-                                removedArrays <- phTable[phRows2Remove,fileNameColID]
+                                #removedArrays <- phTable[phRows2Remove,fileNameColID]
+                                removedArrays <- phTable[phRows2Remove,fileNameColName]
                                 removedArrays <- gsub("\\.[a-zA-Z]+$", "", removedArrays)
                                 array2Remove <- names(which(table(removedArrays)>1))
                                 if(length(array2Remove)>1){
@@ -663,7 +677,8 @@ shinyServer(
                         }
                         if(!is.null(gVars$RGset)){
                                 print("Subsetting gVars$RGset")
-                                removedArrays <- phTable[phRows2Remove,fileNameColID]
+                                #removedArrays <- phTable[phRows2Remove,fileNameColID]
+                                removedArrays <- phTable[phRows2Remove,fileNameColName]
                                 rmIdx <- which(sampleNames(gVars$RGset) %in% removedArrays)
                                 if(length(rmIdx)>1){
                                         cat("Removing index ", rmIdx, " from gVars$RGset matrix!\n")
@@ -674,7 +689,8 @@ shinyServer(
                         }
                         if(!is.null(gVars$Mset)){
                                 print("Subsetting gVars$Mset")
-                                removedArrays <- phTable[phRows2Remove,fileNameColID]
+                                #removedArrays <- phTable[phRows2Remove,fileNameColID]
+                                removedArrays <- phTable[phRows2Remove,fileNameColName]
                                 rmIdx <- which(sampleNames(gVars$Mset) %in% removedArrays)
                                 if(length(rmIdx)>1){
                                         cat("Removing index ", rmIdx, " from gVars$Mset matrix!\n")
@@ -820,12 +836,16 @@ shinyServer(
 			fileNameColID <- gVars$fileNameColID
                         sampleColID <- gVars$sampleColID
 			dyeColID <- gVars$dyeColID
+			fileNameColName <- gVars$fileNameColName
+                        sampleColName <- gVars$sampleColName
+			dyeColName <- gVars$dyeColName
 			celDir <- gVars$celDir()
 			arrType <- input$arrType
 			affCDF <- input$affCDF
 
                         updateProgress(detail="Reading Raw Data...", value=1/3)
-			fileNames <- unique(phTable[,fileNameColID])
+			#fileNames <- unique(phTable[,fileNameColID])
+			fileNames <- unique(phTable[,fileNameColName])
                         fileNameCount <- length(fileNames)
                         if(arrType=="il_methyl"){
                                 fileNamesTmp <- as.vector(sapply(fileNames, function(x){g<-paste0(x, "_Grn.idat"); r<-paste0(x, "_Red.idat"); return(c(g,r))})) 
@@ -857,7 +877,8 @@ shinyServer(
                                 sampleNamesGreen <- NULL
                                 sampleNamesRed <- NULL
 
-				samplesInfo <- phTable[, c(fileNameColID, dyeColID, sampleColID)]
+				#samplesInfo <- phTable[, c(fileNameColID, dyeColID, sampleColID)]
+				samplesInfo <- phTable[, c(fileNameColName, dyeColName, sampleColName)]
                                 samplesInfo[,1] <- gsub("\\.[a-zA-Z]*$", "", samplesInfo[,1])
                                 smp2keepID <- grep("Cy3", samplesInfo[,2], ignore.case=T)
                                 if(length(smp2keepID)>0){
@@ -968,11 +989,14 @@ shinyServer(
 			}else if(arrType=="ag_exp1"){
 				eListRaw <- read.maimages(files=fileNames, source="agilent.median", path=celDir, green.only=T, other.columns=c("gIsGeneDetected"),verbose=TRUE)
                                 data <- eListRaw$E
+
 				#rownames(data) <- eListRaw$genes$SystematicName
 				rownames(data) <- eListRaw$genes$ProbeName
 				##colnames(data) <- rownames(phTable)
 				#colnames(data) <- phTable[,sampleColID]
-				samplesInfo <- phTable[, c(fileNameColID, sampleColID)]
+
+				#samplesInfo <- phTable[, c(fileNameColID, sampleColID)]
+				samplesInfo <- phTable[, c(fileNameColName, sampleColName)]
                                 samplesInfo[,1] <- gsub("\\.[a-zA-Z]*$", "", samplesInfo[,1])
                                 sampleNames <- setNames(samplesInfo[,2], samplesInfo[,1])
                                 colnames(data) <- sampleNames[colnames(data)]
@@ -1004,11 +1028,13 @@ shinyServer(
                                         return(NULL)
                                 }
 
-                                rownames(phTable) <- phTable[,sampleColID]
+                                #rownames(phTable) <- phTable[,sampleColID]
+                                rownames(phTable) <- phTable[,sampleColName]
 				phFactorDF <- as.data.frame(apply(phTable, 2, factor))
                                 pheno <- new("AnnotatedDataFrame", data=phFactorDF)
-                                #require(affCDF)
-				eset <- affy::justRMA(filenames=fileNames, celfile.path=celDir, phenoData=pheno, sampleNames=phTable[,sampleColID], normalize=TRUE, background=TRUE, cdfname=affCDF)
+                                ##require(affCDF)
+				#eset <- affy::justRMA(filenames=fileNames, celfile.path=celDir, phenoData=pheno, sampleNames=phTable[,sampleColID], normalize=TRUE, background=TRUE, cdfname=affCDF)
+				eset <- affy::justRMA(filenames=fileNames, celfile.path=celDir, phenoData=pheno, sampleNames=phTable[,sampleColName], normalize=TRUE, background=TRUE, cdfname=affCDF)
 				exprs <- exprs(eset)
 				gVars$norm.data <- exprs
 				gVars$expr.data <- exprs
@@ -1164,6 +1190,8 @@ shinyServer(
 			phTable <- gVars$phTable
 			dyeColID <- gVars$dyeColID
                         sampleColID <- gVars$sampleColID
+			dyeColName <- gVars$dyeColName
+                        sampleColName <- gVars$sampleColName
                         arrType <- input$arrType
 
                         updateProgress(detail="Processing...", value=1/2)
@@ -1236,7 +1264,8 @@ shinyServer(
                                 #Convert to M or Beta
                                 valType <- "M"
                                 norm.data <- getMethSignal(GMset, valType)
-				colnames(norm.data) <- phTable[,sampleColID] ## Update colnames to match sampleIDs
+				#colnames(norm.data) <- phTable[,sampleColID] ## Update colnames to match sampleIDs
+				colnames(norm.data) <- phTable[,sampleColName] ## Update colnames to match sampleIDs
                                 print("Exiting if il_methyl NORM!")
                         }else{
 			        norm.data <- run.norm(filt.data=filt.data, method=method, method2=method2, plot=FALSE)
@@ -1244,8 +1273,10 @@ shinyServer(
 
                         rgList.norm <- NULL
 			if(arrType=="ag_exp2"){
-                                gSampleCount <- table(phTable[,dyeColID])[[1]]
-                                rSampleCount <- table(phTable[,dyeColID])[[2]]
+                                #gSampleCount <- table(phTable[,dyeColID])[[1]]
+                                #rSampleCount <- table(phTable[,dyeColID])[[2]]
+                                gSampleCount <- table(phTable[,dyeColName])[[1]]
+                                rSampleCount <- table(phTable[,dyeColName])[[2]]
                                 ttlSampleCount <- gSampleCount+rSampleCount
                                 rgList.norm <- new("RGList", list(G=norm.data[,c(1:gSampleCount)], R=norm.data[,c((gSampleCount+1):ttlSampleCount)]))
                         }
@@ -1255,6 +1286,8 @@ shinyServer(
                         gVars$norm.data <- norm.data
                         gVars$rgList.norm <- rgList.norm
                         gVars$Mset <- Mset
+			gVars$comb.data <- NULL
+			gVars$agg.data <- NULL
                         print("Completed NORM!")
                         tmpChoices <- rownames(gVars$expr.data)
                         updateSelectizeInput(session=session, inputId='expGenes', choices=tmpChoices, server=TRUE)
@@ -1318,7 +1351,8 @@ shinyServer(
 			batch <- as.list(input$batchSva)
                         data <- gVars$norm.data
 			phTable <- gVars$phTable
-                        rownames(phTable) <- phTable[,gVars$sampleColID]
+                        #rownames(phTable) <- phTable[,gVars$sampleColID]
+                        rownames(phTable) <- phTable[,gVars$sampleColName]
 			phTable <- as.data.frame(apply(phTable, 2, factor))
 			arrType <- input$arrType
                         correctionLvl <- NULL
@@ -1419,7 +1453,8 @@ shinyServer(
 
                         data <- gVars$norm.data
 			phTable <- gVars$phTable
-                        rownames(phTable) <- phTable[,gVars$sampleColID]
+                        #rownames(phTable) <- phTable[,gVars$sampleColID]
+                        rownames(phTable) <- phTable[,gVars$sampleColName]
 			phTable <- as.data.frame(apply(phTable, 2, factor))
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
@@ -1938,7 +1973,8 @@ shinyServer(
 			print(paste0("Param Height: ", input$princePlotDiv_height))
 			print(paste0("Param Width: ", input$princePlotDiv_width))
 			ph <- gVars$phTable
-                        rownames(ph) <- ph[,gVars$sampleColID]
+                        #rownames(ph) <- ph[,gVars$sampleColID]
+                        rownames(ph) <- ph[,gVars$sampleColName]
 			#ph <- as.data.frame(apply(ph, 2, factor))
 			data <- gVars$norm.data
 			npc = 10
@@ -1994,7 +2030,8 @@ shinyServer(
 			cat("Accessing PH from extracted data...")
 			cat("\n")
 			ph <- gVars$phTable
-                        rownames(ph) <- ph[,gVars$sampleColID]
+                        #rownames(ph) <- ph[,gVars$sampleColID]
+                        rownames(ph) <- ph[,gVars$sampleColName]
 			data <- gVars$norm.data
                         colnames(data) <- rownames(ph)
 			print(dim(data))
@@ -2135,7 +2172,8 @@ shinyServer(
 			cat("Accessing PH from extracted data...")
 			cat("\n")
 			ph <- gVars$phTable
-                        rownames(ph) <- ph[,gVars$sampleColID]
+                        #rownames(ph) <- ph[,gVars$sampleColID]
+                        rownames(ph) <- ph[,gVars$sampleColName]
 			data <- gVars$comb.data
                         colnames(data) <- rownames(ph)
 			test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
@@ -2164,7 +2202,8 @@ shinyServer(
 			cat("Accessing PH from extracted data...")
 			cat("\n")
 			ph <- gVars$phTable
-                        rownames(ph) <- ph[,gVars$sampleColID]
+                        #rownames(ph) <- ph[,gVars$sampleColID]
+                        rownames(ph) <- ph[,gVars$sampleColName]
 			data <- gVars$comb.sva.data
                         colnames(data) <- rownames(ph)
 			print(head(data))
@@ -2194,7 +2233,8 @@ shinyServer(
 			cat("Accessing PH from extracted data...")
 			cat("\n")
 			ph <- gVars$phTable
-                        rownames(ph) <- ph[,gVars$sampleColID]
+                        #rownames(ph) <- ph[,gVars$sampleColID]
+                        rownames(ph) <- ph[,gVars$sampleColName]
 			ph <- as.data.frame(apply(ph, 2, factor))
 			data <- gVars$comb.data
 			npc = 10
@@ -2235,7 +2275,8 @@ shinyServer(
 			cat("Accessing PH from extracted data...")
 			cat("\n")
 			ph <- gVars$phTable
-                        rownames(ph) <- ph[,gVars$sampleColID]
+                        #rownames(ph) <- ph[,gVars$sampleColID]
+                        rownames(ph) <- ph[,gVars$sampleColName]
 			ph <- as.data.frame(apply(ph, 2, factor))
 			data <- gVars$comb.sva.data
 			npc = 10
@@ -2650,7 +2691,8 @@ shinyServer(
                         dataColsVarI <- phTable[,varI]
 
                         tmp.data <- data
-                        colnames(tmp.data) <- phTable[, gVars$sampleColID]
+                        #colnames(tmp.data) <- phTable[, gVars$sampleColID]
+                        colnames(tmp.data) <- phTable[, gVars$sampleColName]
 
                         selCols <- which(dataColsVarI %in% conditions)
                         selRows <- which(rownames(tmp.data) %in% deGenes)
@@ -3150,7 +3192,8 @@ shinyServer(
                         if(is.null(phTable)){
                                 tmpChoices <- c("NA")
                         }else{
-                                rownames(phTable) <- phTable[,gVars$sampleColID]
+                                #rownames(phTable) <- phTable[,gVars$sampleColID]
+                                rownames(phTable) <- phTable[,gVars$sampleColName]
                                 phTable <- as.data.frame(apply(phTable, 2, factor))
                                 varI <- input$varIBoxPlot
                                 conditions <- levels(phTable[,varI])
@@ -3195,7 +3238,7 @@ shinyServer(
 		#})
 
 		output$slidePercDE <- renderUI({
-                        sliderInput("percDE", "Percentage of Highly Differential Genes", min=0.1, max=5, value=0.1, step=0.1)
+                        sliderInput("percDE", "Percentage of Highly Differential Features", min=0.1, max=5, value=0.1, step=0.1)
 		})
 
 		output$selConditionsHeat <- renderUI({

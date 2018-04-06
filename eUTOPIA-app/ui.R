@@ -901,7 +901,7 @@ fluidPage(
                                                                 fluidRow(
                                                                         column(4,
                                                                                 #uiOutput("selExpGenes"),
-                                                                                selectizeInput("expGenes", "Select Genes", choices=c("NA"), multiple=TRUE),
+                                                                                selectizeInput("expGenes", "Select Features", choices=c("NA"), multiple=TRUE),
                                                                                 uiOutput("selVarIBoxPlot"),
                                                                                 uiOutput("selConditions")
                                                                         ),column(8,
