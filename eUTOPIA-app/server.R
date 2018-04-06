@@ -1928,9 +1928,9 @@ shinyServer(
 
 		output$confPlot <- renderPlot({
                         shiny::validate(need(!is.null(gVars$norm.data), "Waiting for normalization..."))
-			print(paste0("Plot Width: ", session$clientData$output_confPlot_width))
-			print(paste0("Param Width: ", input$confPlotDiv_width))
-			print(paste0("Param Height: ", input$confPlotDiv_height))
+			#print(paste0("Plot Width: ", session$clientData$output_confPlot_width))
+			#print(paste0("Param Width: ", input$confPlotDiv_width))
+			#print(paste0("Param Height: ", input$confPlotDiv_height))
 			ph <- gVars$phTable
 			ph <- as.data.frame(apply(ph, 2, factor))
 			test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
@@ -1967,11 +1967,11 @@ shinyServer(
 
 		output$princePlot <- renderPlot({			
                         shiny::validate(need(!is.null(gVars$norm.data), "Waiting for normalization..."))
-			print("In Prince Plot...")
-			print(paste0("Plot Width: ", session$clientData$output_princePlot_width))
-			print(paste0("Plot Height: ", session$clientData$output_princePlot_height))
-			print(paste0("Param Height: ", input$princePlotDiv_height))
-			print(paste0("Param Width: ", input$princePlotDiv_width))
+			#print("In Prince Plot...")
+			#print(paste0("Plot Width: ", session$clientData$output_princePlot_width))
+			#print(paste0("Plot Height: ", session$clientData$output_princePlot_height))
+			#print(paste0("Param Height: ", input$princePlotDiv_height))
+			#print(paste0("Param Width: ", input$princePlotDiv_width))
 			ph <- gVars$phTable
                         #rownames(ph) <- ph[,gVars$sampleColID]
                         rownames(ph) <- ph[,gVars$sampleColName]
@@ -2005,21 +2005,21 @@ shinyServer(
 		},
 		height = function(){
 			if(is.null(input$princePlotDiv_height) || input$princePlotDiv_height=="" || input$princePlotDiv_height==0){
-				print("Ht1")
-				print(session$clientData$output_princePlot_width)
+				#print("Ht1")
+				#print(session$clientData$output_princePlot_width)
 				return((40*(session$clientData$output_princePlot_width*100/60))/100)
 			}else{
-				print("Ht2")
+				#print("Ht2")
 				input$princePlotDiv_height
 			}
 		},
 		width = function(){
 			if(is.null(input$princePlotDiv_width) || input$princePlotDiv_width=="" || input$princePlotDiv_width==0){
-				print("Wd1")
-				print(session$clientData$output_princePlot_width)
+				#print("Wd1")
+				#print(session$clientData$output_princePlot_width)
 				return(session$clientData$output_princePlot_width)
 			}else{
-				print("Wd2")
+				#print("Wd2")
 				input$princePlotDiv_width
 			}
 		}
@@ -2079,8 +2079,13 @@ shinyServer(
                         print(colnames(norm.data))
                         print(phTable[,input$mdsLabel])
                         print(as.character(phTable[,input$mdsLabel]))
-			#limma:::plotMDS(norm.data, top=500, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "Before removing any batch")
-			limma:::plotMDS(norm.data, top=500, labels=as.character(phTable[,input$mdsLabel]), col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "Before removing any batch")
+                        percTop <- 1
+                        topNum <- floor((nrow(norm.data)*percTop)/100)
+                        cat("Total Features: ", nrow(norm.data), "\n")
+                        cat("Top Num: ", topNum, "\n")
+			##limma:::plotMDS(norm.data, top=500, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "Before removing any batch")
+			#limma:::plotMDS(norm.data, top=500, labels=as.character(phTable[,input$mdsLabel]), col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "Before removing any batch")
+			limma:::plotMDS(norm.data, top=topNum, labels=as.character(phTable[,input$mdsLabel]), col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "Before removing any batch")
                 },
 		height = function(){
 			if(is.null(input$preCorMDSDiv_height) || input$preCorMDSDiv_height==""){
@@ -2104,7 +2109,12 @@ shinyServer(
 			comb.data <- gVars$comb.data
 			phTable <- gVars$phTable
 			phTable <- as.data.frame(apply(phTable, 2, factor))
-			limma:::plotMDS(comb.data, top=500, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After removing batches")
+                        percTop <- 1
+                        topNum <- floor((nrow(comb.data)*percTop)/100)
+                        cat("Total Features: ", nrow(comb.data), "\n")
+                        cat("Top Num: ", topNum, "\n")
+			#limma:::plotMDS(comb.data, top=500, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After removing batches")
+			limma:::plotMDS(comb.data, top=topNum, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After removing batches")
 		},
 		height = function(){
 			if(is.null(input$postCorMDSDiv_height) || input$postCorMDSDiv_height==""){
@@ -2126,7 +2136,12 @@ shinyServer(
 			comb.data <- gVars$comb.sva.data
 			phTable <- gVars$phTable
 			phTable <- as.data.frame(apply(phTable, 2, factor))
-			limma:::plotMDS(comb.data, top=500, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After removing unknown batches.")
+                        percTop <- 1
+                        topNum <- floor((nrow(comb.data)*percTop)/100)
+                        cat("Total Features: ", nrow(comb.data), "\n")
+                        cat("Top Num: ", topNum, "\n")
+			#limma:::plotMDS(comb.data, top=500, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After removing unknown batches.")
+			limma:::plotMDS(comb.data, top=topNum, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After removing unknown batches.")
 		},
 		height = function(){
 			if(is.null(input$postSvaCorMDSDiv_height) || input$postSvaCorMDSDiv_height==""){
@@ -2150,7 +2165,12 @@ shinyServer(
 			agg.data <- gVars$agg.data
 			phTable <- gVars$phTable
 			phTable <- as.data.frame(apply(phTable, 2, factor))
-			limma:::plotMDS(agg.data, top=500, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After aggregation")
+                        percTop <- 1
+                        topNum <- floor((nrow(agg.data)*percTop)/100)
+                        cat("Total Features: ", nrow(agg.data), "\n")
+                        cat("Top Num: ", topNum, "\n")
+			#limma:::plotMDS(agg.data, top=500, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After aggregation")
+			limma:::plotMDS(agg.data, top=topNum, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After aggregation")
 		},
 		height = function(){
 			if(is.null(input$postAggMDSDiv_height) || input$postAggMDSDiv_height==""){
