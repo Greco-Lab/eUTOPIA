@@ -426,7 +426,8 @@ fluidPage(
                                                         fluidRow(
                                                                 column(12,
                                                                         uiOutput("selVarILimma"),
-                                                                        uiOutput("selCoVarLimma")#,
+                                                                        uiOutput("selCoVarLimma"),
+                                                                        checkboxInput(inputId="chkKeepNA", label="Keep NA Variables", value=FALSE)
                                                                         #uiOutput("selBatchLimma")
                                                                 )
                                                         )

@@ -168,16 +168,20 @@ if(isNorm){
 ```{r confounding_after_normalization, echo=F, fig.height=9, fig.width=9}
 if(isNorm){
         ph <- params$gVars$phTable
-        ph <- as.data.frame(apply(ph, 2, factor))
+        #ph <- as.data.frame(apply(ph, 2, factor))
+        phFactor <- params$gVars$phFactor
         test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
-        ph <- ph[,test]
+        #ph <- ph[,test]
+        phFactor <- phFactor[,test]
         if(!is.null(params$gVars$svaStep)){
                 if(params$gVars$svaStep==1){
                         svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
-                        ph <- cbind(ph, svaSV) 
+                        svaSVc <- params$gVars$svaSVc
+                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
                 }
         }
-        res <- confounding(ph, margins = c(15,15), notecex=0.5)
+        #res <- confounding(ph, margins = c(15,15), notecex=0.5)
+        res <- confounding(phFactor, margins = c(15,15), notecex=0.5)
 }else{
         print("Normalized data not found!")
 }
@@ -192,21 +196,27 @@ if(isNorm){
 if(isNorm){
         ph <- params$gVars$phTable
         rownames(ph) <- ph[,params$gVars$sampleColID]
+        phFactor <- params$gVars$phFactor
+        rownames(phFactor) <- ph[,params$gVars$sampleColID]
         data <- params$gVars$norm.data
         npc <- 10
         test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
-        ph <- as.data.frame(apply(ph, 2, factor))
-        ph <- ph[,test]
+        #ph <- as.data.frame(apply(ph, 2, factor))
+        #ph <- ph[,test]
+        phFactor <- phFactor[,test]
         if(!is.null(params$gVars$svaStep)){
                 if(params$gVars$svaStep==1){
                         svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
-                        ph <- cbind(ph, svaSV) 
+                        svaSVc <- params$gVars$svaSVc
+                        #ph <- cbind(ph, svaSV) 
+                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
                 }
         }
         if(npc>ncol(data)){
                 npc <- ncol(data)
         }
-        pr <- prince(data, ph, top=npc)
+        #pr <- prince(data, ph, top=npc)
+        pr <- prince(data, phFactor, top=npc)
         # generate the prince plot
         prince.plot(prince=pr, margins=c(15,15), note=TRUE, notecex=0.5)
 }else{
@@ -221,14 +231,26 @@ if(isNorm){
 if(isCorr){
         ph <- params$gVars$phTable
         rownames(ph) <- ph[,params$gVars$sampleColID]
-        ph <- as.data.frame(apply(ph, 2, factor))
+        phFactor <- params$gVars$phFactor
+        rownames(phFactor) <- ph[,params$gVars$sampleColID]
+        #ph <- as.data.frame(apply(ph, 2, factor))
         data <- params$gVars$comb.data
         npc <- 10
         test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
+        phFactor <- phFactor[,test]
+        if(!is.null(params$gVars$svaStep)){
+                if(params$gVars$svaStep==1){
+                        svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
+                        svaSVc <- params$gVars$svaSVc
+                        #ph <- cbind(ph, svaSV) 
+                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
+                }
+        }
         if(npc>ncol(data)){
                 npc <- ncol(data)
         }
-        pr <- prince(data, ph[,test], top=npc)
+        #pr <- prince(data, ph[,test], top=npc)
+        pr <- prince(data, phFactor[,test], top=npc)
         #generate the prince plot
         prince.plot(prince=pr, margins = c(5,5), note=TRUE, notecex=0.5)
 }else{
@@ -245,19 +267,25 @@ if(isCorr){
 if(isNorm){
         ph <- params$gVars$phTable
         rownames(ph) <- ph[,params$gVars$sampleColID]
+        phFactor <- params$gVars$phFactor
+        rownames(phFactor) <- ph[,params$gVars$sampleColID]
         data <- params$gVars$norm.data
         colnames(data) <- rownames(ph)
         test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
-        ph <- as.data.frame(apply(ph, 2, factor))
-        ph <- ph[,test]
+        #ph <- as.data.frame(apply(ph, 2, factor))
+        #ph <- ph[,test]
+        phFactor <- phFactor[,test]
         if(!is.null(params$gVars$svaStep)){
                 if(params$gVars$svaStep==1){
                         svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
-                        ph <- cbind(ph, svaSV) 
+                        svaSVc <- params$gVars$svaSVc
+                        #ph <- cbind(ph, svaSV) 
+                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
                 }
         }
         #hc plot
-        hca.plot(data, ph, method="correlation")
+        #hca.plot(data, ph, method="correlation")
+        hca.plot(data, phFactor, method="correlation")
 }else{
         print("Normalized data not found!")
 }
@@ -270,12 +298,23 @@ if(isNorm){
 if(isCorr){
         ph <- params$gVars$phTable
         rownames(ph) <- ph[,params$gVars$sampleColID]
+        phFactor <- params$gVars$phFactor
+        rownames(phFactor) <- ph[,params$gVars$sampleColID]
         data <- params$gVars$comb.data
         colnames(data) <- rownames(ph)
         test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
+        phFactor <- phFactor[,test]
+        if(!is.null(params$gVars$svaStep)){
+                if(params$gVars$svaStep==1){
+                        svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
+                        svaSVc <- params$gVars$svaSVc
+                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
+                }
+        }
         # hc plot
-        ph <- as.data.frame(apply(ph, 2, factor))
-        hca.plot(data, ph[,test], method = "correlation")
+        #ph <- as.data.frame(apply(ph, 2, factor))
+        #hca.plot(data, ph[,test], method = "correlation")
+        hca.plot(data, phFactor, method = "correlation")
 }else{
         print("Corrected data not found!")
 }
@@ -291,8 +330,13 @@ if(isNorm){
         if(!is.null(params$input$mdsLabel) && !is.null(params$input$mdsColor)){
                 norm.data <- params$gVars$norm.data
                 phTable <- params$gVars$phTable
-                phTable <- as.data.frame(apply(phTable, 2, factor))
-                limma:::plotMDS(norm.data, top=500, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "Before removing any batch", cex=0.5)
+                #phTable <- as.data.frame(apply(phTable, 2, factor))
+                phFactor <- params$gVars$phFactor
+                percTop <- 1
+                topNum <- floor((nrow(norm.data)*percTop)/100)
+                ##limma:::plotMDS(norm.data, top=500, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "Before removing any batch", cex=0.5)
+                #limma:::plotMDS(norm.data, top=topNum, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "Before removing any batch", cex=0.5)
+                limma:::plotMDS(norm.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=as.numeric(phFactor[,params$input$mdsColor]), gene.selection="common", main="Before removing any batch", cex=0.5)
         }else{
                 print("Missing label and color information...")
         }
@@ -309,8 +353,13 @@ if(isCorr){
         if(!is.null(params$input$mdsLabel) && !is.null(params$input$mdsColor)){
                 comb.data <- params$gVars$comb.data
                 phTable <- params$gVars$phTable
-                phTable <- as.data.frame(apply(phTable, 2, factor))
-                limma:::plotMDS(comb.data, top=500, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After removing batches", cex=0.5)
+                #phTable <- as.data.frame(apply(phTable, 2, factor))
+                phFactor <- params$gVars$phFactor
+                percTop <- 1
+                topNum <- floor((nrow(comb.data)*percTop)/100)
+                ##limma:::plotMDS(comb.data, top=500, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After removing batches", cex=0.5)
+                #limma:::plotMDS(comb.data, top=topNum, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After removing batches", cex=0.5)
+                limma:::plotMDS(comb.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=as.numeric(phFactor[,params$input$mdsColor]), gene.selection="common", main="After removing batches", cex=0.5)
         }else{
                 print("Missing label and color information...")
         }
@@ -328,8 +377,13 @@ if(isAgg){
                 if(grepl("ag_exp.*", params$input$arrType)){
                         agg.data <- params$gVars$agg.data
                         phTable <- params$gVars$phTable
-                        phTable <- as.data.frame(apply(phTable, 2, factor))
-                        limma:::plotMDS(agg.data, top=500, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After aggregation", cex=0.5)
+                        #phTable <- as.data.frame(apply(phTable, 2, factor))
+                        phFactor <- params$gVars$phFactor
+                        percTop <- 1
+                        topNum <- floor((nrow(agg.data)*percTop)/100)
+                        ##limma:::plotMDS(agg.data, top=500, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After aggregation", cex=0.5)
+                        #limma:::plotMDS(agg.data, top=topNum, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After aggregation", cex=0.5)
+                        limma:::plotMDS(agg.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=as.numeric(phFactor[,params$input$mdsColor]), gene.selection="common", main="After aggregation", cex=0.5)
                 }else{
                         print(paste0("No plot for ", params$input$arrType, " data!"))
                 }
@@ -381,8 +435,10 @@ if(isDeg){
 ```{r intersection_plot, echo=F, fig.height=9, fig.width=9}
 if(isDeg){
         deg.list <- params$gVars$deg.list
-        lfc <- as.numeric(params$input$lfcThr)
-        adjPv <- as.numeric(params$input$adjPvThr)
+        #lfc <- as.numeric(params$input$lfcThr)
+        #adjPv <- as.numeric(params$input$adjPvThr)
+        lfc <- as.numeric(params$gVars$lfcFilt)
+        adjPv <- -log10(as.numeric(params$gVars$adjPvFilt))
         intersectComps <- params$input$intersectComps
 
         deg.item.list <- list()
