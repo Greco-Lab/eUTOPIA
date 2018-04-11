@@ -419,7 +419,7 @@ shinyServer(
 			}
 
 			#return(paste0("Columns: ", nCol))
-			return(paste0("Vairables: ", nCol))
+			return(paste0("Variables: ", nCol))
 		})
 
 		gVars$phColChoices <- reactive({
@@ -543,7 +543,9 @@ shinyServer(
                         print(str(phRH))
                         factorIdx <- which(phRH$Type=="factor")
                         print(factorIdx)
+                        factorCols <- NULL
                         if(length(factorIdx)>0){
+                                factorCols <- colnames(phTable)[factorIdx]
                                 phFactor <- factorize_cols(phTable, factorIdx)
                         }else{
                                 phFactor <- phTable
@@ -553,6 +555,7 @@ shinyServer(
 
                         gVars$phTable <- phTable
                         gVars$phFactor <- phFactor
+                        gVars$factorCols <- factorCols
 			gVars$dyeColID <- dyeColID
 			gVars$fileNameColID <- fileNameColID
 			gVars$sampleColID <- sampleColID
@@ -574,7 +577,12 @@ shinyServer(
 			if (is.null(phTable))
                         return(c("NA"))
 
-			return(colnames(phTable))
+                        colNames <- colnames(phTable)[apply(phTable, 2, function(x){res<-any(is.na(x));!res})]
+                        if(length(colNames)==0){
+                                shinyjs::info("No available phenotype variables.\nAll variables contain NAs\nCheck 'Keep NA Variables' to include variables with NA values")
+                                return(c("NA"))
+                        }
+			return(colNames)
 		})
 
                 gVars$pcChoicesSV <- reactive({
@@ -588,7 +596,13 @@ shinyServer(
                                 svaSVc <- gVars$svaSVc
                                 phTable <- cbind(phTable, svaSV, svaSVc)
                         }
-			return(colnames(phTable))
+
+                        colNames <- colnames(phTable)[apply(phTable, 2, function(x){res<-any(is.na(x));!res})]
+                        if(length(colNames)==0){
+                                shinyjs::info("No available phenotype variables.\nAll variables contain NAs\nCheck 'Keep NA Variables' to include variables with NA values")
+                                return(c("NA"))
+                        }
+			return(colNames)
 		})
 
 		gVars$condChoices <- reactive({
@@ -783,7 +797,21 @@ shinyServer(
                                 shinyjs::info(remStr)
                         }
 
+                        factorCols <- gVars$factorCols
+                        if(is.null(factorCols)){
+                                phFactor <- phTable
+                        }else{
+                                tmpIdx <- which(factorCols %in% colnames(phTable))
+                                if(length(tmpIdx)>0){
+                                        factorCols <- factorCols[tmpIdx]
+                                        factorIdx <- which(colnames(phTable) %in% factorCols)
+                                        phFactor <- factorize_cols(phTable, factorIdx)
+                                }else{
+                                        phFactor <- phTable
+                                }
+                        }
                         gVars$phTable <- phTable
+                        gVars$phFactor <- phFactor
                         gVars$filteredSamples <- nrow(phTable)
                         gVars$removedSamples <- gVars$totalSamples - nrow(phTable)
 			gVars$removedSamplesInfo <- rbind(gVars$removedSamplesInfo, removedSamplesInfo)
@@ -832,6 +860,7 @@ shinyServer(
                         progress$set(message="Raw Data:", value=0)
 
                         phTable <- gVars$phTable
+                        phFactor <- gVars$phFactor
 			removedSamplesInfo <- gVars$removedSamplesInfo
 			fileNameColID <- gVars$fileNameColID
                         sampleColID <- gVars$sampleColID
@@ -1030,8 +1059,11 @@ shinyServer(
 
                                 #rownames(phTable) <- phTable[,sampleColID]
                                 rownames(phTable) <- phTable[,sampleColName]
-				phFactorDF <- as.data.frame(apply(phTable, 2, factor))
-                                pheno <- new("AnnotatedDataFrame", data=phFactorDF)
+				#phFactorDF <- as.data.frame(apply(phTable, 2, factor))
+                                #pheno <- new("AnnotatedDataFrame", data=phFactorDF)
+                                rownames(phFactor) <- phTable[,sampleColName]
+                                pheno <- new("AnnotatedDataFrame", data=phFactor)
+
                                 ##require(affCDF)
 				#eset <- affy::justRMA(filenames=fileNames, celfile.path=celDir, phenoData=pheno, sampleNames=phTable[,sampleColID], normalize=TRUE, background=TRUE, cdfname=affCDF)
 				eset <- affy::justRMA(filenames=fileNames, celfile.path=celDir, phenoData=pheno, sampleNames=phTable[,sampleColName], normalize=TRUE, background=TRUE, cdfname=affCDF)
@@ -1053,7 +1085,8 @@ shinyServer(
 				#shinyBS::updateCollapse(session, "bsSidebar", open="BATCH CORRECTION", style=list("LOAD RAW DATA"="success", "BATCH CORRECTION"="warning"))
                                 shiny::updateTabsetPanel(session, "display", selected="normTab")
 			}else if(arrType=="il_methyl"){
-                                pdFactor <- as.data.frame(apply(phTable, 2, factor))
+                                #pdFactor <- as.data.frame(apply(phTable, 2, factor))
+                                pdFactor <- phFactor
                                 pdFactor$Basename <- factor(file.path(celDir, fileNames))
                                 RGset <- minfi::read.metharray.exp(targets=pdFactor)
                                 detP <- minfi::detectionP(RGset)
@@ -1116,6 +1149,20 @@ shinyServer(
                                 pvThr <- as.numeric(input$detectPV)
                                 sampleCount <- round(percSample*ncol(RGset)/100)
                                 keep <- rowSums(detP<pvThr)>=sampleCount
+                                print("~~~~~~~~~~~~~~~~~~~~RGset DIM:")
+                                print(dim(RGset))
+                                print("~~~~~~~~~~~~~~~~~~~~detP DIM:")
+                                print(dim(detP))
+                                print("~~~~~~~~~~~~~~~~~~~~detP HEAD:")
+                                print(head(detP))
+                                print("Sample Count:")
+                                print(sampleCount)
+                                print("PV Thr:")
+                                print(pvThr)
+                                print("Keep:")
+                                print(table(keep))
+                                gVars$keepMeth <- keep
+
                                 filt.data <- RGset[keep,]
                         }else{
                                 filt.data <- filt.by.neg.probes(nc.data, c.data, qdist=qfilt, perc=perc, verbose=T)
@@ -1136,10 +1183,14 @@ shinyServer(
 			nc.data <- gVars$nc.data
                         arrType <- input$arrType
                         RGset <- gVars$RGset
+                        detP <- gVars$detP
 
                         if(arrType=="il_methyl"){
-                                countProbes <- nrow(RGset)-nrow(filt.data)
-                                percProbes <- round((countProbes/nrow(RGset))*100, digits=2)
+                                #countProbes <- nrow(RGset)-nrow(filt.data)
+                                #percProbes <- round((countProbes/nrow(RGset))*100, digits=2)
+                                keep <- gVars$keepMeth
+                                countProbes <- sum(!keep)
+                                percProbes <- round((countProbes/length(keep))*100, digits=2)
                         }else{
                                 countProbes <- nrow(nc.data)-nrow(filt.data)
                                 percProbes <- round((countProbes/nrow(nc.data))*100, digits=2)
@@ -1154,9 +1205,15 @@ shinyServer(
 			if(is.null(gVars$filt.data))
 			return("Probes Remaining: NA")
 			
-			#filt.data <- gVars$filt.data()
-			filt.data <- gVars$filt.data
-			countProbes <- nrow(filt.data)
+                        arrType <- input$arrType
+                        if(arrType=="il_methyl"){
+                                keep <- gVars$keepMeth
+                                countProbes <- sum(keep)
+                        }else{
+                            #filt.data <- gVars$filt.data()
+                            filt.data <- gVars$filt.data
+                            countProbes <- nrow(filt.data)
+                        }
 
 			numProbesText <- paste0("Probes Remaining: ", countProbes)
 			return(numProbesText)
@@ -1209,6 +1266,8 @@ shinyServer(
                                 pvThr <- as.numeric(input$detectPV)
                                 sampleCount <- round(percSample*ncol(RGset)/100)
                                 keep <- rowSums(detP<pvThr)>=sampleCount
+                                print("~~~~~~~~~~~~~~~~~~~~RGset DIM:")
+                                print(dim(RGset))
                                 print("Sample Count:")
                                 print(sampleCount)
                                 print("PV Thr:")
@@ -1240,8 +1299,10 @@ shinyServer(
                                         print("Running preprocessNoob...")
                                         Mset <- minfi::preprocessNoob(RGset)
                                 }
+                                print("~~~~~~~~~~~~~~~~~~~~Mset Norm DIM:")
+                                print(dim(Mset))
                                 Mset <- Mset[keep,]
-                                print("~~~~~~~~~~~~~~~~~~~~Mset DIM:")
+                                print("~~~~~~~~~~~~~~~~~~~~Mset Filt DIM:")
                                 print(dim(Mset))
                                 print("~~~~~~~~~~~~~~~~~~~~MsetSummary:")
                                 print(summary(getM(Mset)[,1]))
@@ -1348,12 +1409,15 @@ shinyServer(
                         }else{
 			    coVar <- as.list(input$coVarSva)
                         }
+
 			batch <- as.list(input$batchSva)
                         data <- gVars$norm.data
 			phTable <- gVars$phTable
-                        #rownames(phTable) <- phTable[,gVars$sampleColID]
+			phFactor <- gVars$phFactor
                         rownames(phTable) <- phTable[,gVars$sampleColName]
-			phTable <- as.data.frame(apply(phTable, 2, factor))
+			#phTable <- as.data.frame(apply(phTable, 2, factor))
+                        rownames(phFactor) <- phTable[,gVars$sampleColName]
+
 			arrType <- input$arrType
                         correctionLvl <- NULL
                         
@@ -1361,7 +1425,8 @@ shinyServer(
 			print(str(batchCorVar))
 
                         updateProgress(detail="Getting Surrogate Variables...", value=1/3)
-                        batches.sva <- get.sva.batch.effects(comb.data=data, pd=phTable, vars=batchCorVar, cmd.ui=F)
+                        #batches.sva <- get.sva.batch.effects(comb.data=data, pd=phTable, vars=batchCorVar, cmd.ui=F)
+                        batches.sva <- get.sva.batch.effects(comb.data=data, pd=phFactor, vars=batchCorVar, cmd.ui=F)
 
                         updateProgress(detail="Filtering Confounded Variables...", value=2/3)
                         assoc.cutoff <- 0.05
@@ -1453,18 +1518,18 @@ shinyServer(
 
                         data <- gVars$norm.data
 			phTable <- gVars$phTable
+			phFactor <- gVars$phFactor
                         #rownames(phTable) <- phTable[,gVars$sampleColID]
                         rownames(phTable) <- phTable[,gVars$sampleColName]
-			phTable <- as.data.frame(apply(phTable, 2, factor))
+                        rownames(phFactor) <- phTable[,gVars$sampleColName]
+			#phTable <- as.data.frame(apply(phTable, 2, factor))
+
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
                                         svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
-                                        ##phTable <- cbind(phTable, svaSV)
-                                        #svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
                                         svaSVc <- gVars$svaSVc
                                         phTable <- cbind(phTable, svaSV, svaSVc)
-                                        #svaSV <- gVars$svaSV
-                                        #phTable <- cbind(phTable, svaSV, stringsAsFactors=F)
+                                        phFactor <- cbind(phFactor, svaSV, svaSVc)
                                 }
                         }
 			arrType <- input$arrType
@@ -1476,7 +1541,8 @@ shinyServer(
                         if(npc>ncol(data)){
                                 npc <- ncol(data)
                         }
-			comb.data <- remove.batch.effects(data, phTable, npc, batchCorVar, method="Combat", plot=F, verbose=T)
+			#comb.data <- remove.batch.effects(data, phTable, npc, batchCorVar, method="Combat", plot=F, verbose=T)
+			comb.data <- remove.batch.effects(data, phFactor, npc, batchCorVar, method="Combat", plot=F, verbose=T)
                         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~After Correcting!!!!!!!!!")
                         if(is.character(comb.data)){
                                 shinyjs::info(comb.data)
@@ -1505,7 +1571,8 @@ shinyServer(
 			gVars$expr.data <- expr.data
                         gVars$map <- map
                         gVars$varICombat <- varI
-                        gVars$conditions <- levels(phTable[,varI])
+                        #gVars$conditions <- levels(phTable[,varI])
+                        gVars$conditions <- levels(phFactor[,varI])
                         gVars$correctionLvl <- correctionLvl
 
                         tmpChoices <- rownames(gVars$expr.data)
@@ -1771,22 +1838,113 @@ shinyServer(
 
                         pvAdjMethod <- input$pvAdjMethod
 			phTable <- gVars$phTable
-			phTable <- as.data.frame(apply(phTable, 2, factor))
-                        if(!is.null(gVars$svaStep)){
-                                if(gVars$svaStep==1){
-                                        svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
-                                        #svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
-                                        svaSVc <- gVars$svaSVc
-                                        phTable <- cbind(phTable, svaSV, svaSVc)
-                                }
-                        }
+                        sampleColName <- gVars$sampleColName
+                        rownames(phTable) <- phTable[,sampleColName]
+			phFactor <- gVars$phFactor
+                        factorCols <- gVars$factorCols
+			#phTable <- as.data.frame(apply(phTable, 2, factor))
                         varI <- input$varILimma
                         coVar <- input$coVarLimma
+                        varCols <- append(varI, coVar)
+                        varColsIdx <- NULL
+                        if(length(varCols)>0){
+                                varColsIdx <- which(colnames(phTable) %in% varCols)
+                                print("varCols:")
+                                print(varCols)
+                                print(varColsIdx)
+                        }
+
+                        remSampleName <- NULL
+                        remSampleIdx <- NULL
+                        nrlevels.singular <- NULL
+                        if(input$chkKeepNA && length(varColsIdx)>0){
+                                remSampleName <- rownames(phTable)[apply(phTable[,varColsIdx, drop=FALSE], 1, function(x){res<-any(is.na(x));res})]
+                                print("Sample names to remove:")
+                                print(remSampleName)
+                                if(length(remSampleName)>0){
+                                        remSampleIdx <- which(rownames(phTable) %in% remSampleName)
+                                        print("Sample Index to remove:")
+                                        print(remSampleIdx)
+                                        print("str(phTable) before removing:")
+                                        print(str(phTable))
+                                        phTable <- phTable[-remSampleIdx,]
+                                        print("str(phTable) after removing:")
+                                        print(str(phTable))
+                                        print(phTable)
+                                        shinyjs::alert(paste0("Following sample were removed before limma analysis :\n",paste(remSampleName,collapse=", "),"\n\nOne or more covariate was found to have NA values for these samples!!!."))
+
+                                        #Remove columns with single level data
+                                        nrlevels <- apply(phTable, 2, function(x){length(levels(factor(x)))})
+                                        nrlevels.singular <- which(nrlevels<=1)
+                                        print("nrlevels:")
+                                        print(nrlevels)
+
+                                        remInfo <- 0
+                                        remStr <- ""
+                                        if(length(nrlevels.singular)>0){
+                                                remInfo <- 1
+                                                remStr <- paste0(remStr, "Following columns are removed because they contain only single repeated value:\n[",paste0(names(nrlevels.singular), collapse=", "), "]")
+                                                if(length(nrlevels.singular)==ncol(phTable)){
+                                                        remStr <- paste0(remStr, "\n\nNo column survived filtering!!! Please define phenotype data columns with singular data type.")
+                                                        shinyjs::info(remStr)
+                                                        return(NULL)
+                                                }
+                                                col2rem <- which(colnames(phTable) %in% names(nrlevels.singular))
+                                                phTable <- phTable[,-col2rem, drop=FALSE]
+                                        }
+
+                                        #Inform user with the columns removed from the data frame
+                                        if(remInfo==1){
+                                                shinyjs::info(remStr)
+                                        }
+
+                                        if(is.null(factorCols)){
+                                                phFactor <- phTable
+                                        }else{
+                                                tmpIdx <- which(factorCols %in% colnames(phTable))
+                                                if(length(tmpIdx)>0){
+                                                        factorCols <- factorCols[tmpIdx]
+                                                        factorIdx <- which(colnames(phTable) %in% factorCols)
+                                                        phFactor <- factorize_cols(phTable, factorIdx)
+                                                }else{
+                                                        phFactor <- phTable
+                                                }
+                                        }
+                                }
+                        }
+
+                        if(!is.null(gVars$svaStep)){
+                                if(gVars$svaStep==1){
+                                        if(length(remSampleIdx)>0){
+                                                svaSV <- gVars$svaSV[-remSampleIdx,]
+                                                svaSV <- as.data.frame(apply(svaSV, 2, factor))
+                                                svaSVc <- gVars$svaSVc[-remSampleIdx,]
+                                        }else{
+                                                svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
+                                                svaSVc <- gVars$svaSVc
+                                        }
+                                                #phTable <- cbind(phTable, svaSV, svaSVc)
+                                                phFactor <- cbind(phFactor, svaSV, svaSVc)
+                                }
+                        }
+
                         if(is.null(coVar)){
                                 coVar <- NULL
                         }else{
-                                coVar <- as.list(coVar)
+                                coVar2rem <- NULL
+                                if(length(nrlevels.singular)>0){
+                                        coVar2rem <- which(coVar %in% names(nrlevels.singular))
+                                }
+
+                                if(length(coVar2rem)>0){
+                                        coVar2remNames <- coVar[coVar2rem]
+                                        coVar <- as.list(coVar[-coVar2rem])
+                                        shinyjs::alert(paste0("Following User specified CoVariate(s) were removed :\n",paste(coVar2remNames,collapse=", "),"\n\nFiltered in previous check!!!."))
+                                }else{
+                                    coVar <- as.list(coVar)
+                                }
                         }
+
 			#batch <- as.list(input$batchLimma)
 			#batchCorVar <- list(var.int=varI, covariates=coVar, batches=batch)
 			batchCorVar <- list(var.int=varI, covariates=coVar) ## No batch for limma model
@@ -1801,10 +1959,19 @@ shinyServer(
                         #        data <- gVars$agg.data
                         #}
                         data <- gVars$expr.data
+                        if(length(remSampleName)>0){
+                                data <- data[,-remSampleIdx]
+                        }
 
 			updateProgress(detail="Building Model...", value=1/3)
                         print(str(batchCorVar))
-			des <- build.model.matrix(phTable, intercept=-1, batchCorVar$var.int, batchCorVar$covariates, verbose=T) 
+                        print("str(phTable) : ")
+                        print(str(phTable))
+                        print("str(phFactor) : ")
+                        print(str(phFactor))
+                        print(phFactor)
+			#des <- build.model.matrix(phTable, intercept=-1, batchCorVar$var.int, batchCorVar$covariates, verbose=T) 
+			des <- build.model.matrix(phFactor, intercept=-1, batchCorVar$var.int, batchCorVar$covariates, verbose=T) 
                         ne <- limma::nonEstimable(des)
                         if(!is.null(ne)){
                                 shinyjs::alert(paste0("Coefficients not estimable : ",paste(ne,collapse=", "),"\n\nPlease check your limma model definition!!! Possibly contains confounders."))
@@ -1819,7 +1986,10 @@ shinyServer(
 			rownames(annDF) <- annDF[,2]
 
 			updateProgress(detail="Evaluating Expression...", value=2/3)
-			deg.list <- diff.gene.expr(data, des, contrasts=input$comps, pvalue=1, fcvalue=0, p.adjust.method=pvAdjMethod, annot=annDF, plot=F, verbose=T)
+                        comps <- as.vector(input$comps)
+                        comps <- sapply(strsplit(comps, "-"), function(x){res<-make.names(x);res<-paste0(res, collapse="-")})
+			#deg.list <- diff.gene.expr(data, des, contrasts=input$comps, pvalue=1, fcvalue=0, p.adjust.method=pvAdjMethod, annot=annDF, plot=F, verbose=T)
+			deg.list <- diff.gene.expr(data, des, contrasts=comps, pvalue=1, fcvalue=0, p.adjust.method=pvAdjMethod, annot=annDF, plot=F, verbose=T)
 
                         print("Filtering Differential Expresssion Table...")
 			comp <- input$comps[1]
@@ -1844,7 +2014,8 @@ shinyServer(
 			gVars$deg.list <- deg.list
                         gVars$deComps <- input$comps
                         gVars$varI <- varI
-                        gVars$conditions <- levels(phTable[,varI])
+                        #gVars$conditions <- levels(phTable[,varI])
+                        gVars$conditions <- levels(phFactor[,varI])
 
 			tmpMethod <- names(gVars$pvAdjChoices[which(gVars$pvAdjChoices %in% pvAdjMethod)])
                         gVars$pvAdjMethod <- tmpMethod
@@ -1931,22 +2102,26 @@ shinyServer(
 			#print(paste0("Plot Width: ", session$clientData$output_confPlot_width))
 			#print(paste0("Param Width: ", input$confPlotDiv_width))
 			#print(paste0("Param Height: ", input$confPlotDiv_height))
+
 			ph <- gVars$phTable
-			ph <- as.data.frame(apply(ph, 2, factor))
+			phFactor <- gVars$phFactor
+			#ph <- as.data.frame(apply(ph, 2, factor))
 			test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
-                        ph <- ph[,test]
+                        #ph <- ph[,test]
+                        phFactor <- phFactor[,test]
+
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
                                         svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
-                                        ##ph <- cbind(ph, svaSV) 
-                                        #svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
                                         svaSVc <- gVars$svaSVc
-                                        ph <- cbind(ph, svaSV, svaSVc) 
+                                        #ph <- cbind(ph, svaSV, svaSVc) 
+                                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
                                 }
                         }
                         print("Printing str(ph):")
                         print(str(ph))
-			confounding(ph, margins = c(10,10))
+			#confounding(ph, margins = c(10,10))
+			confounding(phFactor, margins = c(10,10))
 		},
 		height = function(){
 			if(is.null(input$confPlotDiv_height) || input$confPlotDiv_height=="" || input$confPlotDiv_height==0){
@@ -1972,17 +2147,18 @@ shinyServer(
 			#print(paste0("Plot Height: ", session$clientData$output_princePlot_height))
 			#print(paste0("Param Height: ", input$princePlotDiv_height))
 			#print(paste0("Param Width: ", input$princePlotDiv_width))
+
 			ph <- gVars$phTable
-                        #rownames(ph) <- ph[,gVars$sampleColID]
+			phFactor <- gVars$phFactor
                         rownames(ph) <- ph[,gVars$sampleColName]
-			#ph <- as.data.frame(apply(ph, 2, factor))
 			data <- gVars$norm.data
 			npc = 10
 			test <- sapply(colnames(ph), function(b){length(table(ph[,b]))>1 && length(table(ph[,b]))!=length(ph[,b])})
                         print("test cols:")
                         print(test)
-			ph <- as.data.frame(apply(ph, 2, factor))
-                        ph <- ph[,test]
+			#ph <- as.data.frame(apply(ph, 2, factor))
+                        #ph <- ph[,test]
+                        phFactor <- phFactor[,test]
                         print("str(data):")
                         print(str(data))
                         print("str(ph):")
@@ -1990,16 +2166,16 @@ shinyServer(
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
                                         svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
-                                        ##ph <- cbind(ph, svaSV) 
-                                        #svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
                                         svaSVc <- gVars$svaSVc
-                                        ph <- cbind(ph, svaSV, svaSVc) 
+                                        #ph <- cbind(ph, svaSV, svaSVc) 
+                                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
                                 }
                         }
                         if(npc>ncol(data)){
                                 npc <- ncol(data)
                         }
-			pr <- prince(data, ph, top=npc)
+			#pr <- prince(data, ph, top=npc)
+			pr <- prince(data, phFactor, top=npc)
 			# generate the prince plot
 			prince.plot(prince=pr, margins=c(15,15), note=TRUE)
 		},
@@ -2029,9 +2205,11 @@ shinyServer(
                         shiny::validate(need(!is.null(gVars$norm.data), "Waiting for normalization..."))
 			cat("Accessing PH from extracted data...")
 			cat("\n")
+
 			ph <- gVars$phTable
-                        #rownames(ph) <- ph[,gVars$sampleColID]
+			phFactor <- gVars$phFactor
                         rownames(ph) <- ph[,gVars$sampleColName]
+                        rownames(phFactor) <- ph[,gVars$sampleColName]
 			data <- gVars$norm.data
                         colnames(data) <- rownames(ph)
 			print(dim(data))
@@ -2039,20 +2217,20 @@ shinyServer(
 			print(dim(ph))
 			print(rownames(ph))
 			test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
-			ph <- as.data.frame(apply(ph, 2, factor))
-                        ph <- ph[,test]
+			#ph <- as.data.frame(apply(ph, 2, factor))
+                        #ph <- ph[,test]
+                        phFactor <- phFactor[,test]
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
                                         svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
-                                        ##ph <- cbind(ph, svaSV) 
-                                        #svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
                                         svaSVc <- gVars$svaSVc
-                                        ph <- cbind(ph, svaSV, svaSVc) 
+                                        #ph <- cbind(ph, svaSV, svaSVc) 
+                                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
                                 }
                         }
 			# hc plot
-			hca.plot(data, ph, method="correlation")
-			#list(conf = res, pr = pr)
+			#hca.plot(data, ph, method="correlation")
+			hca.plot(data, phFactor, method="correlation")
 		},
 		height = function(){
 			if(is.null(input$hcPlotDiv_height) || input$hcPlotDiv_height==""){
@@ -2073,19 +2251,26 @@ shinyServer(
                         shiny::validate(need(!is.null(gVars$norm.data), "Waiting for normalization..."))
                         shiny::validate(need(!is.null(input$mdsLabel), "Waiting for label input..."))
                         shiny::validate(need(!is.null(input$mdsColor), "Waiting for color input..."))
+
 			norm.data <- gVars$norm.data
 			phTable <- gVars$phTable
-			phTable <- as.data.frame(apply(phTable, 2, factor))
+			phFactor <- gVars$phFactor
+			#phTable <- as.data.frame(apply(phTable, 2, factor))
+
                         print(colnames(norm.data))
                         print(phTable[,input$mdsLabel])
                         print(as.character(phTable[,input$mdsLabel]))
+
                         percTop <- 1
                         topNum <- floor((nrow(norm.data)*percTop)/100)
+
                         cat("Total Features: ", nrow(norm.data), "\n")
                         cat("Top Num: ", topNum, "\n")
-			##limma:::plotMDS(norm.data, top=500, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "Before removing any batch")
+
 			#limma:::plotMDS(norm.data, top=500, labels=as.character(phTable[,input$mdsLabel]), col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "Before removing any batch")
-			limma:::plotMDS(norm.data, top=topNum, labels=as.character(phTable[,input$mdsLabel]), col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "Before removing any batch")
+
+			#limma:::plotMDS(norm.data, top=topNum, labels=as.character(phTable[,input$mdsLabel]), col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "Before removing any batch")
+			limma:::plotMDS(norm.data, top=topNum, labels=as.character(phFactor[,input$mdsLabel]), col=as.numeric(phFactor[,input$mdsColor]), gene.selection="common", main = "Before removing any batch")
                 },
 		height = function(){
 			if(is.null(input$preCorMDSDiv_height) || input$preCorMDSDiv_height==""){
@@ -2108,13 +2293,16 @@ shinyServer(
                         shiny::validate(need(!is.null(input$mdsColor), "Waiting for color input..."))
 			comb.data <- gVars$comb.data
 			phTable <- gVars$phTable
-			phTable <- as.data.frame(apply(phTable, 2, factor))
+			phFactor <- gVars$phFactor
+			#phTable <- as.data.frame(apply(phTable, 2, factor))
                         percTop <- 1
                         topNum <- floor((nrow(comb.data)*percTop)/100)
+
                         cat("Total Features: ", nrow(comb.data), "\n")
                         cat("Top Num: ", topNum, "\n")
-			#limma:::plotMDS(comb.data, top=500, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After removing batches")
-			limma:::plotMDS(comb.data, top=topNum, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After removing batches")
+
+			#limma:::plotMDS(comb.data, top=topNum, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After removing batches")
+			limma:::plotMDS(comb.data, top=topNum, labels=phFactor[,input$mdsLabel], col=as.numeric(phFactor[,input$mdsColor]), gene.selection="common", main = "After removing batches")
 		},
 		height = function(){
 			if(is.null(input$postCorMDSDiv_height) || input$postCorMDSDiv_height==""){
@@ -2135,13 +2323,17 @@ shinyServer(
                         shiny::validate(need(!is.null(gVars$comb.sva.data), "No Unknown Batches Removed..."))
 			comb.data <- gVars$comb.sva.data
 			phTable <- gVars$phTable
-			phTable <- as.data.frame(apply(phTable, 2, factor))
+			phFactor <- gVars$phFactor
+			#phTable <- as.data.frame(apply(phTable, 2, factor))
+
                         percTop <- 1
                         topNum <- floor((nrow(comb.data)*percTop)/100)
+
                         cat("Total Features: ", nrow(comb.data), "\n")
                         cat("Top Num: ", topNum, "\n")
-			#limma:::plotMDS(comb.data, top=500, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After removing unknown batches.")
-			limma:::plotMDS(comb.data, top=topNum, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After removing unknown batches.")
+
+			#limma:::plotMDS(comb.data, top=topNum, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After removing unknown batches.")
+			limma:::plotMDS(comb.data, top=topNum, labels=phFactor[,input$mdsLabel], col=as.numeric(phFactor[,input$mdsColor]), gene.selection="common", main = "After removing unknown batches.")
 		},
 		height = function(){
 			if(is.null(input$postSvaCorMDSDiv_height) || input$postSvaCorMDSDiv_height==""){
@@ -2164,13 +2356,17 @@ shinyServer(
                         shiny::validate(need(!is.null(gVars$agg.data), "Waiting for batch correction..."))
 			agg.data <- gVars$agg.data
 			phTable <- gVars$phTable
-			phTable <- as.data.frame(apply(phTable, 2, factor))
+			phFactor <- gVars$phFactor
+			#phTable <- as.data.frame(apply(phTable, 2, factor))
+
                         percTop <- 1
                         topNum <- floor((nrow(agg.data)*percTop)/100)
+
                         cat("Total Features: ", nrow(agg.data), "\n")
                         cat("Top Num: ", topNum, "\n")
-			#limma:::plotMDS(agg.data, top=500, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After aggregation")
-			limma:::plotMDS(agg.data, top=topNum, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After aggregation")
+
+			#limma:::plotMDS(agg.data, top=topNum, labels=phTable[,input$mdsLabel], col=as.numeric(phTable[,input$mdsColor]), gene.selection="common", main = "After aggregation")
+			limma:::plotMDS(agg.data, top=topNum, labels=phFactor[,input$mdsLabel], col=as.numeric(phFactor[,input$mdsColor]), gene.selection="common", main = "After aggregation")
 		},
 		height = function(){
 			if(is.null(input$postAggMDSDiv_height) || input$postAggMDSDiv_height==""){
@@ -2192,14 +2388,27 @@ shinyServer(
 			cat("Accessing PH from extracted data...")
 			cat("\n")
 			ph <- gVars$phTable
-                        #rownames(ph) <- ph[,gVars$sampleColID]
+			phFactor <- gVars$phFactor
                         rownames(ph) <- ph[,gVars$sampleColName]
+                        rownames(phFactor) <- ph[,gVars$sampleColName]
 			data <- gVars$comb.data
                         colnames(data) <- rownames(ph)
 			test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
+
+                        phFactor <- phFactor[,test]
+                        if(!is.null(gVars$svaStep)){
+                                if(gVars$svaStep==1){
+                                        svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
+                                        svaSVc <- gVars$svaSVc
+                                        #ph <- cbind(ph, svaSV, svaSVc) 
+                                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
+                                }
+                        }
+
 			# hc plot
-			ph <- as.data.frame(apply(ph, 2, factor))
-			hca.plot(data, ph[,test], method = "correlation")
+			#ph <- as.data.frame(apply(ph, 2, factor))
+			#hca.plot(data, ph[,test], method = "correlation")
+			hca.plot(data, phFactor, method = "correlation")
 			#list(conf = res, pr = pr)
 		},
 		height = function(){
@@ -2222,15 +2431,28 @@ shinyServer(
 			cat("Accessing PH from extracted data...")
 			cat("\n")
 			ph <- gVars$phTable
-                        #rownames(ph) <- ph[,gVars$sampleColID]
+			phFactor <- gVars$phFactor
                         rownames(ph) <- ph[,gVars$sampleColName]
+                        rownames(phFactor) <- ph[,gVars$sampleColName]
 			data <- gVars$comb.sva.data
                         colnames(data) <- rownames(ph)
 			print(head(data))
 			test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
+
+                        phFactor <- phFactor[,test]
+                        if(!is.null(gVars$svaStep)){
+                                if(gVars$svaStep==1){
+                                        svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
+                                        svaSVc <- gVars$svaSVc
+                                        #ph <- cbind(ph, svaSV, svaSVc) 
+                                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
+                                }
+                        }
+
 			# hc plot
-			ph <- as.data.frame(apply(ph, 2, factor))
-			hca.plot(data, ph[,test], method = "correlation")
+			#ph <- as.data.frame(apply(ph, 2, factor))
+			#hca.plot(data, ph[,test], method = "correlation")
+			hca.plot(data, phFactor, method = "correlation")
 			#list(conf = res, pr = pr)
 		},
 		height = function(){
@@ -2253,25 +2475,26 @@ shinyServer(
 			cat("Accessing PH from extracted data...")
 			cat("\n")
 			ph <- gVars$phTable
-                        #rownames(ph) <- ph[,gVars$sampleColID]
+			phFactor <- gVars$phFactor
                         rownames(ph) <- ph[,gVars$sampleColName]
-			ph <- as.data.frame(apply(ph, 2, factor))
+                        rownames(phFactor) <- ph[,gVars$sampleColName]
+			#ph <- as.data.frame(apply(ph, 2, factor))
 			data <- gVars$comb.data
 			npc = 10
 			test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
                                         svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
-                                        ##ph <- cbind(ph, svaSV) 
-                                        #svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
                                         svaSVc <- gVars$svaSVc
-                                        ph <- cbind(ph, svaSV, svaSVc) 
+                                        #ph <- cbind(ph, svaSV, svaSVc) 
+                                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
                                 }
                         }
                         if(npc>ncol(data)){
                                 npc <- ncol(data)
                         }
-			pr <- prince(data, ph[,test], top=npc)
+			#pr <- prince(data, ph[,test], top=npc)
+			pr <- prince(data, phFactor[,test], top=npc)
 			# generate the prince plot
 			prince.plot(prince=pr, margins=c(15,15), note=TRUE)
 		},
@@ -2295,16 +2518,18 @@ shinyServer(
 			cat("Accessing PH from extracted data...")
 			cat("\n")
 			ph <- gVars$phTable
-                        #rownames(ph) <- ph[,gVars$sampleColID]
+			phFactor <- gVars$phFactor
                         rownames(ph) <- ph[,gVars$sampleColName]
-			ph <- as.data.frame(apply(ph, 2, factor))
+                        rownames(phFactor) <- ph[,gVars$sampleColName]
+			#ph <- as.data.frame(apply(ph, 2, factor))
 			data <- gVars$comb.sva.data
 			npc = 10
 			test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
                         if(npc>ncol(data)){
                                 npc <- ncol(data)
                         }
-			pr <- prince(data, ph[,test], top=npc)
+			#pr <- prince(data, ph[,test], top=npc)
+			pr <- prince(data, phFactor[,test], top=npc)
 			# generate the prince plot
 			prince.plot(prince=pr, margins=c(15,15), note=TRUE)
 		},
@@ -2997,31 +3222,61 @@ shinyServer(
 		})
 
                 output$selVarILimma <- renderUI({
-                        #if(is.null(gVars$varICombat)){
-                        #        sel <- gVars$pcChoices()[1]
-                        #}else{
-                        #        sel <- gVars$varICombat
-                        #}
-                        if(input$corrType=="sc" || input$corrType=="c"){
-                                sel <- gVars$varICombat
-                        }else if(input$corrType=="s"){
-                                sel <- gVars$varISva
-                        }else if(input$corrType=="n"){
-                                sel <- gVars$pcChoices()[1]
+                        phTable <- gVars$phTable
+			if(is.null(phTable)){
+                                tmpChoices <- c("NA")
+                        }else{
+                                tmpChoices <- colnames(phTable)
+                                if(!input$chkKeepNA){
+                                        tmpChoices <- colnames(phTable)[apply(phTable, 2, function(x){res<-any(is.na(x));!res})]
+                                        if(length(tmpChoices)==0){
+                                                shinyjs::info("No available phenotype variables.\nAll variables contain NAs\nCheck 'Keep NA Variables' to include variables with NA values")
+                                                tmpChoices <- c("NA")
+                                        }
+                                }
+                                if(input$corrType=="sc" || input$corrType=="c"){
+                                        sel <- gVars$varICombat
+                                }else if(input$corrType=="s"){
+                                        sel <- gVars$varISva
+                                }else if(input$corrType=="n"){
+                                        #sel <- gVars$pcChoices()[1]
+                                        sel <- tmpChoices[1]
+                                }
                         }
-			selectInput("varILimma", label="Variable of Interest", choices=gVars$pcChoices(), selected=sel)
+			selectInput("varILimma", label="Variable of Interest", choices=tmpChoices, selected=sel)
 		})
 		
 		output$selCoVarLimma <- renderUI({
 			#selectInput("coVarLimma", label="Co-Variates", choices=gVars$pcChoices(), multiple=TRUE)
-                        if(input$corrType=="sc" || input$corrType=="c"){
-                                sel <- gVars$batchCombat
-                        }else if(input$corrType=="s"){
-                                sel <- names(gVars$svaSVc)
-                        }else if(input$corrType=="n"){
-                                sel <- NULL
+                        phTable <- gVars$phTable
+
+			if(is.null(phTable)){
+                                tmpChoices <- c("NA")
+                        }else{
+                                if(!is.null(gVars$svaSV)){
+                                        svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
+                                        svaSVc <- gVars$svaSVc
+                                        phTable <- cbind(phTable, svaSV, svaSVc)
+                                }
+
+                                tmpChoices <- colnames(phTable)
+                                if(!input$chkKeepNA){
+                                        tmpChoices <- colnames(phTable)[apply(phTable, 2, function(x){res<-any(is.na(x));!res})]
+                                        if(length(tmpChoices)==0){
+                                                shinyjs::info("No available phenotype variables.\nAll variables contain NAs\nCheck 'Keep NA Variables' to include variables with NA values")
+                                                tmpChoices <- c("NA")
+                                        }
+                                }
+                                if(input$corrType=="sc" || input$corrType=="c"){
+                                        sel <- gVars$batchCombat
+                                }else if(input$corrType=="s"){
+                                        sel <- names(gVars$svaSVc)
+                                }else if(input$corrType=="n"){
+                                        sel <- NULL
+                                }
                         }
-			selectInput("coVarLimma", label="Co-Variates", choices=gVars$pcChoicesSV(), multiple=TRUE, selected=sel)
+			#selectInput("coVarLimma", label="Co-Variates", choices=gVars$pcChoicesSV(), multiple=TRUE, selected=sel)
+			selectInput("coVarLimma", label="Co-Variates", choices=tmpChoices, multiple=TRUE, selected=sel)
 		})
 		
 		output$selMdsLabel <- renderUI({
