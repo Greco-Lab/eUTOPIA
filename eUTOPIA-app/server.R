@@ -1487,7 +1487,7 @@ shinyServer(
 
 		observeEvent(input$combat_submit, {
 			#shiny::validate(need(!is.null(gVars$norm.data), "Normalization is not performed!"))
-			if(is.null(gVars$norm.data))
+			if(is.null(gVars$norm.data) || is.null(input$batchCombat))
                         return(NULL)
 
 			progress <- shiny::Progress$new()
@@ -1514,6 +1514,7 @@ shinyServer(
                         }
 			batch <- as.list(input$batchCombat)
 			batchCorVar <- list(var.int=varI, covariates=coVar, batches=batch)
+			print("str(batchCorVar)")
 			print(str(batchCorVar))
 
                         data <- gVars$norm.data
@@ -2573,6 +2574,8 @@ shinyServer(
 			if(is.null(gVars$deg.list) || is.null(input$compDE))
 			return(NULL)
 
+                        shinyjs::html(id="loadingText", "FILTERING DIFFERENTIAL TABLE")
+
                         progress <- shiny::Progress$new()
 			updateProgress <- function(value=NULL, detail=NULL){
 				if (is.null(value)) {
@@ -2583,6 +2586,7 @@ shinyServer(
 			}
                         on.exit({
                                 progress$close()
+                                shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")    
                         })
                         progress$set(message="Filtering DE:", value=0)
 
@@ -2596,11 +2600,15 @@ shinyServer(
 			#adjPv <- as.numeric(input$adjPvThr)
 			adjPv <- -log10(as.numeric(input$adjPvThr))
 			selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
-			if(length(selVec)==0)
-			return(NULL)
+			if(length(selVec)==0){
+                                degDF <- NULL
+                        }else{
+                                degDF <- degDF[selVec,]
+                        }
+			#return(NULL)
 
 			#degDF <- degDF[selVec,]
-			gVars$filteredDeTable <- degDF[selVec,]
+			gVars$filteredDeTable <- degDF
                         gVars$compFilt <- comp
 			gVars$adjPvFilt <- input$adjPvThr
 			gVars$lfcFilt <- input$lfcThr
@@ -2638,6 +2646,9 @@ shinyServer(
 				paste("Differential_Expression_Tables_", Sys.Date(), '.xlsx', sep='')
 			},
 			content = function(con){
+                                on.exit({
+                                        shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
+                                })
                                 deg.list <- gVars$deg.list
 				lfc <- as.numeric(input$lfcThr)
 				#adjPv <- as.numeric(input$adjPvThr)
@@ -3835,6 +3846,12 @@ shinyServer(
                         }else{
                                 shinyjs::enable("exportDE")
                         }
+
+                        if(is.null(input$batchCombat)){
+                                shinyjs::disable("combat_submit")
+                        }else{
+                                shinyjs::enable("combat_submit")
+                        }
 		})
 
 		shinyBS::addTooltip(session, id="selVarI", title="Variable (Column of data) from the phenotype file that represents the biological variation of primary interest!", placement="top", trigger="focus")
@@ -3870,6 +3887,14 @@ shinyServer(
                 })
 		shinyjs::onclick(id="de_submit", {
                         shinyjs::html(id="loadingText", "DIFFERENTIAL ANALYSIS")
+                        shinyjs::show(id="loading-content")
+                })
+		shinyjs::onclick(id="filterDE_submit", {
+                        shinyjs::html(id="loadingText", "FILTERING DIFFERENTIAL TABLE")
+                        shinyjs::show(id="loading-content")
+                })
+		shinyjs::onclick(id="exportDE", {
+                        shinyjs::html(id="loadingText", "EXPORTING DIFFERENTIAL TABLE")
                         shinyjs::show(id="loading-content")
                 })
 		shinyjs::onclick(id="submit_ann", {
