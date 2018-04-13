@@ -379,11 +379,12 @@ assoc.var.int <- function(X, pd, verbose = TRUE, ...) {
 remove.batch.effects <- function(comb.data, pd, num.pc, vars, inter = "", method = "Combat", plot = TRUE, verbose = TRUE, ...) {
   batches <- vars$batches
   covs <- vars$covariates
-  cat(" - Running Principal Component Analysis..\n")
-  assoc <- pc.anaylsis.2(g = comb.data, o = pd, npc = num.pc)
-  print(assoc)
-  if(plot) limma:::plotMDS(comb.data, top=500, labels=pd[,vars$var.int], col=as.numeric(pd[,vars$var.int]), 
-                   gene.selection="common", main = "Before removing any batch.")
+  if(plot){
+      cat(" - Running Principal Component Analysis..\n")
+      assoc <- pc.anaylsis.2(g = comb.data, o = pd, npc = num.pc)
+      print(assoc)
+      limma:::plotMDS(comb.data, top=500, labels=pd[,vars$var.int], col=as.numeric(pd[,vars$var.int]), gene.selection="common", main = "Before removing any batch.")
+  }
   for(batch in batches){
       id.var <- grep(batch, batches)[1]
       print(id.var)
@@ -417,11 +418,12 @@ remove.batch.effects <- function(comb.data, pd, num.pc, vars, inter = "", method
         error.str <- paste0("Variables are confounded!\n\nPlease remove one or more variable, so the design is not confunded!\n\nError encountered while correcting for BATCH:", batch, "\n\nPlease check ComBat resource for more information!")
         return(error.str)
       }
-      cat(" - Running Principal Component Analysis..\n")
-      assoc <- pc.anaylsis.2(g = comb.data, o = pd, npc = num.pc)
-      print(assoc)
-      if(plot) limma:::plotMDS(comb.data, top=500, labels=pd[,vars$var.int], col=as.numeric(pd[,vars$var.int]), 
-                       gene.selection="common", main = paste("After removing", batch))
+      if(plot){
+          cat(" - Running Principal Component Analysis..\n")
+          assoc <- pc.anaylsis.2(g=comb.data, o=pd, npc=num.pc)
+          print(assoc)
+          limma:::plotMDS(comb.data, top=500, labels=pd[,vars$var.int], col=as.numeric(pd[,vars$var.int]),gene.selection="common", main = paste("After removing", batch))
+      }
   }
   if(plot)  {
     boxplot(comb.data, las=2, cex=0.7, main="After removing batch effects.")
@@ -1282,6 +1284,8 @@ get_deg_summary <- function(deg_list, names, lfc=0){
                 colnames(tmpDF)[3:ncol(tmpDF)] <- paste("<", cuts, sep="")
                 rownames(tmpDF) <- paste0(countName, ";", rownames(counts))
                 countsDF <- rbind(countsDF, tmpDF)
+                print("Summary Table Class:")
+                print(class(countsDF))
         }
         return(countsDF)
 }
