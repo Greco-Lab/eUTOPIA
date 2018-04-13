@@ -1543,7 +1543,7 @@ shinyServer(
                                 npc <- ncol(data)
                         }
 			#comb.data <- remove.batch.effects(data, phTable, npc, batchCorVar, method="Combat", plot=F, verbose=T)
-			comb.data <- remove.batch.effects(data, phFactor, npc, batchCorVar, method="Combat", plot=F, verbose=T)
+			comb.data <- remove.batch.effects(data, phFactor, npc, batchCorVar, method="Combat", plot=FALSE, verbose=TRUE)
                         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~After Correcting!!!!!!!!!")
                         if(is.character(comb.data)){
                                 shinyjs::info(comb.data)
@@ -1803,6 +1803,11 @@ shinyServer(
 			treat <- input$treatment
 			control <- input$control
 			comps <- paste0(treat, "-", control)
+			compsSel <- comps
+                        if(!is.null(input$comps)){
+                                compsSel <- c(input$comps, compsSel)
+                        }
+			gVars$compsSel <- compsSel
 			gVars$comps[[comps]] <- 1
 		})
 
@@ -1987,19 +1992,35 @@ shinyServer(
 			rownames(annDF) <- annDF[,2]
 
 			updateProgress(detail="Evaluating Expression...", value=2/3)
+
                         comps <- as.vector(input$comps)
+
+                        #Check and filter comps
+                        compCheck <- sapply(strsplit(comps, "-"), function(x){all(x %in% phTable[,varI])})
+                        if(sum(compCheck)==0){
+                                shinyjs::alert(paste0("Could not find any valid comparisons:\n\nFollowing comparisons were removed:\n",paste(comps[!compCheck],collapse=", "),"\n\nSelected Variable of Interest - '", varI,"'\n\nPlease check selected varaiable of interest and selected comparisons."))
+                                return(NULL)
+                        }else if(sum(compCheck)<length(comps)){
+                                shinyjs::alert(paste0("Following comparisons were removed:\n", paste(comps[!compCheck],collapse=", "),"\n\nRemoved comparison does not match varaiable of interest."))
+                        }
+                        comps <- comps[compCheck]
+
                         comps <- sapply(strsplit(comps, "-"), function(x){res<-make.names(x);res<-paste0(res, collapse="-")})
 			#deg.list <- diff.gene.expr(data, des, contrasts=input$comps, pvalue=1, fcvalue=0, p.adjust.method=pvAdjMethod, annot=annDF, plot=F, verbose=T)
 			deg.list <- diff.gene.expr(data, des, contrasts=comps, pvalue=1, fcvalue=0, p.adjust.method=pvAdjMethod, annot=annDF, plot=F, verbose=T)
 
                         print("Filtering Differential Expresssion Table...")
-			comp <- input$comps[1]
+			#comp <- input$comps[1]
+			comp <- comps[1]
 			print(paste0("COMP SEL: ", comp))
 			degDF <- deg.list[[comp]]
 			
 			lfc <- as.numeric(input$lfcThr)
-			adjPv <- -log10(as.numeric(input$adjPvThr))
-			selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
+			#adjPv <- -log10(as.numeric(input$adjPvThr))
+			pvThr <- -log10(as.numeric(input$pvThr))
+                        pvType <- input$pvType
+			#selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
+			selVec <- which(-log10(degDF[,pvType])>pvThr & abs(degDF$logFC)>lfc)
 			if(length(selVec)==0){
                                 degDF <- NULL
                         }else{
@@ -2007,21 +2028,24 @@ shinyServer(
                         }
 			gVars$filteredDeTable <- degDF
                         gVars$compFilt <- comp
-			gVars$adjPvFilt <- input$adjPvThr
+			#gVars$adjPvFilt <- input$adjPvThr
+			gVars$pvFilt <- pvThr
+			gVars$pvType <- pvType
 			gVars$lfcFilt <- input$lfcThr
 
                         updateProgress(detail="Completed!", value=3/3)
 
 			gVars$deg.list <- deg.list
-                        gVars$deComps <- input$comps
+                        #gVars$deComps <- input$comps
+                        gVars$deComps <- comps
                         gVars$varI <- varI
                         #gVars$conditions <- levels(phTable[,varI])
                         gVars$conditions <- levels(phFactor[,varI])
 
 			tmpMethod <- names(gVars$pvAdjChoices[which(gVars$pvAdjChoices %in% pvAdjMethod)])
                         gVars$pvAdjMethod <- tmpMethod
-			#updateSliderInput(session, "adjPvThr", label=paste0("Adj. P.Value Threshold (", tmpMethod, ")"))
-			updateNumericInput(session, "adjPvThr", label=paste0("Adj. P.Value Threshold (", tmpMethod, ")"))
+			##updateSliderInput(session, "adjPvThr", label=paste0("Adj. P.Value Threshold (", tmpMethod, ")"))
+			#updateNumericInput(session, "adjPvThr", label=paste0("Adj. P.Value Threshold (", tmpMethod, ")"))
                         shiny::updateTabsetPanel(session, "display", selected="diffTab")
                         shiny::updateTabsetPanel(session, "diffTBox", selected="diffSummTableTab")
                         shinyBS::updateCollapse(session, "bsSidebar", style = list("DIFFERENTIAL ANALYSIS"="success"))
@@ -2597,9 +2621,12 @@ shinyServer(
 			degDF <- deg.list[[comp]]
 			
 			lfc <- as.numeric(input$lfcThr)
-			#adjPv <- as.numeric(input$adjPvThr)
-			adjPv <- -log10(as.numeric(input$adjPvThr))
-			selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
+			##adjPv <- as.numeric(input$adjPvThr)
+			#adjPv <- -log10(as.numeric(input$adjPvThr))
+			pvThr <- -log10(as.numeric(input$pvThr))
+                        pvType <- input$pvType
+			#selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
+			selVec <- which(-log10(degDF[,pvType])>pvThr & abs(degDF$logFC)>lfc)
 			if(length(selVec)==0){
                                 degDF <- NULL
                         }else{
@@ -2610,7 +2637,9 @@ shinyServer(
 			#degDF <- degDF[selVec,]
 			gVars$filteredDeTable <- degDF
                         gVars$compFilt <- comp
-			gVars$adjPvFilt <- input$adjPvThr
+			#gVars$adjPvFilt <- input$adjPvThr
+			gVars$pvFilt <- pvThr
+			gVars$pvType <- pvType
 			gVars$lfcFilt <- input$lfcThr
 		})
 
@@ -2651,22 +2680,34 @@ shinyServer(
                                 })
                                 deg.list <- gVars$deg.list
 				lfc <- as.numeric(input$lfcThr)
-				#adjPv <- as.numeric(input$adjPvThr)
-				adjPv <- -log10(as.numeric(input$adjPvThr))
+				##adjPv <- as.numeric(input$adjPvThr)
+				#adjPv <- -log10(as.numeric(input$adjPvThr))
+                                pvThr <- gVars$pvFilt
+                                pvType <- gVars$pvType
 
 				#Update Names
 				names(deg.list) <- strtrim(paste0(c(1:length(deg.list)), ".", names(deg.list)), 30)
                                 if(input$chkExportDE==TRUE){
                                         deg.list.filt <- deg.list
+                                        summDF <- get_deg_summary(deg_list=deg.list, names=names(deg.list), lfc=0)
                                 }else{
                                         deg.list.filt <- lapply(deg.list, function(degDF){
-                                                selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
+                                                #selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
+                                                selVec <- which(-log10(degDF[,pvType])>pvThr & abs(degDF$logFC)>lfc)
                                                 if(length(selVec>0)){
                                                         degDF[selVec,]
                                                 }else{NULL}
                                         })
+                                        summDF <- get_deg_summary(deg_list=deg.list, names=names(deg.list), lfc=lfc)
                                 }
+                                print("str(summDF)")
+                                print(str(summDF))
+                                print("str(deg.list.filt) before filtering")
+                                print(str(deg.list.filt))
+                                deg.list.filt <- c("Summary"=list(summDF), deg.list.filt)
 				deg.list.filt <- deg.list.filt[unlist(lapply(deg.list.filt, function(degDF) !is.null(degDF)))]
+                                print("str(deg.list.filt) after filtering")
+                                print(str(deg.list.filt))
 				print("DE GeneList Names:")
 				print(names(deg.list.filt))
                                 WriteXLS(deg.list.filt, ExcelFileName=con, col.names=T, AdjWidth=T, BoldHeaderRow=T)
@@ -2754,17 +2795,21 @@ shinyServer(
                         if(is.null(gVars$deg.list)){
                                return(NULL)
                         }
-                        adjPv <- -log10(as.numeric(gVars$adjPvFilt))
+                        #adjPv <- -log10(as.numeric(gVars$adjPvFilt))
+                        pvThr <- gVars$pvFilt
+                        pvType <- gVars$pvType
                         deg.list <- gVars$deg.list
 			#comp <- input$compDE
 			comp <- gVars$compFilt
 			deg <- deg.list[[comp]]
-			deg <- data.frame(x=as.numeric(deg$logFC), y=-log10(as.numeric(deg$adj.P.Val)), ID=rownames(deg))
+			#deg <- data.frame(x=as.numeric(deg$logFC), y=-log10(as.numeric(deg$adj.P.Val)), ID=rownames(deg))
+			deg <- data.frame(x=as.numeric(deg$logFC), y=-log10(as.numeric(deg[,pvType])), ID=rownames(deg))
 			p <- ggplot(deg, aes(x, y, label= ID)) + geom_point() +
 			geom_vline(xintercept = input$lfcThr, color = "blue") + 
 			geom_vline(xintercept = -input$lfcThr, color = "blue") + 
-			#geom_hline(yintercept = input$adjPvThr, color = "red") +  
-			geom_hline(yintercept = adjPv, color = "red") +  
+			##geom_hline(yintercept = input$adjPvThr, color = "red") +  
+			#geom_hline(yintercept = adjPv, color = "red") +  
+			geom_hline(yintercept = pvThr, color = "red") +  
 			labs(x="log2(Fold-change)", y="-log10(P.Value)")
                         gVars$volDeg <- deg
                         return(p)
@@ -2774,16 +2819,18 @@ shinyServer(
                         shiny::validate(need(!is.null(gVars$deg.list), "Waiting for Differential Analysis Results..."))
                         #shiny::validate(need(!is.null(gVars$volDeg), "Waiting for Differential Analysis Results..."))
 
-                        #adjPvThr <- -log10(as.numeric(input$adjPvThr))
-                        adjPv <- -log10(as.numeric(gVars$adjPvFilt))
+                        ##adjPvThr <- -log10(as.numeric(input$adjPvThr))
+                        #adjPv <- -log10(as.numeric(gVars$adjPvFilt))
+                        pvThr <- gVars$pvFilt
                         lfc <- gVars$lfcFilt
 
                         p <- gVars$volGGplot()
                         deg <- gVars$volDeg
                         print("str(deg)")
                         print(str(deg))
-                        #degSel <- deg[deg$y>=adjPvThr & abs(deg$x)>=input$lfcThr,]
-                        degSel <- deg[deg$y>=adjPv & abs(deg$x)>=lfc,]
+                        ##degSel <- deg[deg$y>=adjPvThr & abs(deg$x)>=input$lfcThr,]
+                        #degSel <- deg[deg$y>=adjPv & abs(deg$x)>=lfc,]
+                        degSel <- deg[deg$y>=pvThr & abs(deg$x)>=lfc,]
 
 			p <- p +
                         geom_point(data = degSel, color = "red") +
@@ -2807,13 +2854,16 @@ shinyServer(
 			##adjPv <- as.numeric(input$adjPvThr)
 			#adjPv <- -log10(as.numeric(input$adjPvThr))
 			lfc <- as.numeric(gVars$lfcFilt)
-			adjPv <- -log10(as.numeric(gVars$adjPvFilt))
+			#adjPv <- -log10(as.numeric(gVars$adjPvFilt))
+			pvThr <- gVars$pvFilt
+			pvType <- gVars$pvType
 			intersectComps <- input$intersectComps
 
 			deg.item.list <- list()
 			for(comp in intersectComps){
                                 degDF <- deg.list[[comp]]
-				selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
+				#selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
+				selVec <- which(-log10(degDF[,pvType])>pvThr & abs(degDF$logFC)>lfc)
 
 				if(length(selVec)==0)
 				next
@@ -2860,6 +2910,95 @@ shinyServer(
 				xLabel <- "Set Size"
 				upset(deg.item.DF, nintersects=intersectSize, sets=setNames, order.by="freq", decreasing=T, line.size=0.1, sets.x.label=xLabel, keep.order=keepingOrder, text.scale=textScale, sets.bar.color=setColors)
 			}
+		}, height=900, width=900)
+
+                #Venn diagram for set intersection
+                output$vennPlot <- renderPlot({
+                        shiny::validate(need(!is.null(gVars$deg.list), "Waiting for Differential Analysis Results..."))
+			deg.list <- gVars$deg.list
+			lfc <- as.numeric(gVars$lfcFilt)
+			#adjPv <- -log10(as.numeric(gVars$adjPvFilt))
+			pvThr <- gVars$pvFilt
+			pvType <- gVars$pvType
+			intersectComps <- input$intersectComps
+
+			deg.item.list <- list()
+			for(comp in intersectComps){
+                                degDF <- deg.list[[comp]]
+				#selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
+				selVec <- which(-log10(degDF[,pvType])>pvThr & abs(degDF$logFC)>lfc)
+
+				if(length(selVec)==0)
+				next
+
+				deg.item.list[[comp]] <- rownames(degDF[selVec,])
+			}
+
+                        shiny::validate(need(length(deg.item.list)>1, "Not Enough Sets to Intersect!"))
+                        shiny::validate(need(length(deg.item.list)<=4, "Too Many Sets for Venn Representation!"))
+
+			print(str(deg.item.list))
+                        #Create venn diagram
+                        fillCol <- c("blue", "red", "yellow", "green")
+                        cat_label_size <- 1
+                        area_label_size <- 2
+                        cat_dist <- c(0.22,0.22,0.1,0.1)
+                        printMode <- "raw"
+                        marginSize <- 0.12
+                        futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
+                        venn.plot <- venn.diagram(
+                                  x=deg.item.list,
+                                  filename=NULL,
+                                  #fontfamily="arial",
+                                  #cat.fontfamily="arial",
+                                  cat.cex=cat_label_size,
+                                  cat.dist=cat_dist[1:length(deg.item.list)],
+                                  cex=area_label_size,
+                                  fill=fillCol[1:length(deg.item.list)],
+                                  margin=marginSize,
+                                  print.mode=printMode
+                        )
+                        grid.draw(venn.plot)
+		}, height=900, width=900)
+
+                #UpSet plot for set intersection
+                output$upsetPlot <- renderPlot({
+                        shiny::validate(need(!is.null(gVars$deg.list), "Waiting for Differential Analysis Results..."))
+			deg.list <- gVars$deg.list
+			lfc <- as.numeric(gVars$lfcFilt)
+			#adjPv <- -log10(as.numeric(gVars$adjPvFilt))
+			pvThr <- gVars$pvFilt
+			pvType <- gVars$pvType
+			intersectComps <- input$intersectComps
+
+			deg.item.list <- list()
+			for(comp in intersectComps){
+                                degDF <- deg.list[[comp]]
+				#selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
+				selVec <- which(-log10(degDF[,pvType])>pvThr & abs(degDF$logFC)>lfc)
+
+				if(length(selVec)==0)
+				next
+
+				deg.item.list[[comp]] <- rownames(degDF[selVec,])
+			}
+
+                        shiny::validate(need(length(deg.item.list)>1, "Not Enough Sets to Intersect!"))
+
+			print(str(deg.item.list))
+                        #Create UpSet plot
+                        deg.item.DF <- data.frame(genes=unique(unlist(deg.item.list)), stringsAsFactors=F)
+                        for(itm in names(deg.item.list)){
+                                deg.item.DF[,itm] <- 0
+                                deg.item.DF[which(deg.item.DF$genes %in% deg.item.list[[itm]]),itm] <- 1
+                        }
+                        setNames <- names(deg.item.list)
+                        setColors <- rep("gray23", length(deg.item.list))
+                        keepingOrder <- F
+                        textScale <- 1
+                        intersectSize <- 10
+                        xLabel <- "Set Size"
+                        upset(deg.item.DF, nintersects=intersectSize, sets=setNames, order.by="freq", decreasing=T, line.size=0.1, sets.x.label=xLabel, keep.order=keepingOrder, text.scale=textScale, sets.bar.color=setColors)
 		}, height=900, width=900)
 
                 output$expressionBoxPlot <- renderPlot({
@@ -3236,6 +3375,7 @@ shinyServer(
                         phTable <- gVars$phTable
 			if(is.null(phTable)){
                                 tmpChoices <- c("NA")
+                                sel <- tmpChoices[1]
                         }else{
                                 tmpChoices <- colnames(phTable)
                                 if(!input$chkKeepNA){
@@ -3263,6 +3403,7 @@ shinyServer(
 
 			if(is.null(phTable)){
                                 tmpChoices <- c("NA")
+                                sel <- tmpChoices[1]
                         }else{
                                 if(!is.null(gVars$svaSV)){
                                         svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
@@ -3365,7 +3506,11 @@ shinyServer(
 		})
 		
 		output$selComps <- renderUI({
-			selectInput("comps", "Comparisons", choices=gVars$compChoices(), multiple=TRUE, selected=gVars$compChoices())
+                        compsSel <- gVars$compsSel
+                        if(length(compsSel)==0){
+                                compsSel <- "NA"
+                        }
+			selectInput("comps", "Comparisons", choices=gVars$compChoices(), multiple=TRUE, selected=compsSel)
 		})
 
 		output$selIntersectComps <- renderUI({
@@ -3408,65 +3553,6 @@ shinyServer(
                 #        #sliderInput("adjPvThr", paste0("Adj. P.Value Threshold (", tmpMethod, ")"), min=0, max=15, value=5, step=1)
                 #        numericInput("adjPvThr", paste0("Adj. P.Value Threshold (", tmpMethod, ")"), value=0.05, min=0, max=1, step=0.001)
 		#})
-
-		output$htmlDegInfo <- renderUI({
-                        shiny::validate(
-                                need(!is.null(gVars$deg.list), "Waiting for Differential Analysis Results...")
-                        )
-			#if(is.null(gVars$deg.list)){
-			#	
-			#}else{
-			#	degCounts <- unlist(lapply(tmpL, nrow))
-			#	dispDF <- data.frame("Condition"=names(degCounts), "Differential Gene Count"=degCounts)
-			#}
-			deg.list <- gVars$deg.list
-			lfc <- as.numeric(input$lfcThr)
-			#adjPv <- as.numeric(input$adjPvThr)
-			adjPv <- -log10(as.numeric(input$adjPvThr))
-
-			degCounts <- unlist(lapply(deg.list, function(degDF) {
-				selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
-				if(length(selVec)==0){
-					degCount <- 0
-				}else{
-					degCount <- length(selVec)
-				}
-				return(degCount)
-			}))
-
-			dispMat <- t(as.matrix(degCounts))
-			rownames(dispMat) <- "Count"
-			#dispDF <- data.frame("Condition"=names(degCounts), "Differential Gene Count"=degCounts)
-
-			colorVec <- c("#e7e7e7", "#efefef")
-			modVec <- sapply(c(1:length(degCounts)), function(x) x%%2) + 1
-			colColumns <- colorVec[modVec]
-			#dispHTML <- htmlTable(dispDF)
-			dispHTML <- htmlTable(dispMat, col.columns=colColumns)
-			HTML(dispHTML)
-		})
-
-		output$htmlValTable <- renderUI({
-			#if(is.null(gVars$filteredDeTable())){
-			if(is.null(gVars$filteredDeTable)){
-				lfc <- pv <- apv <- sc.min <- sc.max <- "NA"
-			}else{
-				#degDF <- gVars$filteredDeTable()
-				degDF <- gVars$filteredDeTable
-				lfc <- 2^input$lfcThr
-				pv <- sprintf("%11.2e", max(degDF$P.Value))
-				apv <- sprintf("%11.2e", max(degDF$adj.P.Val))
-				sc.min <- sprintf("%.2f", min(degDF$score))
-				sc.max <- sprintf("%.2f", max(degDF$score))
-                        }
-			dispStr <- paste0("<b>FC:</b> ", lfc)
-			dispStr <- paste0(dispStr, "<br/>", "<b>P-Value:</b> ", pv)
-			dispStr <- paste0(dispStr, "<br/>", "<b>Adj. P-Value:</b> ", apv)
-			dispStr <- paste0(dispStr, "<br/>", "<b>DE Score:</b> [", sc.min, " | ", sc.max, "]")
-			#dispHTML <- htmlTable(dispStr)
-			#HTML(dispHTML)
-			HTML(dispStr)
-		})
 
 		output$selConditions <- renderUI({
                         #if(is.null(gVars$conditions)){

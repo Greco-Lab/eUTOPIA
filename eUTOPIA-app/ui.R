@@ -824,27 +824,22 @@ fluidPage(
 					fluidRow(column(3,
                                                         numericInput(inputId="lfcThr", "LogFC Threshold", value=0, min=0, max=20, step=0.1)
                                                 ),column(3,
+                                                        #numericInput(inputId="adjPvThr", paste0("Adj. P.Value Threshold"), value=0.05, min=0, max=1, step=0.001)
+                                                        numericInput(inputId="pvThr", paste0("P.Value Threshold"), value=0.05, min=0, max=1, step=0.001)
+                                                ),column(3,
+                                                        selectInput("pvType", "P.Value Type", choices=c("Raw"="P.Value", "Adjusted"="adj.P.Val"), selected="adj.P.Val")
+                                                ),column(3,
                                                         uiOutput('selCompDeTable')
-                                                ),column(3, align="right",
-                                                        checkboxInput(inputId="chkExportDE", label="Export Unfiltered Tables", value=FALSE),
-                                                        downloadButton("exportDE", "Export Differential Tables")
                                                 #),column(2,
                                                 #        downloadButton("exportRpt", "Generate Report")
                                                 #),column(2,
                                                 #        downloadButton("exportMat", "Export Expression Matrix")
                                                 )
-					),fluidRow(column(3,
-                                                        numericInput(inputId="adjPvThr", paste0("Adj. P.Value Threshold"), value=0.05, min=0, max=1, step=0.001)
+					),fluidRow(column(9,
+                                                        downloadButton("exportDE", "Export Differential Tables"),
+                                                        checkboxInput(inputId="chkExportDE", label="Export Unfiltered Tables", value=FALSE)
                                                 ),column(3,
                                                         actionButton("filterDE_submit", "Filter Differential Result")
-					        #),column(2,
-                                                #        fluidRow(column(12,
-                                                #                htmlOutput("htmlValTable")
-                                                #        ))
-					        #),column(4,
-                                                #        fluidRow(column(12,
-                                                #                htmlOutput("htmlDegInfo")
-                                                #        ))
                                                 )
                                         ),
 					fluidRow(column(12,
@@ -869,9 +864,22 @@ fluidPage(
 									column(4,
                                                                                uiOutput("selIntersectComps")
 									),column(8,
-                                                                                #div(id="intersectPlotDiv", class="sizeable", 
-                                                                                div(id="intersectPlotDiv", class="jacket", 
-                                                                                        shinycssloaders::withSpinner(plotOutput('intersectPlot', height="auto", width="auto"), type=6)
+                                                                                ##div(id="intersectPlotDiv", class="sizeable", 
+                                                                                #div(id="intersectPlotDiv", class="jacket", 
+                                                                                #        shinycssloaders::withSpinner(plotOutput('intersectPlot', height="auto", width="auto"), type=6)
+                                                                                #)
+                                                                                div(id="vennContentDiv", class="contentDiv", align="center",
+                                                                                        h4("Venn Representation"),
+                                                                                        div(id="vennPlotDiv", class="jacket", 
+                                                                                                shinycssloaders::withSpinner(plotOutput('vennPlot', height="auto", width="auto"), type=6)
+                                                                                        )
+                                                                                ),
+                                                                                h4(" "),
+                                                                                div(id="upsetContentDiv", class="contentDiv", align="center",
+                                                                                        h4("UpSet Representation"),
+                                                                                        div(id="upsetPlotDiv", class="jacket", 
+                                                                                                shinycssloaders::withSpinner(plotOutput('upsetPlot', height="auto", width="auto"), type=6)
+                                                                                        )
                                                                                 )
 									)
 								)
