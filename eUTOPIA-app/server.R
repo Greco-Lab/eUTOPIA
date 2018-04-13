@@ -2507,6 +2507,7 @@ shinyServer(
 			data <- gVars$comb.data
 			npc = 10
 			test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
+                        phFactor <- phFactor[,test]
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
                                         svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
@@ -2519,7 +2520,7 @@ shinyServer(
                                 npc <- ncol(data)
                         }
 			#pr <- prince(data, ph[,test], top=npc)
-			pr <- prince(data, phFactor[,test], top=npc)
+			pr <- prince(data, phFactor, top=npc)
 			# generate the prince plot
 			prince.plot(prince=pr, margins=c(15,15), note=TRUE)
 		},
@@ -2550,11 +2551,12 @@ shinyServer(
 			data <- gVars$comb.sva.data
 			npc = 10
 			test <- sapply(colnames(ph), function(b) length(table(ph[,b])) > 1 & length(table(ph[,b])) != length(ph[,b]))
+                        phFactor <- phFactor[,test]
                         if(npc>ncol(data)){
                                 npc <- ncol(data)
                         }
 			#pr <- prince(data, ph[,test], top=npc)
-			pr <- prince(data, phFactor[,test], top=npc)
+			pr <- prince(data, phFactor, top=npc)
 			# generate the prince plot
 			prince.plot(prince=pr, margins=c(15,15), note=TRUE)
 		},
@@ -2871,7 +2873,7 @@ shinyServer(
 				deg.item.list[[comp]] <- rownames(degDF[selVec,])
 			}
 
-                        shiny::validate(need(length(deg.item.list)>1, "Not Enough Sets to Intersect..."))
+                        shiny::validate(need(length(deg.item.list)>1, "Not Enough Sets to Intersect!"))
 
 			print(str(deg.item.list))
 			if(length(deg.item.list)<=4){

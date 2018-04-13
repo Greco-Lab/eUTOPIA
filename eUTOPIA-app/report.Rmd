@@ -250,7 +250,7 @@ if(isCorr){
                 npc <- ncol(data)
         }
         #pr <- prince(data, ph[,test], top=npc)
-        pr <- prince(data, phFactor[,test], top=npc)
+        pr <- prince(data, phFactor, top=npc)
         #generate the prince plot
         prince.plot(prince=pr, margins = c(5,5), note=TRUE, notecex=0.5)
 }else{
@@ -408,8 +408,11 @@ if(isAgg){
 if(isDeg){
         p <- params$gVars$volGGplot()
         deg <- params$gVars$volDeg
-        adjPvThr <- -log10(as.numeric(params$input$adjPvThr))
-        degSel <- deg[deg$y>=adjPvThr & abs(deg$x)>=params$input$lfcThr,]
+        #adjPvThr <- -log10(as.numeric(params$input$adjPvThr))
+        pvThr <- params$gVars$pvFilt
+        lfc <- params$gVars$lfcFilt
+        #degSel <- deg[deg$y>=adjPvThr & abs(deg$x)>=params$input$lfcThr,]
+        degSel <- deg[deg$y>=pvThr & abs(deg$x)>=lfc,]
 
         p <- p +
         geom_point(data = degSel, color = "red") +
@@ -429,23 +432,25 @@ if(isDeg){
 }
 ```
 
-# Intersection Plot
+# Venn Representation
 
-<!-- ```{r intersection_plot, echo=F, fig.height=9, fig.width=9, eval=isDeg} -->
-```{r intersection_plot, echo=F, fig.height=9, fig.width=9}
+```{r venn_plot, echo=F, fig.height=9, fig.width=9}
 if(isDeg){
         deg.list <- params$gVars$deg.list
         #lfc <- as.numeric(params$input$lfcThr)
         #adjPv <- as.numeric(params$input$adjPvThr)
         lfc <- as.numeric(params$gVars$lfcFilt)
-        adjPv <- -log10(as.numeric(params$gVars$adjPvFilt))
+        #adjPv <- -log10(as.numeric(params$gVars$adjPvFilt))
+        pvThr <- params$gVars$pvFilt
+        pvType <- params$gVars$pvType
         intersectComps <- params$input$intersectComps
 
         deg.item.list <- list()
         #for(comp in names(deg.list)){
         for(comp in intersectComps){
                 degDF <- deg.list[[comp]]
-                selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
+                #selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
+                selVec <- which(-log10(degDF[,pvType])>pvThr & abs(degDF$logFC)>lfc)
 
                 if(length(selVec)==0)
                 next
@@ -474,19 +479,54 @@ if(isDeg){
                         )
                         grid.draw(venn.plot)
                 }else{
-                        deg.item.DF <- data.frame(genes=unique(unlist(deg.item.list)), stringsAsFactors=F)
-                        for(itm in names(deg.item.list)){
-                                deg.item.DF[,itm] <- 0
-                                deg.item.DF[which(deg.item.DF$genes %in% deg.item.list[[itm]]),itm] <- 1
-                        }
-                        setNames <- names(deg.item.list)
-                        setColors <- rep("gray23", length(deg.item.list))
-                        keepingOrder <- F
-                        textScale <- 1
-                        intersectSize <- 10
-                        xLabel <- "Set Size"
-                        upset(deg.item.DF, nintersects=intersectSize, sets=setNames, order.by="freq", decreasing=T, line.size=0.1, sets.x.label=xLabel, keep.order=keepingOrder, text.scale=textScale, sets.bar.color=setColors)
+                        print("Too Many Sets for Venn Representation!")
                 }
+        }else{
+                print("Not Enough Sets to Intersect!")
+        }
+}else{
+        print("Differential results not found!")
+}
+```
+
+# UpSet Representation
+
+```{r upset_plot, echo=F, fig.height=9, fig.width=9}
+if(isDeg){
+        deg.list <- params$gVars$deg.list
+        lfc <- as.numeric(params$gVars$lfcFilt)
+        pvThr <- params$gVars$pvFilt
+        pvType <- params$gVars$pvType
+        intersectComps <- params$input$intersectComps
+
+        deg.item.list <- list()
+        #for(comp in names(deg.list)){
+        for(comp in intersectComps){
+                degDF <- deg.list[[comp]]
+                #selVec <- which(-log10(degDF$adj.P.Val)>adjPv & abs(degDF$logFC)>lfc)
+                selVec <- which(-log10(degDF[,pvType])>pvThr & abs(degDF$logFC)>lfc)
+
+                if(length(selVec)==0)
+                next
+
+                deg.item.list[[comp]] <- rownames(degDF[selVec,])
+        }
+
+        if(length(deg.item.list)>1){
+                deg.item.DF <- data.frame(genes=unique(unlist(deg.item.list)), stringsAsFactors=F)
+                for(itm in names(deg.item.list)){
+                        deg.item.DF[,itm] <- 0
+                        deg.item.DF[which(deg.item.DF$genes %in% deg.item.list[[itm]]),itm] <- 1
+                }
+                setNames <- names(deg.item.list)
+                setColors <- rep("gray23", length(deg.item.list))
+                keepingOrder <- F
+                textScale <- 1
+                intersectSize <- 10
+                xLabel <- "Set Size"
+                upset(deg.item.DF, nintersects=intersectSize, sets=setNames, order.by="freq", decreasing=T, line.size=0.1, sets.x.label=xLabel, keep.order=keepingOrder, text.scale=textScale, sets.bar.color=setColors)
+        }else{
+                print("Not Enough Sets to Intersect!")
         }
 }else{
         print("Differential results not found!")
