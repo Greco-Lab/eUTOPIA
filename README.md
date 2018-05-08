@@ -5,6 +5,10 @@ Graphically accessible guided workflow for preprocessing and analysis of omics d
 
 #### Install Dependencies
 ```R
+  #Install impute dependency
+  source("http://bioconductor.org/biocLite.R")
+  biocLite("impute")
+
   #Install CRAN dependencies
   cran_pkgs <- c("swamp", "infotheo", "gplots", "RColorBrewer", "shiny", "shinyjs", "shinyBS", "shinydashboard", "shinyFiles",
   "DT", "shinycssloaders", "ggplot2", "ggrepel", "WriteXLS", "rmarkdown", "VennDiagram", "grid", "futile.logger", "reshape2",
