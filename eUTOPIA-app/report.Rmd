@@ -4,7 +4,15 @@ output: pdf_document
 params:
   gVars: NA
   input: NA
+  srcDir: NA
 ---
+
+```{r setup, echo=FALSE}
+library(knitr)
+array_pipeline_R <- file.path(params$srcDir, "agilent_twocolors_array_analysis_pipe_fixed.R")
+opts_chunk$set(echo=FALSE, cache=FALSE)
+read_chunk(array_pipeline_R)
+```
 
 ```{r check_norm, echo=F}
 isNorm <- !is.null(params$gVars$norm.data)
@@ -334,9 +342,14 @@ if(isNorm){
                 phFactor <- params$gVars$phFactor
                 percTop <- 1
                 topNum <- floor((nrow(norm.data)*percTop)/100)
-                ##limma:::plotMDS(norm.data, top=500, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "Before removing any batch", cex=0.5)
-                #limma:::plotMDS(norm.data, top=topNum, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "Before removing any batch", cex=0.5)
-                limma:::plotMDS(norm.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=as.numeric(phFactor[,params$input$mdsColor]), gene.selection="common", main="Before removing any batch", cex=0.5)
+
+                #Get unique vector of colors for MDS plot
+                colVec <- params$gVars$mdsLblCols()
+
+                ###limma:::plotMDS(norm.data, top=500, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "Before removing any batch", cex=0.5)
+                ##limma:::plotMDS(norm.data, top=topNum, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "Before removing any batch", cex=0.5)
+                #limma:::plotMDS(norm.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=as.numeric(phFactor[,params$input$mdsColor]), gene.selection="common", main="Before removing any batch", cex=0.5)
+                limma:::plotMDS(norm.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=colVec, gene.selection="common", main="Before removing any batch", cex=0.5)
         }else{
                 print("Missing label and color information...")
         }
@@ -357,9 +370,14 @@ if(isCorr){
                 phFactor <- params$gVars$phFactor
                 percTop <- 1
                 topNum <- floor((nrow(comb.data)*percTop)/100)
-                ##limma:::plotMDS(comb.data, top=500, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After removing batches", cex=0.5)
-                #limma:::plotMDS(comb.data, top=topNum, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After removing batches", cex=0.5)
-                limma:::plotMDS(comb.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=as.numeric(phFactor[,params$input$mdsColor]), gene.selection="common", main="After removing batches", cex=0.5)
+
+                #Get unique vector of colors for MDS plot
+                colVec <- params$gVars$mdsLblCols()
+
+                ###limma:::plotMDS(comb.data, top=500, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After removing batches", cex=0.5)
+                ##limma:::plotMDS(comb.data, top=topNum, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After removing batches", cex=0.5)
+                #limma:::plotMDS(comb.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=as.numeric(phFactor[,params$input$mdsColor]), gene.selection="common", main="After removing batches", cex=0.5)
+                limma:::plotMDS(comb.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=colVec, gene.selection="common", main="After removing batches", cex=0.5)
         }else{
                 print("Missing label and color information...")
         }
@@ -381,9 +399,14 @@ if(isAgg){
                         phFactor <- params$gVars$phFactor
                         percTop <- 1
                         topNum <- floor((nrow(agg.data)*percTop)/100)
-                        ##limma:::plotMDS(agg.data, top=500, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After aggregation", cex=0.5)
-                        #limma:::plotMDS(agg.data, top=topNum, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After aggregation", cex=0.5)
-                        limma:::plotMDS(agg.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=as.numeric(phFactor[,params$input$mdsColor]), gene.selection="common", main="After aggregation", cex=0.5)
+
+                        #Get unique vector of colors for MDS plot
+                        colVec <- params$gVars$mdsLblCols()
+
+                        ###limma:::plotMDS(agg.data, top=500, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After aggregation", cex=0.5)
+                        ##limma:::plotMDS(agg.data, top=topNum, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After aggregation", cex=0.5)
+                        #limma:::plotMDS(agg.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=as.numeric(phFactor[,params$input$mdsColor]), gene.selection="common", main="After aggregation", cex=0.5)
+                        limma:::plotMDS(agg.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=colVec, gene.selection="common", main="After aggregation", cex=0.5)
                 }else{
                         print(paste0("No plot for ", params$input$arrType, " data!"))
                 }
@@ -543,7 +566,8 @@ if(isExpr){
         varI <- params$input$varIBoxPlot
         phTable <- params$gVars$phTable
         genes <- params$input$expGenes
-        conditions <- params$input$conditions
+        #conditions <- params$input$conditions
+        conditions <- params$gVars$conditionsBoxplot
 
         isCond <-TRUE 
         if(is.null(conditions) || is.na(conditions) || conditions=="NA")
@@ -598,7 +622,8 @@ if(isDeg && isComps && isConds){
         phTable <- params$gVars$phTable
         percDE <- params$input$percDE
         comps <- params$input$heatComps
-        conditions <- params$input$conditionsHeat
+        #conditions <- params$input$conditionsHeat
+        conditions <- params$gVars$conditionsHeat
 
         uq <- (100-(percDE/2))/100
         lq <- (percDE/2)/100
@@ -623,7 +648,8 @@ if(isDeg && isComps && isConds){
 
         tmp.data.sel <- tmp.data[selRows, selCols]
         dataColsVarI.sel <- dataColsVarI[which(dataColsVarI %in% conditions)]
-        classPalette <- setNames(randomcoloR::distinctColorPalette(length(conditions)), conditions)
+        #classPalette <- setNames(randomcoloR::distinctColorPalette(length(conditions)), conditions)
+        classPalette <- params$gVars$classPalette
 
         res <- heatplot(tmp.data.sel, 
                 dend = "column", 

@@ -316,7 +316,12 @@ fluidPage(
                                 fluidRow(
                                         column(12, align="center",
                                         #column(12,
-                                                downloadButton("exportQC", "QC Report")
+                                                div(id="download_QC_div",
+                                                        downloadButton("exportQC", "QC Report")
+                                                ),
+                                                hidden(div(id="methyl_QC_div", 
+                                                        actionButton("qc_methyl_submit", "QC Report")
+                                                ))
                                         )
                                 ),fluidRow(
                                         column(12, align="center",
@@ -347,7 +352,11 @@ fluidPage(
                                 fluidRow(
                                         column(12,
                                                 uiOutput("selNormMethod"),
-                                                uiOutput("selNormMethod2")
+                                                uiOutput("selNormMethod2"),
+                                                hidden(div(id="ilChkDiv",
+                                                        checkboxInput(inputId="chkRmSNP", label="Remove SNPs", value=FALSE),
+                                                        checkboxInput(inputId="chkRmSexChr", label="Remove Sex Chromosomes", value=FALSE)
+                                                ))
                                         )
                                 ),fluidRow(
                                         column(12, align="center",
@@ -384,7 +393,7 @@ fluidPage(
                                 ),fluidRow(
                                         column(12, align="center",
                                                 div(id="skipDiv",
-                                                        actionButton("skip_submit", "SKIP")
+                                                        actionButton("corr_skip_submit", "SKIP")
                                                 )
                                         )
                                 )
@@ -862,7 +871,8 @@ fluidPage(
 							),tabPanel(value="diffVenn", title="Differential Sets Intersection", 
 								fluidRow(
 									column(4,
-                                                                               uiOutput("selIntersectComps")
+                                                                                uiOutput("selIntersectComps"),
+                                                                                actionButton("venn_submit", "Replot")
 									),column(8,
                                                                                 ##div(id="intersectPlotDiv", class="sizeable", 
                                                                                 #div(id="intersectPlotDiv", class="jacket", 
@@ -889,6 +899,8 @@ fluidPage(
 										sliderInput("xAxis", "X Axis Bounds", min=1, max=7, value=5, step=1)
 									),column(3,
 										sliderInput("yAxis", "Y Axis Bounds", min=1, max=30, value=20, step=1)
+									),column(3,
+                                                                                actionButton("vol_submit", "Replot")
 									)
 								),fluidRow(
 									column(12,
@@ -912,7 +924,8 @@ fluidPage(
                                                                                 #uiOutput("selExpGenes"),
                                                                                 selectizeInput("expGenes", "Select Features", choices=c("NA"), multiple=TRUE),
                                                                                 uiOutput("selVarIBoxPlot"),
-                                                                                uiOutput("selConditions")
+                                                                                uiOutput("selConditionsBoxplot"),
+                                                                                actionButton("expBoxplot_submit", "Plot")
                                                                         ),column(8,
                                                                                 shinycssloaders::withSpinner(plotOutput("expressionBoxPlot", height="auto", width="auto"), type=6)
                                                                         )
@@ -920,9 +933,11 @@ fluidPage(
                                                         ),tabPanel(value="expHeatmap", title="Heatmap", 
                                                                 fluidRow(
                                                                         column(4,
-                                                                                uiOutput("slidePercDE"),
+                                                                                #uiOutput("slidePercDE"),
+                                                                                sliderInput("percDE", "Percentage of Highly Differential Features", min=0.1, max=5, value=0.1, step=0.1),
                                                                                 uiOutput("selHeatComps"),
-                                                                                uiOutput("selConditionsHeat")
+                                                                                uiOutput("selConditionsHeat"),
+                                                                                actionButton("expHeatmap_submit", "Replot")
                                                                         ),column(8,
                                                                                 shinycssloaders::withSpinner(plotOutput("expressionHeatmap", height="auto", width="auto"), type=6)
                                                                         )
