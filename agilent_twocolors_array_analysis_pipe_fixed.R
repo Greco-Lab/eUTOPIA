@@ -220,7 +220,7 @@ filt.by.neg.probes <- function(data, cdata, qdist = .9, perc = 50, verbose = TRU
   if(verbose) cat(" - filtering by control-negative probes..\n")
   if(verbose) print(paste0("Qdist - ", qdist, ", Perc - ", perc))
   # compile a threshold value from the negative control probes for each sample
-  thres.vec <- apply(cdata, 2, function(x) quantile(x, qdist, na.rm=FALSE))
+  thres.vec <- apply(cdata, 2, function(x) quantile(x, qdist, na.rm=TRUE))
   # filter out the probes whose...
   score.neg <- matrix(0, nrow=nrow(data), ncol=ncol(data))
   for(i in 1:dim(data)[2])  score.neg[which(data[,i] > thres.vec[i]),i] <- 1
@@ -240,7 +240,7 @@ filt.by.var.dup.probes <- function(data, qdist = .9, perc = 50, verbose = TRUE, 
   score.neg <- matrix(0, nrow=length(list.id.dup.probes), ncol=ncol(data))
   for(j in 1:ncol(data)) {
     dist.var <- unlist(lapply(list.id.dup.probes, function(i) var(data[i,j])))
-    thres.vec <- quantile(dist.var, qdist, na.rm=FALSE)
+    thres.vec <- quantile(dist.var, qdist, na.rm=TRUE)
     score.neg[which(dist.var > thres.vec), j] <- 1
   }
   neg.sumrow <- apply(score.neg, 1, sum)
