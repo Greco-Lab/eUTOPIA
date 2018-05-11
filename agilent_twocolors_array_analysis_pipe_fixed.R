@@ -364,13 +364,21 @@ assoc.var.int <- function(X, pd, verbose = TRUE, ...) {
   assoc <- matrix(NA, nrow=length(var.names), ncol=ncol(X))
   rownames(assoc) <- var.names
   colnames(assoc) <- colnames(colnames(X))
+  print("assoc:")
+  print(assoc)
+  print("str(assoc):")
+  print(str(assoc))
   for(i in 1:ncol(assoc)) {
+    cat("assoc col : ", i, "\n")
     assoc[,i] <- sapply(var.names, function(a) {
+      cat("pd var name : ", a, "\n")
       if(is.factor(pd[,a])) {
+        cat("Is a factor\n")
         if(length(levels(pd[,a])) > 0)
           anova(lm(X[,i]~as.factor(pd[,a])))[1,5]
       }
       else if(is.numeric(pd[,a]))
+        cat("Is numeric\n")
         anova(lm(X[,i]~pd[,a]))[1,5]
     })
   }
@@ -1288,5 +1296,47 @@ get_deg_summary <- function(deg_list, names, lfc=0){
                 print(class(countsDF))
         }
         return(countsDF)
+}
+
+#Get color palette for factor
+get_color_palette <- function(iVec, asFactor=FALSE){
+        set.seed(1) #Block randomness. Set seed
+        print("Getting color palette..")
+        if(asFactor){
+                print("Input as factor...")
+                if(is.factor(iVec)){
+                        print("Input is factor...")
+                        nm <- levels(iVec)
+                }else if(is.vector(iVec)){
+                        print("Input is vector...")
+                        iVec <- factor(iVec)
+                        nm <- levels(iVec)
+                }else{
+                        print("Neither factor nor vector, returning NULL!")
+                        return(NULL)
+                }
+                print("levels:")
+                print(nm)
+                #nmPalette <- setNames(randomcoloR::distinctColorPalette(length(nm)), seq(nm))
+                nmPalette <- setNames(randomcoloR::randomColor(length(nm), luminosity="dark"), seq(nm))
+                print("Palette base:")
+                print(nmPalette)
+                print("Levels as integer:")
+                print(as.integer(iVec))
+                colorVec <- nmPalette[as.integer(iVec)]
+        }else{
+                print("Input as vector...")
+                if(is.factor(iVec)){
+                        print("Input is factor...")
+                        iVec <- as.character(iVec)
+                }
+                print("iVec:")
+                print(iVec)
+                #colorVec <- setNames(randomcoloR::distinctColorPalette(length(iVec)), iVec)
+                colorVec <- setNames(randomcoloR::randomColor(length(iVec), luminosity="dark"), iVec)
+        }
+        print("Palette vector:")
+        print(colorVec)
+        return(colorVec)
 }
 
