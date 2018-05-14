@@ -3561,6 +3561,8 @@ shinyServer(
                         shiny::validate(need(length(deGenes)>0, "No Differential Features to Plot!"))
 
                         dataColsVarI <- phTable[,varI]
+                        print("dataColsVarI : ")
+                        print(dataColsVarI)
 
                         tmp.data <- data
                         #colnames(tmp.data) <- phTable[, gVars$sampleColID]
@@ -3577,8 +3579,10 @@ shinyServer(
                         tmp.data.sel <- tmp.data[selRows, selCols]
                         print(dim(tmp.data.sel))
                         dataColsVarI.sel <- dataColsVarI[which(dataColsVarI %in% conditions)]
+                        print("dataColsVarI.sel : ")
+                        print(dataColsVarI.sel)
                         #classPalette <- setNames(randomcoloR::distinctColorPalette(length(conditions)), conditions)
-                        classPalette <- get_color_palette(iVec=conditions, asFactor=FALSE)
+                        classPalette <- get_color_palette(iVec=sort(conditions), asFactor=FALSE)
                         gVars$classPalette <- classPalette
 
                         heatplot(tmp.data.sel, 
@@ -3597,7 +3601,7 @@ shinyServer(
                         )
                         par(lend = 1)           # square line ends for the color legend
                         legend("bottomleft",      # location of the legend on the heatmap plot
-                                legend = conditions, # category labels
+                                legend = sort(conditions), # category labels
                                 #col = c(1:length(conditions)),  # color key
                                 col = classPalette,
                                 bty = "n",
