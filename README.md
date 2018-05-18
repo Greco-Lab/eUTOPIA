@@ -10,9 +10,9 @@ Graphically accessible guided workflow for preprocessing and analysis of omics d
   biocLite("impute")
 
   #Install CRAN dependencies
-  cran_pkgs <- c("swamp", "infotheo", "gplots", "RColorBrewer", "shiny", "shinyjs", "shinyBS", "shinydashboard", "shinyFiles",
-  "DT", "shinycssloaders", "ggplot2", "ggrepel", "WriteXLS", "rmarkdown", "VennDiagram", "grid", "futile.logger", "reshape2",
-  "htmlTable", "devtools", "httr", "randomcoloR")
+  cran_pkgs <- c("swamp", "infotheo", "gplots", "RColorBrewer", "shiny", "shinyjs", "shinyBS", "shinydashboard", 
+  "shinyFiles", "DT", "shinycssloaders", "ggplot2", "ggrepel", "WriteXLS", "rmarkdown", "VennDiagram", 
+  "grid", "futile.logger", "reshape2", "htmlTable", "devtools", "httr", "randomcoloR")
   cran_pkgs.inst <- cran_pkgs[!(cran_pkgs %in% rownames(installed.packages()))]
   if(length(cran_pkgs.inst)>0){
     print(paste0("Missing ", length(cran_pkgs.inst), " CRAN Packages:"))
@@ -33,8 +33,9 @@ Graphically accessible guided workflow for preprocessing and analysis of omics d
   
   #Install Bioconductor dependencies
   source("http://bioconductor.org/biocLite.R")
-  bioc_pkgs <- c("limma", "sva", "Biobase", "biomaRt", "affy", "affyQCReport", "arrayQualityMetrics", "made4", "vsn", "GEOquery", "minfi", "IlluminaHumanMethylation450kmanifest", "IlluminaHumanMethylation450kanno.ilmn12.hg19", "IlluminaHumanMethylationEPICmanifest", 
-  "IlluminaHumanMethylationEPICanno.ilm10b2.hg19", "affyio", "simpleaffy", "yaqcaffy", "GO.db", "shinyMethyl")
+  bioc_pkgs <- c("limma", "sva", "Biobase", "biomaRt", "affy", "affyQCReport", "arrayQualityMetrics", "made4", "vsn", 
+  "GEOquery", "minfi", "IlluminaHumanMethylation450kmanifest", "IlluminaHumanMethylation450kanno.ilmn12.hg19", "IlluminaHumanMethylationEPICmanifest", "IlluminaHumanMethylationEPICanno.ilm10b2.hg19", "affyio", "simpleaffy", 
+  "yaqcaffy", "GO.db", "shinyMethyl")
   bioc_pkgs.inst <- bioc_pkgs[!(bioc_pkgs %in% rownames(installed.packages()))]
   if(length(bioc_pkgs.inst)>0){
     source("http://bioconductor.org/biocLite.R")
