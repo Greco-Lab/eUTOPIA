@@ -343,7 +343,9 @@ shinyServer(
                                         print(colnames(phTable)[idx])
                                         phTable[,idx] <- as.character(phTable[,idx])
                                 }
+                                coltypes <- unlist(lapply(phTable, class))
                         }
+
                         coltypes.charOnly.idx <- which(coltypes=="character")
                         coltypes.nonChar.idx <- which(!coltypes=="character")
                         coltypes.charOnly.len <- length(coltypes.charOnly.idx)
@@ -971,11 +973,20 @@ shinyServer(
 				missingFiles <- fileNamesTmp[-fileChk]
 				missingFilesStr <- paste0(missingFiles, collapse="\n")
                         }else{
+                                #print("fileNames: ")
+                                #print(fileNames)
+                                #cat("celDir: ", celDir, "\n")
                                 fileChk <- which(fileNames %in% dir(celDir))
                                 fileChkCount <- length(fileChk)
-				missingFiles <- fileNames[-fileChk]
+                                if(length(fileChk)>0){
+                                        missingFiles <- fileNames[-fileChk]
+                                }else{
+                                        missingFiles <- fileNames
+                                }
 				missingFilesStr <- paste0(missingFiles, collapse="\n")
                         }
+                        #cat("fileChkCount: ", fileChkCount, "\n")
+                        #cat("fileNameCount: ", fileNameCount, "\n")
 			if(fileChkCount < fileNameCount){
 				#missingFiles <- fileNames[-fileChk]
 				#missingFilesStr <- paste0(missingFiles, collapse="\n")
@@ -1063,7 +1074,8 @@ shinyServer(
                                 }else{
                                         print("Samples Read Green Before Filter")
 					colID <- which(colnames(gCh) %in% smp2keepG)
-					gCh <- gCh[,c(colID)]
+					#gCh <- gCh[,c(colID)]
+					gCh <- gCh[,c(colID), drop=FALSE]
                                         print("Samples Read Green After Filter")
                                         print(colnames(gCh))
                                         print("Samples Green Colnames After Update")
@@ -1077,7 +1089,8 @@ shinyServer(
                                         print("Samples Read Red Before Filter")
                                         print(colnames(rCh))
 					colID <- which(colnames(rCh) %in% smp2keepR)
-					rCh <- rCh[,c(colID)]
+					#rCh <- rCh[,c(colID)]
+					rCh <- rCh[,c(colID), drop=FALSE]
                                         print("Samples Read Red After Filter")
                                         print(colnames(rCh))
                                         print("Samples Red Colnames After Update")
@@ -1124,6 +1137,7 @@ shinyServer(
                                 cIdx <- which(eListRaw$genes$ControlType==-1)
                                 nc.data <- data[ncIdx,]
                                 c.data <- data[cIdx,]
+
                                 map <- data.frame(eListRaw$genes$ProbeName[ncIdx], eListRaw$genes$SystematicName[ncIdx], stringsAsFactors=FALSE)
                                 dups <- which(duplicated(map[,1]))
                                 if(length(dups)>0){
@@ -1868,16 +1882,16 @@ shinyServer(
                         
                         agg.data <- NULL
                         map <- NULL
-                        if(arrType=="ag_exp1"){
-                                updateProgress(detail="Aggregrating Probes by ID...", value=2/3)
-                                map <- gVars$map
-                                print(str(expr.data))
-                                print(str(map))
-                                agg.data <- aggreg.probes.2(expr.data, map)
-                                agg.data <- as.matrix(agg.data)
-                                expr.data <- agg.data
-                                correctionLvl <- 2
-                        }
+                        #if(arrType=="ag_exp1"){
+                        #        updateProgress(detail="Aggregating Probes by ID...", value=2/3)
+                        #        map <- gVars$map
+                        #        print(str(expr.data))
+                        #        print(str(map))
+                        #        agg.data <- aggreg.probes.2(expr.data, map)
+                        #        agg.data <- as.matrix(agg.data)
+                        #        expr.data <- agg.data
+                        #        correctionLvl <- 2
+                        #}
                         updateProgress(detail="Completed!", value=3/3)
                         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Batch Corrected!!!!!!!!!")
                         
@@ -1948,31 +1962,33 @@ shinyServer(
 
 			arrType <- input$arrType
                         print(paste0("arrType: ", arrType))
-                        if(arrType!="ag_exp2"){
-                                if(arrType=="ag_exp1"){
-                                        expr.data <- gVars$norm.data
-                                        agg.data <- NULL
-                                        
-                                        progress$set(message="Annotation:", value=0)
 
-                                        updateProgress(detail="Aggregrating Probes by ID...", value=1/2)
-                                        map <- gVars$map
-                                        print(str(expr.data))
-                                        print(str(map))
-                                        agg.data <- aggreg.probes.2(expr.data, map)
-                                        agg.data <- as.matrix(agg.data)
-                                        expr.data <- agg.data
-                                        correctionLvl <- 2
+                        #if(arrType!="ag_exp2"){
+                        if(!grepl("ag_exp.*", input$arrType)){
+                                #if(arrType=="ag_exp1"){
+                                #        expr.data <- gVars$norm.data
+                                #        agg.data <- NULL
+                                #        
+                                #        progress$set(message="Annotation:", value=0)
 
-                                        updateProgress(detail="Completed!", value=2/2)
+                                #        updateProgress(detail="Aggregating Probes by ID...", value=1/2)
+                                #        map <- gVars$map
+                                #        print(str(expr.data))
+                                #        print(str(map))
+                                #        agg.data <- aggreg.probes.2(expr.data, map)
+                                #        agg.data <- as.matrix(agg.data)
+                                #        expr.data <- agg.data
+                                #        correctionLvl <- 2
 
-                                        gVars$agg.data <- agg.data
-                                        gVars$expr.data <- expr.data ## exprt.data here is agg.data, see above.
+                                #        updateProgress(detail="Completed!", value=2/2)
 
-                                        shiny::updateTabsetPanel(session, "display", selected="tvTab")
-                                        shiny::updateTabsetPanel(session, "mtv", selected="mdsTab")
-                                        shiny::updateTabsetPanel(session, "mdsBox", selected="postAggTab")
-                                }
+                                #        gVars$agg.data <- agg.data
+                                #        gVars$expr.data <- expr.data ## exprt.data here is agg.data, see above.
+
+                                #        shiny::updateTabsetPanel(session, "display", selected="tvTab")
+                                #        shiny::updateTabsetPanel(session, "mtv", selected="mdsTab")
+                                #        shiny::updateTabsetPanel(session, "mdsBox", selected="postAggTab")
+                                #}
                                 shinyBS::updateCollapse(session, "bsSidebar", open="DIFFERENTIAL ANALYSIS", style=list("BATCH CORRECTION"="success", "DIFFERENTIAL ANALYSIS"="warning"))
                         }else{
                                 shinyBS::updateCollapse(session, "bsSidebar", open="ANNOTATION", style=list("BATCH CORRECTION"="success", "ANNOTATION"="warning"))
@@ -2050,9 +2066,12 @@ shinyServer(
                                 shinyjs::info("Expression data is empty!")
                                 return(NULL)
                         }
+
                         agg.data <- NULL
                         map <- NULL
-                        if(arrType=="ag_exp2"){
+
+                        #if(arrType=="ag_exp2"){
+                        if(grepl("ag_exp.*", input$arrType)){
                                 updateProgress(detail="Aggregating Probes by ID...", value=2/3)
                                 #if(input$annType=="file"){
                                 #        #annDF <- gVars$annDF()
@@ -2136,17 +2155,25 @@ shinyServer(
                                 shinyjs::info("Expression data is empty!")
                                 return(NULL)
                         }
+
                         agg.data <- NULL
-                        rgList <- gVars$rgList
-                        ncIdx <- which(rgList$genes$ControlType==0)
-                        #map <- data.frame(rgList$genes$ProbeName[ncIdx], rgList$genes$SystematicName[ncIdx], stringsAsFactors=FALSE)
-                        map <- data.frame("ProbeName"=rgList$genes$ProbeName[ncIdx], "SystematicName"=rgList$genes$SystematicName[ncIdx], stringsAsFactors=FALSE)
-                        print(str(rgList$genes))
+
+                        if(arrType=="ag_exp2"){
+                                rgList <- gVars$rgList
+                                print(str(rgList$genes))
+                                ncIdx <- which(rgList$genes$ControlType==0)
+                                #map <- data.frame(rgList$genes$ProbeName[ncIdx], rgList$genes$SystematicName[ncIdx], stringsAsFactors=FALSE)
+                                map <- data.frame("ProbeName"=rgList$genes$ProbeName[ncIdx], "SystematicName"=rgList$genes$SystematicName[ncIdx], stringsAsFactors=FALSE)
+                        }else if(arrType=="ag_exp1"){
+                                map <- gVars$map
+                        }
+
                         dups <- which(duplicated(map[,1]))
                         if(length(dups)>0){
                                 map <- map[-dups,]
                         }
                         print(str(map))
+
                         agg.data <- aggreg.probes.2(expr.data, map)
                         agg.data <- as.matrix(agg.data)
                         expr.data <- agg.data
@@ -4719,9 +4746,9 @@ shinyServer(
 				hideBSCollapsePanel(session, panel.name="ANNOTATION")
                         }else if(arrType=="ag_exp1"){
 				shinyjs::hide("affAnnDiv")
-				shinyjs::hide("launch_ann_modal")
+				#shinyjs::hide("launch_ann_modal")
 				shinyjs::hide("detectPV")
-				hideBSCollapsePanel(session, panel.name="ANNOTATION")
+				#hideBSCollapsePanel(session, panel.name="ANNOTATION")
                         }else if(arrType=="il_methyl"){
 				shinyjs::show("detectPV")
 				#shinyjs::hide("selNormMethod")
