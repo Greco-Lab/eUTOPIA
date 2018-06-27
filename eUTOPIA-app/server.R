@@ -705,7 +705,8 @@ shinyServer(
                         if(!is.null(gVars$norm.data)){
                                 print("Subsetting gVars$norm.data")
                                 rmIdx <- which(colnames(gVars$norm.data) %in% removedSampleIDs)
-                                if(length(rmIdx)>1){
+                                #if(length(rmIdx)>1){
+                                if(length(rmIdx)>0){
                                         cat("Removing index ", rmIdx, " from gVars$norm.data matrix!\n")
                                         gVars$norm.data <- gVars$norm.data[,-rmIdx]
                                 }else{
@@ -716,9 +717,17 @@ shinyServer(
                                 print("Subsetting gVars$rgList")
                                 #removedArrays <- phTable[phRows2Remove,fileNameColID]
                                 removedArrays <- phTable[phRows2Remove,fileNameColName]
+                                print("removedArrays: ")
+                                print(removedArrays)
+                                #removedArrays <- phTable[phRows2Remove,fileNameColName, drop=FALSE]
                                 removedArrays <- gsub("\\.[a-zA-Z]+$", "", removedArrays)
+                                print("removedArrays: ")
+                                print(removedArrays)
+                                print("table(removedArrays): ")
+                                print(table(removedArrays))
                                 array2Remove <- names(which(table(removedArrays)>1))
-                                if(length(array2Remove)>1){
+                                #if(length(array2Remove)>1){
+                                if(length(array2Remove)>0){
                                         gVars$rgList <- gVars$rgList[,-array2Remove]
                                 }else{
                                         print("Nothing was removed!")
@@ -748,7 +757,8 @@ shinyServer(
                                 #removedArrays <- phTable[phRows2Remove,fileNameColID]
                                 removedArrays <- phTable[phRows2Remove,fileNameColName]
                                 rmIdx <- which(sampleNames(gVars$RGset) %in% removedArrays)
-                                if(length(rmIdx)>1){
+                                #if(length(rmIdx)>1){
+                                if(length(rmIdx)>0){
                                         cat("Removing index ", rmIdx, " from gVars$RGset matrix!\n")
                                         gVars$RGset <- gVars$RGset[,-rmIdx]
                                 }else{
@@ -760,7 +770,8 @@ shinyServer(
                                 #removedArrays <- phTable[phRows2Remove,fileNameColID]
                                 removedArrays <- phTable[phRows2Remove,fileNameColName]
                                 rmIdx <- which(sampleNames(gVars$Mset) %in% removedArrays)
-                                if(length(rmIdx)>1){
+                                #if(length(rmIdx)>1){
+                                if(length(rmIdx)>0){
                                         cat("Removing index ", rmIdx, " from gVars$Mset matrix!\n")
                                         gVars$Mset <- gVars$Mset[,-rmIdx]
                                 }else{
@@ -770,7 +781,8 @@ shinyServer(
                         if(!is.null(gVars$expr.data)){
                                 print("Subsetting gVars$expr.data")
                                 rmIdx <- which(colnames(gVars$expr.data) %in% removedSampleIDs)
-                                if(length(rmIdx)>1){
+                                #if(length(rmIdx)>1){
+                                if(length(rmIdx)>0){
                                         cat("Removing index ", rmIdx, " from gVars$expr.data matrix!\n")
                                         gVars$expr.data <- gVars$expr.data[,-rmIdx]
                                 }else{
@@ -780,7 +792,8 @@ shinyServer(
                         if(!is.null(gVars$nc.data)){
                                 print("Subsetting gVars$nc.data")
                                 rmIdx <- which(colnames(gVars$nc.data) %in% removedSampleIDs)
-                                if(length(rmIdx)>1){
+                                #if(length(rmIdx)>1){
+                                if(length(rmIdx)>0){
                                         cat("Removing index ", rmIdx, " from gVars$nc.data matrix!\n")
                                         gVars$nc.data <- gVars$nc.data[,-rmIdx]
                                 }else{
@@ -790,7 +803,8 @@ shinyServer(
                         if(!is.null(gVars$c.data)){
                                 print("Subsetting gVars$c.data")
                                 rmIdx <- which(colnames(gVars$c.data) %in% removedSampleIDs)
-                                if(length(rmIdx)>1){
+                                #if(length(rmIdx)>1){
+                                if(length(rmIdx)>0){
                                         cat("Removing index ", rmIdx, " from gVars$c.data matrix!\n")
                                         gVars$c.data <- gVars$c.data[,-rmIdx]
                                 }else{
@@ -800,7 +814,8 @@ shinyServer(
                         if(!is.null(gVars$comb.data)){
                                 print("Subsetting gVars$comb.data")
                                 rmIdx <- which(colnames(gVars$comb.data) %in% removedSampleIDs)
-                                if(length(rmIdx)>1){
+                                #if(length(rmIdx)>1){
+                                if(length(rmIdx)>0){
                                         cat("Removing index ", rmIdx, " from gVars$comb.data matrix!\n")
                                         gVars$comb.data <- gVars$comb.data[,-rmIdx]
                                 }else{
@@ -810,7 +825,8 @@ shinyServer(
                         if(!is.null(gVars$agg.data)){
                                 print("Subsetting gVars$agg.data")
                                 rmIdx <- which(colnames(gVars$agg.data) %in% removedSampleIDs)
-                                if(length(rmIdx)>1){
+                                #if(length(rmIdx)>1){
+                                if(length(rmIdx)>0){
                                         cat("Removing index ", rmIdx, " from gVars$agg.data matrix!\n")
                                         gVars$agg.data <- gVars$agg.data[,-rmIdx]
                                 }else{
@@ -820,7 +836,8 @@ shinyServer(
                         if(!is.null(gVars$comb.sva.data)){
                                 print("Subsetting gVars$comb.sva.data")
                                 rmIdx <- which(colnames(gVars$comb.sva.data) %in% removedSampleIDs)
-                                if(length(rmIdx)>1){
+                                #if(length(rmIdx)>1){
+                                if(length(rmIdx)>0){
                                         cat("Removing index ", rmIdx, " from gVars$comb.sva.data matrix!\n")
                                         gVars$comb.sva.data <- gVars$comb.sva.data[,-rmIdx]
                                 }else{
@@ -1601,10 +1618,13 @@ shinyServer(
 			if(arrType=="ag_exp2"){
                                 #gSampleCount <- table(phTable[,dyeColID])[[1]]
                                 #rSampleCount <- table(phTable[,dyeColID])[[2]]
-                                gSampleCount <- table(phTable[,dyeColName])[[1]]
-                                rSampleCount <- table(phTable[,dyeColName])[[2]]
-                                ttlSampleCount <- gSampleCount+rSampleCount
-                                rgList.norm <- new("RGList", list(G=norm.data[,c(1:gSampleCount)], R=norm.data[,c((gSampleCount+1):ttlSampleCount)]))
+                                dyeColChk <- which(dyeColName %in% colnames(phTable))
+                                if(length(dyeColChk)>0){
+                                        gSampleCount <- table(phTable[,dyeColName])[[1]]
+                                        rSampleCount <- table(phTable[,dyeColName])[[2]]
+                                        ttlSampleCount <- gSampleCount+rSampleCount
+                                        rgList.norm <- new("RGList", list(G=norm.data[,c(1:gSampleCount)], R=norm.data[,c((gSampleCount+1):ttlSampleCount)]))
+                                }
                         }
                         updateProgress(detail="Completed!", value=2/2)
 
@@ -2499,6 +2519,7 @@ shinyServer(
                         shiny::validate(need(input$arrType!="af_exp", "No plot for Affymetrix data!"))
                         shiny::validate(need(input$arrType!="ag_exp1", "No plot for Agilent single color data!"))
                         shiny::validate(need(!is.null(gVars$norm.data), "Waiting for normalization..."))
+                        shiny::validate(need(!is.null(gVars$rgList.norm), "No plot for normalized data..."))
                         if(input$arrType=="il_methyl"){
                                 Mset <- gVars$Mset
                                 shiny::validate(
@@ -2529,6 +2550,7 @@ shinyServer(
                         shiny::validate(need(input$arrType!="ag_exp1", "No plot for Agilent single color data!"))
                         shiny::validate(need(input$arrType!="il_methyl", "No plot for Illumina methylation data!"))
                         shiny::validate(need(!is.null(gVars$norm.data), "Waiting for normalization..."))
+                        shiny::validate(need(!is.null(gVars$rgList.norm), "No plot for normalized data..."))
 			rgList.norm <- gVars$rgList.norm
 			plotMD(rgList.norm, main="After Normalization")
 		})
