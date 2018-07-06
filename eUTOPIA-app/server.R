@@ -1170,8 +1170,31 @@ shinyServer(
 			}else if(arrType=="af_exp"){
                                 tmpFile <- file.path(celDir, fileNames[1])
                                 celHeader <- affyio::read.celfile.header(tmpFile)
+                                print("str(celHeader)")
+                                print(str(celHeader))
                                 cdfName <- gsub("-|_", "", celHeader$cdfName)
-                                if(!grepl(cdfName, affCDF, ignore.case=T)){
+                                print("cdfName:")
+                                print(cdfName)
+                                allInstalledPkgs <- rownames(installed.packages())
+                                cdfNameBioc <- paste0(tolower(cdfName), "cdf")
+                                print("Bioconductor cdfName:")
+                                print(cdfNameBioc)
+                                qcCDF <- affCDF
+                                warned <- FALSE
+                                if(!any(grepl(cdfNameBioc, allInstalledPkgs))){
+                                        tryCatch(BiocInstaller::biocLite(cdfNameBioc, suppressUpdates=TRUE))
+                                        allInstalledPkgs <- rownames(installed.packages())
+                                        if(any(grepl(cdfNameBioc, allInstalledPkgs))){
+                                                #qcCDF <- tolower(cdfName)
+                                                qcCDF <- cdfNameBioc
+                                                library(package=qcCDF, character.only=TRUE)
+                                        }
+                                }else{
+                                        #qcCDF <- tolower(cdfName)
+                                        qcCDF <- cdfNameBioc
+                                        library(package=qcCDF, character.only=TRUE)
+                                }
+                                if(!any(grepl(cdfName, affCDF, ignore.case=T))){
                                         shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")    
                                         shinyjs::info(
                                                 paste0("CDF annotation mismatch with the CEL files!\n\nNeed CDF file corresponding to '", cdfName, "'\n\nUser provided CDF '", affCDF, "'")
@@ -1195,13 +1218,18 @@ shinyServer(
 				gVars$rma.affy.data <- exprs
                                 gVars$normalized <- TRUE
 
+                                print("qcCDF:")
+                                print(qcCDF)
                                 #Create affyBatch object for QC
                                 err <- 0
-                                tryCatch(simpleaffy::setQCEnvironment(input$affCDF), error=function(e){err<<-1})
+                                #tryCatch(simpleaffy::setQCEnvironment(input$affCDF), error=function(e){err<<-1})
+                                tryCatch(simpleaffy::setQCEnvironment(qcCDF), error=function(e){err<<-1})
                                 if(!err){
                                         celFilePaths <- file.path(celDir, fileNames)
-                                        gVars$affyBatchObject <- affy::read.affybatch(filenames=celFilePaths, phenoData=pheno, cdfname=affCDF)
+                                        #gVars$affyBatchObject <- affy::read.affybatch(filenames=celFilePaths, phenoData=pheno, cdfname=affCDF)
+                                        gVars$affyBatchObject <- affy::read.affybatch(filenames=celFilePaths, phenoData=pheno, cdfname=qcCDF)
                                 }
+                                gVars$qcCDF <- qcCDF
                                 gVars$cdfQCerr <- err
 
                                 tmpChoices <- rownames(gVars$expr.data)
@@ -3782,10 +3810,11 @@ shinyServer(
                                 })
                                 if(input$arrType=="af_exp"){
                                         if(gVars$cdfQCerr){
+                                                qcCDF <- gVars$qcCDF
                                                 #tempReportDir <- file.path(tempdir(), Sys.Date())
                                                 #arrayQualityMetrics::arrayQualityMetrics(expressionset=gVars$affyBatchObject, outdir=tempReportDir, force=TRUE, do.logtransform=TRUE)
                                                 #tar(tarfile=con, files=tempReportDir, compression="gzip", tar="tar")
-                                                resStr <- paste0("Could not find .qcdef file for '", input$affCDF, "'!\n\n No QC was performed.")
+                                                resStr <- paste0("Could not find .qcdef file for '", qcCDF, "'!\n\n No QC was performed.")
                                                 #shinyjs::info(resStr)
                                                 write.table(resStr, file=con, sep="\t")
 
@@ -3799,6 +3828,9 @@ shinyServer(
                                         }else{
                                                 #affyQCReport::QCReport(gVars$affyBatchObject, file=con)
                                                 tempReportDir <- file.path(tempdir(), Sys.Date())
+                                                if(!isTRUE(dir.exists(tempReportDir))){
+                                                        dir.create(tempReportDir)
+                                                }
                                                 plotFilename <- file.path(tempReportDir, "plot.pdf")
                                                 qobj <- yaqcaffy::yaqc(gVars$affyBatchObject)
                                                 pdf(plotFilename, width=10, height=10)
