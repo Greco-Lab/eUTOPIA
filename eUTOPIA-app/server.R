@@ -1069,7 +1069,68 @@ shinyServer(
                                 #        }
                                 #}
 
-				rgList <- read.maimages(files=fileNames, source="agilent.median", path=celDir, verbose=TRUE, skipNul=TRUE)
+				#rgList <- read.maimages(files=fileNames, source="agilent.median", path=celDir, verbose=TRUE, skipNul=TRUE)
+                                sourceOpt <- input$selAgSource
+                                cat("Agilent Source: ", sourceOpt, "\n")
+
+				#Check file source match
+				columns <- switch(sourceOpt, 
+					agilent.mean = list(
+						G = "gMeanSignal", 
+						Gb = "gBGMedianSignal", 
+						R = "rMeanSignal", 
+						Rb = "rBGMedianSignal"
+					), 
+					agilent = , 
+					agilent.median = list(
+						G = "gMedianSignal", 
+						Gb = "gBGMedianSignal", 
+						R = "rMedianSignal", 
+						Rb = "rBGMedianSignal"
+					), 
+					genepix = , 
+					genepix.mean = list(
+						R = "F635 Mean", 
+						G = "F532 Mean", 
+						Rb = "B635 Median", 
+						Gb = "B532 Median"
+					), 
+					genepix.median = list(
+						R = "F635 Median", 
+						G = "F532 Median", 
+						Rb = "B635 Median", 
+						Gb = "B532 Median"
+					),  
+					NULL
+				)
+
+				file <- file.path(celDir, fileNames[1])
+				con <- file(file, "r")
+				Found <- FALSE
+				i <- 0
+				repeat {
+					i <- i + 1
+					txt <- readLines(con, n = 1)
+					if (!length(txt)){ 
+						Found <- FALSE
+						break
+					}
+					Found <- TRUE
+					for (a in columns) Found <- Found && length(grep(a, txt))
+					if (Found) 
+						break
+				}
+				close(con)
+				if(!Found){
+                                        shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")    
+                                        shinyjs::info(
+                                                paste0("Source type mismatch with raw data files!\nPlease check and select the correct source!")
+                                        )
+                                        return(NULL)
+				}
+
+				#Read raw data
+				rgList <- read.maimages(files=fileNames, source=sourceOpt, path=celDir, verbose=TRUE, skipNul=TRUE)
 				updateProgress(detail="Preprocessing & Filtering...", value=2/3)
 				gCh <- rgList$G
 				rCh <- rgList$R
@@ -4789,10 +4850,12 @@ shinyServer(
                         if(arrType=="ag_exp2"){
 				shinyjs::hide("affAnnDiv")
 				shinyjs::hide("detectPV")
+				shinyjs::show("agSourceDiv")
                         }else if(arrType=="af_exp"){
 				shinyjs::show("affAnnDiv")
 				shinyjs::hide("launch_ann_modal")
 				shinyjs::hide("detectPV")
+				shinyjs::hide("agSourceDiv")
 
 				#Test bsCollapsePanel hiding function
 				hideBSCollapsePanel(session, panel.name="PROBE FILTERING")
@@ -4802,6 +4865,7 @@ shinyServer(
 				shinyjs::hide("affAnnDiv")
 				#shinyjs::hide("launch_ann_modal")
 				shinyjs::hide("detectPV")
+				shinyjs::show("agSourceDiv")
 				#hideBSCollapsePanel(session, panel.name="ANNOTATION")
                         }else if(arrType=="il_methyl"){
 				shinyjs::show("detectPV")
@@ -4810,6 +4874,7 @@ shinyServer(
 				shinyjs::hide("filtDist")
 				shinyjs::hide("affAnnDiv")
 				shinyjs::hide("launch_ann_modal")
+				shinyjs::hide("agSourceDiv")
 
                                 #For methylation QC with shinyMethyl
                                 shinyjs::hide("download_QC_div")
