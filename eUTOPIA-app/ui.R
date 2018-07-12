@@ -290,6 +290,22 @@ fluidPage(
                                 ),fluidRow(
 					column(12,
 						hr(),
+						div(id="agSourceDiv",
+							fluidRow(
+                                                                column(12,
+                                                                        selectInput("selAgSource", "Source Image Analysis Program", 
+                                                                            choices=c(
+                                                                                "agilent", 
+                                                                                "agilent.median",
+                                                                                "agilent.mean",
+                                                                                "genepix",
+                                                                                "genepix.median"
+                                                                            ), 
+                                                                            selected="agilent.median"
+                                                                        )
+                                                                )
+                                                        )
+						),
 						div(id="affAnnDiv", class="contentDiv",
 							h4("Select Annotation"),
 							fluidRow(
