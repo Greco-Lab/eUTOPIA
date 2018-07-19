@@ -121,6 +121,18 @@ shinyjs.init = function() {
 		}
 	);
 
+        //Function to show hidden bsCollapsePanel
+        Shiny.addCustomMessageHandler('showBSCollapsePanelMessage',
+		function(message){
+			//alert('The value is ' + message.name);
+			//var html = $(\"div[value='\" + message.name + \"']\").html();
+			//var obj = $(\"div[value='\" + message.name + \"']\");
+			$(\"div[value='\" + message.name + \"']\").removeClass(\"hidden\");
+			//alert('The obj HTML is ' + html);
+			//alert('The obj is ' + obj);
+		}
+	);
+
 }"
 
 appCSS <- "
@@ -295,16 +307,39 @@ fluidPage(
                                                                 column(12,
                                                                         selectInput("selAgSource", "Source Image Analysis Program", 
                                                                             choices=c(
-                                                                                "agilent", 
+                                                                                #"agilent", 
                                                                                 "agilent.median",
-                                                                                "agilent.mean",
-                                                                                "genepix",
-                                                                                "genepix.median"
+                                                                                "agilent.mean"#,
+                                                                                #"genepix",
+                                                                                #"genepix.median"
                                                                             ), 
                                                                             selected="agilent.median"
                                                                         )
                                                                 )
                                                         )
+						),
+                                                div(id="agChannelDiv",
+							fluidRow(
+                                                                column(12,
+                                                                        selectInput("selAgChannel", "Use Channel", 
+                                                                            choices=c(
+                                                                                "Red", 
+                                                                                "Green"
+                                                                            ), 
+                                                                            selected="Green"
+                                                                        )
+                                                                )
+                                                        )
+						),
+                                                div(id="agSpotDiv", class="contentDiv",
+							h4("Spot Annotation"),
+							fluidRow(
+								column(1, align="center",
+									p("")
+								),column(11,
+									actionButton("launch_spot_modal", label="Upload Spot Information")
+								)
+							)
 						),
 						div(id="affAnnDiv", class="contentDiv",
 							h4("Select Annotation"),
@@ -555,6 +590,49 @@ fluidPage(
                                                 ),fluidRow(
                                                         column(12, align="right",
                                                                 shinyBS::bsButton("upload_pheno_submit", label="Import", style="info", icon=icon("hand-o-right"))
+                                                        )
+                                                )
+                                        ))
+                                )
+                        )
+		),
+                shinyBS::bsModal("importSpotModal", "Import Spot Information", "launch_spot_modal", size="large",
+			fluidRow(
+				column(3,
+					fileInput("fSpot", label="Spot File")
+				),column(3,
+					uiOutput("selSepSpot")
+				),column(3,
+					textInput("sepTSpot", "Other Seperator", value=":")
+				),column(3,
+					uiOutput("selQuoteSpot")
+				)
+			),fluidRow(
+				column(1,
+					actionButton("load_spot_submit", "Preview")
+				)
+			),hr(),
+			fluidRow(
+				column(12,
+					hidden(div(id="spotPreviewDiv",
+                                                fluidRow(
+                                                        column(12,
+                                                                DT::dataTableOutput("spotDT")
+                                                        )
+                                                ),hr(),
+                                                fluidRow(
+                                                        column(3,
+                                                                uiOutput("selRowCol")
+                                                        ),column(3,
+                                                                uiOutput("selColCol")
+                                                        ),column(3,
+                                                                uiOutput("selProbeIDCol")
+                                                        ),column(3,
+                                                                uiOutput("selSpotCol")
+                                                        )
+                                                ),fluidRow(
+                                                        column(12, align="right",
+                                                                shinyBS::bsButton("upload_spot_submit", label="Import", style="info", icon=icon("hand-o-right"))
                                                         )
                                                 )
                                         ))

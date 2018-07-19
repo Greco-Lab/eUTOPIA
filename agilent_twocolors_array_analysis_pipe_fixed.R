@@ -219,6 +219,8 @@ pre.proc <- function(pd, rgList, var.mds, qdist = c(.75, .9), perc = c(75, 50), 
 filt.by.neg.probes <- function(data, cdata, qdist = .9, perc = 50, verbose = TRUE, ...) {
   if(verbose) cat(" - filtering by control-negative probes..\n")
   if(verbose) print(paste0("Qdist - ", qdist, ", Perc - ", perc))
+  print("nrow(data)")
+  print(nrow(data))
   # compile a threshold value from the negative control probes for each sample
   thres.vec <- apply(cdata, 2, function(x) quantile(x, qdist, na.rm=TRUE))
   # filter out the probes whose...
@@ -227,6 +229,8 @@ filt.by.neg.probes <- function(data, cdata, qdist = .9, perc = 50, verbose = TRU
   neg.sumrow <- apply(score.neg, 1, sum)
   if(verbose) print(paste0("Rounded - ", round(ncol(data)*perc/100)))
   filt.data <- data[neg.sumrow >= round(ncol(data)*perc/100),]
+  print("nrow(filt.data)")
+  print(nrow(filt.data))
   if(verbose) cat("     * number of probes to remove:", (nrow(data) - nrow(filt.data)), "\n")
   return(filt.data)
 }
@@ -1338,5 +1342,66 @@ get_color_palette <- function(iVec, asFactor=FALSE){
         print("Palette vector:")
         print(colorVec)
         return(colorVec)
+}
+
+#Get array columns
+get_array_cols <- function(sourceType){
+        columns <- switch(sourceType, 
+                agilent.mean = list(
+                        G = "gMeanSignal", 
+                        Gb = "gBGMedianSignal", 
+                        R = "rMeanSignal", 
+                        Rb = "rBGMedianSignal"
+                ), 
+                agilent = , 
+                agilent.median = list(
+                        G = "gMedianSignal", 
+                        Gb = "gBGMedianSignal", 
+                        R = "rMedianSignal", 
+                        Rb = "rBGMedianSignal"
+                ), 
+                genepix = , 
+                genepix.mean = list(
+                        R = "F635 Mean", 
+                        G = "F532 Mean", 
+                        Rb = "B635 Median", 
+                        Gb = "B532 Median"
+                ), 
+                genepix.median = list(
+                        R = "F635 Median", 
+                        G = "F532 Median", 
+                        Rb = "B635 Median", 
+                        Gb = "B532 Median"
+                ),  
+                NULL
+        )
+        return(columns)
+}
+
+#Check the chosen source against raw data file
+check_source_type <- function(rawDir, fileName, columns){
+        Sys.setlocale('LC_ALL','C')
+        print("Checking Source:")
+        file <- file.path(rawDir, fileName)
+        con <- file(file, "r")
+        Found <- FALSE
+        i <- 0
+        repeat {
+                i <- i + 1
+                txt <- readLines(con, n = 1)
+                #if(i<=35){
+                #        print(txt)
+                #}
+                if (!length(txt)){ 
+                        Found <- FALSE
+                        break
+                }
+                Found <- TRUE
+                for (a in columns) Found <- Found && length(grep(a, txt))
+                if (Found) 
+                        break
+        }
+        close(con)
+        return(Found)
 }
 
