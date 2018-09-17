@@ -1249,11 +1249,11 @@ shinyServer(
 				}
 
 				#Read raw data
-                                ptint(" ----- ")
+                                print(" ----- ")
                                 cat("Raw Dir: ", celDir, "\n")
-                                ptint("Filenames: ")
-                                ptint(fileNames)
-                                ptint(" ----- ")
+                                print("Filenames: ")
+                                print(fileNames)
+                                print(" ----- ")
 				rgList <- read.maimages(files=fileNames, source=sourceOpt, path=celDir, verbose=TRUE, skipNul=TRUE)
                                 print("str(rgList)")
                                 print(str(rgList))
