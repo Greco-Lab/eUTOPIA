@@ -144,7 +144,8 @@ shinyServer(
 		})
 	
                 ## Get raw data directory
-                roots <- c(wd="/")
+                #roots <- c(wd="/")
+                roots <- shinyFiles::getVolumes()
                 #gVars$roots <- reactive({
                 #        if(is.null(gVars$phDir){
                 #            roots <- "/"
