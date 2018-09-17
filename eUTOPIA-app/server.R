@@ -144,7 +144,12 @@ shinyServer(
 		})
 	
                 ## Get raw data directory
-                #roots <- c(wd="/")
+                #osType <- Sys.info()["sysname"]
+                #if(osType=="Windows"){
+                #        volumes <- shinyFiles::getVolumes()
+                #}else{
+                #        roots <- c(wd="/")
+                #}
                 roots <- shinyFiles::getVolumes()
                 #gVars$roots <- reactive({
                 #        if(is.null(gVars$phDir){
@@ -160,8 +165,8 @@ shinyServer(
                         if(is.null(input$dirButton))
                         return(NULL)
 
-                        roots <- c(wd="/")
-                        #roots <- gVars$roots()
+                        #roots <- c(wd="/")
+                        roots <- shinyFiles::getVolumes()
                         celDir <- parseDirPath(roots, input$dirButton)
 			updateTextInput(session, "dirTextDisp", value=celDir)
                         return(celDir)
