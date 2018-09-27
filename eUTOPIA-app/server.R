@@ -100,62 +100,7 @@ shinyServer(
 		gVars$normChoices <- c("Between Arrays"="BA", "Quantile"="quantile", "Variance Stabilizing"="vsn", "Cyclic Loess"="cl")
 		gVars$baChoices <- c("None"="none", "Scale"="scale", "Quantile"="quantile", "Cyclic Loess"="cyclicloess")
 
-		#shinyjs loader events
-		shinyjs::onclick(id="upload_raw_submit", {
-			print("##############")
-			print("In upload raw loader event")
-			print("##############")
-                        shinyjs::html(id="loadingText", "UPLOADING RAW DATA")
-                        shinyjs::show(id="loading-content")
-                })
-		shinyjs::onclick(id="exportQC", {
-                        shinyjs::html(id="loadingText", "CREATING QC REPORT")
-                        shinyjs::show(id="loading-content")
-                })
-		shinyjs::onclick(id="qc_methyl_submit", {
-                        shinyjs::html(id="loadingText", "CREATING QC REPORT")
-                        shinyjs::show(id="loading-content")
-                })
-		shinyjs::onclick(id="filt_submit", {
-                        shinyjs::html(id="loadingText", "FILTERING DATA")
-                        shinyjs::show(id="loading-content")
-                })
-		shinyjs::onclick(id="norm_submit", {
-                        shinyjs::html(id="loadingText", "NORMALIZING DATA")
-                        shinyjs::show(id="loading-content")
-                })
-		shinyjs::onclick(id="sva_submit", {
-                        shinyjs::html(id="loadingText", "SURROGATE VARIABLE ANALYSIS")
-                        shinyjs::show(id="loading-content")
-                })
-		shinyjs::onclick(id="combat_submit", {
-                        shinyjs::html(id="loadingText", "BATCH CORRECTION")
-                        shinyjs::show(id="loading-content")
-                })
-		shinyjs::onclick(id="de_submit", {
-                        shinyjs::html(id="loadingText", "DIFFERENTIAL ANALYSIS")
-                        shinyjs::show(id="loading-content")
-                })
-		shinyjs::onclick(id="filterDE_submit", {
-                        shinyjs::html(id="loadingText", "FILTERING DIFFERENTIAL TABLE")
-                        shinyjs::show(id="loading-content")
-                })
-		shinyjs::onclick(id="exportDE", {
-                        shinyjs::html(id="loadingText", "EXPORTING DIFFERENTIAL TABLE")
-                        shinyjs::show(id="loading-content")
-                })
-		shinyjs::onclick(id="submit_ann", {
-                        shinyjs::html(id="loadingText", "ANNOTATION & AGGREGATION")
-                        shinyjs::show(id="loading-content")
-                })
-		shinyjs::onclick(id="upload_ann_submit", {
-                        shinyjs::html(id="loadingText", "ANNOTATION & AGGREGATION")
-                        shinyjs::show(id="loading-content")
-                })
-                shinyjs::onclick(id="exportRpt", {
-                        shinyjs::html(id="loadingText", "CREATING ANALYSIS REPORT")
-                        shinyjs::show(id="loading-content")
-                })
+		
 		
                 ## Get available Affymetrix CDF annotations
 		allPkgNames <- rownames(installed.packages())
