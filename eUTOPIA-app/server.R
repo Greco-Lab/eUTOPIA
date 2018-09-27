@@ -104,7 +104,7 @@ shinyServer(
 		shinyjs::onclick(id="upload_raw_submit", {
 			print("##############")
 			print("In upload raw loader event")
-			print("##############"
+			print("##############")
                         shinyjs::html(id="loadingText", "UPLOADING RAW DATA")
                         shinyjs::show(id="loading-content")
                 })
