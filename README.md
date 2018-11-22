@@ -10,10 +10,10 @@ Graphically accessible guided workflow for preprocessing and analysis of omics d
   biocLite("impute")
 
   #Install CRAN dependencies
-  cran_pkgs <- c("swamp", "infotheo", "gplots", "RColorBrewer", "shiny", "shinyjs", "shinyBS", 
-  "shinydashboard", "shinyFiles", "DT", "shinycssloaders", "ggplot2", "ggrepel", "WriteXLS", 
-  "rmarkdown", "VennDiagram", "grid", "futile.logger", "reshape2", "htmlTable", "devtools",
-  "httr", "randomcoloR")
+  cran_pkgs <- c("bibtex", "RMySQL", "progress", "swamp", "infotheo", "gplots", "RColorBrewer", 
+  "shiny", "shinyjs", "shinyBS", "shinydashboard", "shinyFiles", "DT", "shinycssloaders", 
+  "ggplot2", "ggrepel", "WriteXLS", "rmarkdown", "VennDiagram", "grid", "futile.logger", 
+  "reshape2", "htmlTable", "devtools", "httr", "randomcoloR")
   cran_pkgs.inst <- cran_pkgs[!(cran_pkgs %in% rownames(installed.packages()))]
   if(length(cran_pkgs.inst)>0){
     print(paste0("Missing ", length(cran_pkgs.inst), " CRAN Packages:"))
