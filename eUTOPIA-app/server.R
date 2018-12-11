@@ -3934,7 +3934,8 @@ shinyServer(
 			content = function(con){
 																#Start loading screen
 																shinyjs::html(id="loadingText", "CREATING QC REPORT")
-																shinyjs::show(id="loading-content"
+																shinyjs::show(id="loading-content")
+
                                 on.exit({
                                         shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
                                 })
