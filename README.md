@@ -1,7 +1,7 @@
 # eUTOPIA
 ### A solUTion for Omics data PreprocessIng and Analysis
 
-Graphically accessible guided workflow for preprocessing and analysis of omics data. Supports Agilent 2-color, Agilent 1-color, Affymetrix, and Illumina methylation microarray platforms (Ongoing efforts to add support for RNA-Seq data). Discreetly separated steps in analysis designed in R Shiny, incorporates widely used microarray analysis practices and R packages. Reporting is and data interpretation is leveraged from dynamically generated plots. 
+Graphically accessible guided workflow for preprocessing and analysis of omics data. Supports Agilent 2-color, Agilent 1-color, Affymetrix, and Illumina methylation microarray platforms (Ongoing efforts to add support for RNA-Seq data). Discreetly separated steps in analysis designed in R Shiny, incorporates widely used microarray analysis practices and R packages. Reporting is and data interpretation is leveraged from dynamically generated plots.
 
 #### Install Dependencies
 ```R
@@ -10,9 +10,9 @@ Graphically accessible guided workflow for preprocessing and analysis of omics d
   biocLite("impute")
 
   #Install CRAN dependencies
-  cran_pkgs <- c("bibtex", "RMySQL", "progress", "swamp", "infotheo", "gplots", "RColorBrewer", 
-  "shiny", "shinyjs", "shinyBS", "shinydashboard", "shinyFiles", "DT", "shinycssloaders", 
-  "ggplot2", "ggrepel", "WriteXLS", "rmarkdown", "VennDiagram", "grid", "futile.logger", 
+  cran_pkgs <- c("bibtex", "RMySQL", "progress", "swamp", "infotheo", "gplots", "RColorBrewer",
+  "shiny", "shinyjs", "shinyBS", "shinydashboard", "shinyFiles", "DT", "shinycssloaders",
+  "ggplot2", "ggrepel", "WriteXLS", "rmarkdown", "VennDiagram", "grid", "futile.logger",
   "reshape2", "htmlTable", "devtools", "httr", "randomcoloR")
   cran_pkgs.inst <- cran_pkgs[!(cran_pkgs %in% rownames(installed.packages()))]
   if(length(cran_pkgs.inst)>0){
@@ -23,21 +23,21 @@ Graphically accessible guided workflow for preprocessing and analysis of omics d
       print("Installed!!!")
     }
   }
-  
+
   #Install latest version of rhandsontable from GitHub
   print("Installing rhandsontable from GitHub!")
   devtools::install_github("jrowen/rhandsontable")
-  
+
   #Install latest version of UpSetR from GitHub
   print("Installing UpSetR from GitHub!")
   devtools::install_github("hms-dbmi/UpSetR")
-  
+
   #Install Bioconductor dependencies
   source("http://bioconductor.org/biocLite.R")
-  bioc_pkgs <- c("limma", "sva", "Biobase", "biomaRt", "affy", "affyQCReport", 
-  "arrayQualityMetrics", "made4", "vsn", "GEOquery", "minfi", 
+  bioc_pkgs <- c("limma", "sva", "Biobase", "biomaRt", "affy", "affyQCReport",
+  "arrayQualityMetrics", "made4", "vsn", "GEOquery", "minfi",
   "IlluminaHumanMethylation450kmanifest", "IlluminaHumanMethylation450kanno.ilmn12.hg19",
-  "IlluminaHumanMethylationEPICmanifest", "IlluminaHumanMethylationEPICanno.ilm10b2.hg19", 
+  "IlluminaHumanMethylationEPICmanifest", "IlluminaHumanMethylationEPICanno.ilm10b2.hg19",
   "affyio", "simpleaffy", "yaqcaffy", "GO.db", "shinyMethyl")
   bioc_pkgs.inst <- bioc_pkgs[!(bioc_pkgs %in% rownames(installed.packages()))]
   if(length(bioc_pkgs.inst)>0){
@@ -49,13 +49,13 @@ Graphically accessible guided workflow for preprocessing and analysis of omics d
       print("Installed!!!")
     }
   }
-  
+
   #Install latest version of GOSemSim from GitHub
   print("Installing GOSemSim from GitHub!")
   devtools::install_github("GuangchuangYu/GOSemSim")
 ```
 
-#### How to run INfORM from GitHub
+#### How to run eUTOPIA from GitHub
 ```R
   # Load 'shiny' library
   library(shiny)
