@@ -3321,7 +3321,11 @@ shinyServer(
                                 print("str(deg.list.filt) before filtering")
                                 print(str(deg.list.filt))
                                 deg.list.filt <- c("Summary"=list(summDF), deg.list.filt)
-				deg.list.filt <- deg.list.filt[unlist(lapply(deg.list.filt, function(degDF) !is.null(degDF)))]
+																deg.list.filt <- deg.list.filt[unlist(lapply(deg.list.filt, function(degDF) !is.null(degDF)))]
+																#Add annotation columns for Methylation
+																if(input$arrType=="il_methyl"){
+				                                deg.list.filt <- lapply(deg.list.filt, function(degDF){as.data.frame(cbind(degDF, Other[degDF$ID, c(3:ncol(Other))]), stringsAsFactors=FALSE)})
+				                        }
                                 print("str(deg.list.filt) after filtering")
                                 print(str(deg.list.filt))
 				print("DE GeneList Names:")
