@@ -357,6 +357,8 @@ shinyServer(
                         coltypes.nonChar.idx <- which(!coltypes=="character")
                         coltypes.charOnly.len <- length(coltypes.charOnly.idx)
                         coltypes.nonChar.len <- length(coltypes.nonChar.idx)
+												remInfo <- 0
+												remStr <- ""
                         if(coltypes.charOnly.len>0){
                                 phTable.charOnly <- phTable[, coltypes.charOnly.idx, drop=F]
                                 print("dim(phTable.charOnly)")
@@ -365,8 +367,8 @@ shinyServer(
                                 intCheck <- unlist(lapply(phTable.charOnly, function(col){if(suppressWarnings(all(is.na(as.integer(col))))){1}else{0}}))
                                 doubleCheck <- unlist(lapply(phTable.charOnly, function(col){if(suppressWarnings(all(is.na(as.double(col))))){1}else{0}}))
                                 allCheck <- numCheck+intCheck+doubleCheck
-                                remInfo <- 0
-                                remStr <- ""
+                                #remInfo <- 0
+                                #remStr <- ""
                                 if(all(allCheck==0)){
                                         checkFailed <- names(allCheck[allCheck==0])
                                         remInfo <- 1
