@@ -1668,7 +1668,7 @@ shinyServer(
                                 print(summary(getM(Mset)[,1]))
 
                                 #Map to genomic locations
-                                GMset <- mapToGenome(Mset)
+                                GMset <- minfi::mapToGenome(Mset)
 
                                 #Remove SNP probes
                                 if(input$chkRmSNP){
