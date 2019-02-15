@@ -230,6 +230,7 @@ shinyServer(
                         }
 
 			gVars$annLoaded <- 1
+												chkIdx <- which(annDF[,1] %in% rownames(expr.data))
                         mis <- apply(annDF[chkIdx,-1], 2, function(x){sum(sum(is.na(x)), is.null(x),sum(x==""))})
                         percMis <- round(100-(mis/nrow(annDF)*100))
                         percMisStr <- paste0(names(percMis), "[", percMis, "%", "]")
