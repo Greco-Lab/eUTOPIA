@@ -1,9 +1,9 @@
-## suppose to have one file for each slot, 
+## suppose to have one file for each slot,
 ## for a two-color experiment we have two samples associated with one slot
 agilent.twocolors.analysis <- function(pd.file, id.rem.samp = NULL, type.data = "mRNA",
                                        qdist = c(.9), perc = c(50), num.pc = 5, gr = TRUE,
-                                       pdf.file = NULL, save.excel = NULL, 
-                                       verbose = TRUE, plot = TRUE, ...) {  
+                                       pdf.file = NULL, save.excel = NULL,
+                                       verbose = TRUE, plot = TRUE, ...) {
   require(limma)
   require(sva)
   require(swamp)
@@ -13,12 +13,12 @@ agilent.twocolors.analysis <- function(pd.file, id.rem.samp = NULL, type.data = 
   require(Biobase)
   #require(BACA)
   require(RColorBrewer)
-  
-  # loading methada, raw data, annotations and pheno data 
+
+  # loading methada, raw data, annotations and pheno data
   pd <- read.table(pd.file, sep="\t", header=T)
   id_file_names <- grep("file", colnames(pd), ignore.case = TRUE)
   if(length(id_file_names) == 0) stop("The <file.name> field is missing!")
-  rgList <- read.maimages(files=unique(pd[,id_file_names]), 
+  rgList <- read.maimages(files=unique(pd[,id_file_names]),
                           source="agilent.median", verbose = verbose)
   # generate nc.data, c.data and pd
   st <- fix.data(pd, id_file_names, rgList, GR = T, id.rem.samp)
@@ -32,7 +32,7 @@ agilent.twocolors.analysis <- function(pd.file, id.rem.samp = NULL, type.data = 
   vct <- get.info(pd)
   if(verbose)  print(vct)
   if(verbose)  cat("Pre-processing data <",nrow(st$nc.data),",",ncol(st$nc.data),"> \n", sep="")
-  norm.data <- pre.proc(nc.data = st$nc.data, c.data = st$c.data, pd[,vct$var.int], qdist = qdist, perc = perc, 
+  norm.data <- pre.proc(nc.data = st$nc.data, c.data = st$c.data, pd[,vct$var.int], qdist = qdist, perc = perc,
                         verbose = verbose, plot = plot)
   if(verbose) cat("Removing batch effects..<iterative process>\n")
   removing.batches <- c("Combat", "Limma")
@@ -40,7 +40,7 @@ agilent.twocolors.analysis <- function(pd.file, id.rem.samp = NULL, type.data = 
   idm <- read.input.number(" - indicate the method to use to remove batch effects:")
   if(idm == 1 | idm == 2)
     comb.data <- remove.batch.effects(norm.data, pd, num.pc, vct, method = removing.batches[idm], plot = plot, verbose = verbose)
-  else 
+  else
     stop("invalid method")
   if(verbose) cat("Analysis of the sample annotations .after removing the batch effects.. \n")
   monitor.technical.variation(comb.data, st$pd)
@@ -54,14 +54,14 @@ agilent.twocolors.analysis <- function(pd.file, id.rem.samp = NULL, type.data = 
   # return(list(data = fdata, biomart.data = biomart.data, vct = vct, pd = pd)) ### -------------------------> ATTENTION
   # return(list(norm.data = norm.data, combat = comb.data, data = fdata, biomart.data = biomart.data, vct = vct, pd = pd))
   if(verbose) cat("Differential gene expression analysis of ", type.data, "..\n", sep="")
-  des <- build.model.matrix(pd, -1, vct$var.int, vct$covariates, verbose = verbose) 
-  deg <- diff.gene.expr(fdata, des, vct$contrasts, biomart.data$annot, 
+  des <- build.model.matrix(pd, -1, vct$var.int, vct$covariates, verbose = verbose)
+  deg <- diff.gene.expr(fdata, des, vct$contrasts, biomart.data$annot,
                         save.file = save.excel, plot = plot, verbose = verbose)
   if(!is.null(pdf.file)) dev.off()
-  list(norm = norm.data, 
-       combat = comb.data, 
-       data = fdata, 
-       BM = biomart.data, 
+  list(norm = norm.data,
+       combat = comb.data,
+       data = fdata,
+       BM = biomart.data,
        deg = deg,
        mod = vct)
 }
@@ -72,7 +72,7 @@ get.info <- function(pd, verbose = TRUE, ...) {
   vars <- colnames(pd)
   print(data.frame(Variables = vars))
   n1 <- NULL
-  while(is.null(n1)) {  
+  while(is.null(n1)) {
     n1 <- read.input.number(" - indicate the variable of interest:")
     if(!is.numeric(n1)) n1 <- NULL
     if(n1 > length(vars)) n1 <- NULL
@@ -87,7 +87,7 @@ get.info <- function(pd, verbose = TRUE, ...) {
   while(flag) {
     cont <- read.input.word(message = " - indicate a contrast:")
     cont <- as.numeric(unlist(strsplit(cont, ",")))
-    contrasts <- c(contrasts, paste(levs[cont[1]],levs[cont[2]],sep="-")) 
+    contrasts <- c(contrasts, paste(levs[cont[1]],levs[cont[2]],sep="-"))
     flag <- continue.read.inputs()
   }
   contrasts <- contrasts[-1]
@@ -110,7 +110,7 @@ get.info <- function(pd, verbose = TRUE, ...) {
     vars <- vars[-covariates]
   }
   else  covs <- NULL
-  # indicating the batch variables 
+  # indicating the batch variables
   batches <- NULL
   while(!is.numeric(n2)) {
     print(data.frame(Variables = vars))
@@ -136,7 +136,7 @@ read.contrasts <- function(group) {
   while(flag) {
     cont <- read.input.word(message = " - indicate a contrast:")
     cont <- as.numeric(unlist(strsplit(cont, ",")))
-    contrasts <- c(contrasts, paste(levs[cont[1]],levs[cont[2]],sep="-")) 
+    contrasts <- c(contrasts, paste(levs[cont[1]],levs[cont[2]],sep="-"))
     flag <- continue.read.inputs()
   }
   contrasts <- contrasts[-1]
@@ -156,14 +156,14 @@ run.norm <- function(filt.data, rgList, method, method2, plot=FALSE){
     "BA" = normalizeBetweenArrays(log2(filt.data), method=method2)
    )
   }
-  #norm.data <- normalizeQuantiles(log2(filt.data)) 
-  norm.data <- norm_switch(method) 
+  #norm.data <- normalizeQuantiles(log2(filt.data))
+  norm.data <- norm_switch(method)
   if(plot)  {
    boxplot(norm.data, las=2, cex=0.7, main="After normalization.")
   }
 
   return(norm.data)
-} 
+}
 pre.proc <- function(pd, rgList, var.mds, qdist = c(.75, .9), perc = c(75, 50), verbose = TRUE, plot = TRUE, ...) {
   norm.data <- NULL
   data <- cbind(rgList$G, rgList$R)
@@ -179,7 +179,7 @@ pre.proc <- function(pd, rgList, var.mds, qdist = c(.75, .9), perc = c(75, 50), 
     grid <- expand.grid(qdist, perc)
     filt.data <- apply(grid, 1, FUN = function(x) {
                           if(verbose) cat("*** (qidst:",x[1],", perc.samples:",x[2], ")\n", sep="")
-                          #fd <- 
+                          #fd <-
                           filt.by.neg.probes(nc.data, c.data, qdist = x[1], perc = x[2], verbose)
                           #filt.by.var.dup.probes(fd, qdist = x[1], perc = x[2], verbose)
                           })
@@ -189,7 +189,7 @@ pre.proc <- function(pd, rgList, var.mds, qdist = c(.75, .9), perc = c(75, 50), 
       round(100 - (((nrow(nc.data) - nrow(f))/nrow(nc.data))*100), digits = 2)}))
     print(data.frame(grid.info, perc.probes, num.probes = unlist(lapply(filt.data, nrow))))
     #n1 <- read.input.number(message = paste("Insert a number between 1 and", length(grid.info)), more.info=NULL)
-    n1 <- 1 
+    n1 <- 1
     # normalize the data
     if(verbose) cat(" - quantile normalization method..\n")
     if(plot)  {
@@ -209,13 +209,13 @@ pre.proc <- function(pd, rgList, var.mds, qdist = c(.75, .9), perc = c(75, 50), 
     if(plot)  {
      boxplot(log2(filt.data), las=2, cex=0.7, main="Before normalization.")
     }
-    norm.data <- normalizeQuantiles(log2(filt.data)) 
+    norm.data <- normalizeQuantiles(log2(filt.data))
     if(plot)  {
      boxplot(norm.data, las=2, cex=0.7, main="After normalization.")
     }
   }
   return(norm.data)
-} 
+}
 filt.by.neg.probes <- function(data, cdata, qdist = .9, perc = 50, verbose = TRUE, ...) {
   if(verbose) cat(" - filtering by control-negative probes..\n")
   if(verbose) print(paste0("Qdist - ", qdist, ", Perc - ", perc))
@@ -268,11 +268,11 @@ pc.anaylsis <- function(data, pd, npc = 10, verbose = TRUE, ...) {
   # run the principal-component analysis
   var.names <- colnames(pd)
   # remove variables with one level
-  test <- sapply(var.names, function(v) { 
+  test <- sapply(var.names, function(v) {
                  if(is.factor(pd[,v]))
                    if(nlevels(pd[,v]) == 1) TRUE
                    else FALSE
-                 else FALSE}) 
+                 else FALSE})
   ids <- which(test == TRUE)
   if(length(ids) > 0) var.names <- var.names[-ids]
   # run princomp
@@ -286,7 +286,7 @@ pc.anaylsis <- function(data, pd, npc = 10, verbose = TRUE, ...) {
   colnames(assoc) <- colnames(eig)
   for(i in 1:npc) {
     assoc[,i] <- sapply(var.names, function(a) {
-      if(is.factor(pd[,a])) 
+      if(is.factor(pd[,a]))
         anova(lm(eig[,i]~as.factor(pd[,a])))[1,5]
       else if(is.numeric(pd[,a]))
         anova(lm(eig[,i]~pd[,a]))[1,5]
@@ -339,7 +339,7 @@ pc.anaylsis.2 <- function (g, o, npc = 10, center = T){
     for (j in 1:npc) {
       fit <- lm(pr$x[, j] ~ o[, i])
       s <- summary(fit)
-      linp[i, j] <- pf(s$fstatistic[1], s$fstatistic[2], 
+      linp[i, j] <- pf(s$fstatistic[1], s$fstatistic[2],
                        s$fstatistic[3], lower.tail = FALSE)
       rsquared[i, j] <- s$r.squared[1]
     }
@@ -351,13 +351,13 @@ pc.anaylsis.2 <- function (g, o, npc = 10, center = T){
 }
 assoc.var.int <- function(X, pd, verbose = TRUE, ...) {
   # run the principal-component analysis
-  var.names <- colnames(pd) 
+  var.names <- colnames(pd)
   # remove variables with one level
-  test <- sapply(var.names, function(v) { 
+  test <- sapply(var.names, function(v) {
     if(is.factor(pd[,v]))
       if(nlevels(pd[,v]) == 1) TRUE
     else FALSE
-    else FALSE}) 
+    else FALSE})
   ids <- which(test == TRUE)
   if(length(ids) > 0) var.names <- var.names[-ids]
   # compile assoc matrix
@@ -406,18 +406,18 @@ remove.batch.effects <- function(comb.data, pd, num.pc, vars, inter = "", method
       form <- formula(string.formula)
       print(form)
       prev.comb.data <- comb.data
-      if(method == "Combat") 
-        res <- try(comb.data <- ComBat(dat=comb.data, batch=pd[,batch], 
-                                     mod=model.matrix(form), 
+      if(method == "Combat")
+        res <- try(comb.data <- ComBat(dat=comb.data, batch=pd[,batch],
+                                     mod=model.matrix(form),
                                      par.prior=T,  prior.plots=F))
       if(method == "Limma")
         res <- try(comb.data <- removeBatchEffect(x = comb.data,
                                                   batch = pd[,batch],
                                                   design = model.matrix(form)))
-      
+
       if(inherits(res, "try-error")) {
         ##error handling: restore the previous state
-        #comb.data <- prev.comb.data 
+        #comb.data <- prev.comb.data
         #batches <- pre.batches
         #print(c(vars$var.int,batches))
         #next
@@ -445,13 +445,13 @@ remove.batch.effects.2 <- function(comb.data, pd, num.pc, vars, inter = "", meth
   cat(" - Running Principal Component Analysis..\n")
   assoc <- pc.anaylsis(data = comb.data, pd = pd, npc = num.pc)
   print(assoc)
-  if(plot) limma:::plotMDS(comb.data, top=1000, labels=pd[,vars$var.int], col=as.numeric(pd[,vars$var.int]), 
+  if(plot) limma:::plotMDS(comb.data, top=1000, labels=pd[,vars$var.int], col=as.numeric(pd[,vars$var.int]),
                            gene.selection="common", main = "Before removing any batch.")
-  #limma:::plotMDS(comb.data, top=500, labels=pd[,"TimeExposition"], col=as.numeric(pd[,"TimeExposition"]), 
+  #limma:::plotMDS(comb.data, top=500, labels=pd[,"TimeExposition"], col=as.numeric(pd[,"TimeExposition"]),
   #                gene.selection="common", main = "Before removing any batch.")
   flag <- continue.read.inputs()
   while(flag) {
-    batch  <- read.input.word(message = " - Please enter a variable <name> to use as batch..\n", 
+    batch  <- read.input.word(message = " - Please enter a variable <name> to use as batch..\n",
                               more.info = paste("batches:", paste(batches, collapse=",")))
     id.var <- which(batches == batch)
     print(id.var)
@@ -464,12 +464,12 @@ remove.batch.effects.2 <- function(comb.data, pd, num.pc, vars, inter = "", meth
       cat(" - Running Principal Component Analysis..\n")
       assoc <- pc.anaylsis(data = comb.data, pd = pd, npc = num.pc)
       print(assoc)
-      if(plot) limma:::plotMDS(comb.data, top=1000, labels=pd[,vars$var.int], col=as.numeric(pd[,vars$var.int]), 
+      if(plot) limma:::plotMDS(comb.data, top=1000, labels=pd[,vars$var.int], col=as.numeric(pd[,vars$var.int]),
                                gene.selection="common", main = paste("After removing", batch))
       # roll back if the user wants to
       rb <- continue.read.inputs(message = "Do you want to roll back? (y/n)")
       if(rb == TRUE) {
-        comb.data <- prev.comb.data 
+        comb.data <- prev.comb.data
         batches <- pre.batches
         cat(" - Previous Principal Component Analysis..\n")
         assoc <- pc.anaylsis(data = comb.data, pd = pd, npc = num.pc)
@@ -539,11 +539,11 @@ connect.to.biomart <- function(verbose = TRUE, ...) {
   mart
 }
 connect.to.biomart.2 <- function(verbose = TRUE, ...) {
-  organisms <- c("hsapiens_gene_ensembl","mmusculus_gene_ensembl") 
+  organisms <- c("hsapiens_gene_ensembl","mmusculus_gene_ensembl")
   print(as.data.frame(organisms, stringsAsFactors = F))
   cat("Please select the BioMart database to use...\n")
-  n1 <- scan(n=1)     
-  if(is.numeric(n1)) 
+  n1 <- scan(n=1)
+  if(is.numeric(n1))
     list(mart = useMart("ENSEMBL_MART_ENSEMBL", dataset=organisms[n1], host="www.ensembl.org"), organisms[n1])
   else
     NULL
@@ -560,15 +560,15 @@ query.biomart <- function(mart, organism, data, verbose = TRUE, ...) {
     print(as.data.frame(attributes, stringsAsFactors = F))
     cat("Please enter a number to indicate the annotation to use...\n")
     n2 <- scan(n=1)
-    resq <- NULL       
+    resq <- NULL
     if(is.numeric(n1) & is.numeric(n2)) {
       # querying BioMart
       print(c(agilent.annot[n1], attributes[n2]))
       print(agilent.annot[n1])
       print(head(probes))
-      resq <- getBM(attributes = c(agilent.annot[n1], attributes[n2]), 
-                    filters = agilent.annot[n1], 
-                    values = probes, 
+      resq <- getBM(attributes = c(agilent.annot[n1], attributes[n2]),
+                    filters = agilent.annot[n1],
+                    values = probes,
                     mart = mart)
     }
     else stop("Invalid inputs.")
@@ -599,10 +599,10 @@ query.biomart <- function(mart, organism, data, verbose = TRUE, ...) {
 getGene <- function (id, type, mart) {
   #biomaRt:::martCheck(mart, "ensembl")
   biomaRt:::checkWrapperArgs(id, type, mart)
-  symbolAttrib = switch(strsplit(biomaRt:::martDataset(mart), "_", fixed = TRUE, 
+  symbolAttrib = switch(strsplit(biomaRt:::martDataset(mart), "_", fixed = TRUE,
                                  useBytes = TRUE)[[1]][1], hsapiens = "hgnc_symbol", mmusculus = "mgi_symbol", "external_gene_id")
   typeAttrib = switch(type, affy_hg_u133a_2 = "affy_hg_u133a_v2", type)
-  attrib = c(typeAttrib, symbolAttrib, "description", "chromosome_name", 
+  attrib = c(typeAttrib, symbolAttrib, "description", "chromosome_name",
              "band", "strand", "start_position", "end_position", "ensembl_gene_id")
   table = biomaRt:::getBM(attributes = attrib, filters = type, values = id, mart = mart)
   return(table)
@@ -617,7 +617,7 @@ get.genes <- function(geneids, mart, species="Homo sapiens", type) {
   }
   id.dups <- which(duplicated(gannot[,type]))
   if(length(id.dups) > 0) gannot <- gannot[-id.dups,]
-  print(head(gannot)) 
+  print(head(gannot))
   gannot[,"description"] <- gsub(" \\[.*\\]", "", gannot[,"description"])
   rownames(gannot) <- gannot[,type]
   gannot
@@ -630,15 +630,15 @@ aggreg.probes <- function(data, map, var.mds = NULL, plot = TRUE, verbose = TRUE
   probes.to.dupl <- lapply(unlist(gene.to.probes), function(probe) which(rownames(data) == probe))
   names(probes.to.dupl) <- unlist(gene.to.probes)
   mat <- apply(data, 2, function(s) {
-               sapply(gene.to.probes, 
+               sapply(gene.to.probes,
                       function(probes) {
                           #print(unlist(probes.to.dupl[probes]))
                           median(s[unlist(probes.to.dupl[probes])])
                       })
                })
   if(verbose) cat("Number of annotated genes: ", nrow(mat), "\n", sep="")
-  if(plot & !is.null(var.mds)) 
-    limma:::plotMDS(mat, top=1000, labels=var.mds, col=as.numeric(var.mds), 
+  if(plot & !is.null(var.mds))
+    limma:::plotMDS(mat, top=1000, labels=var.mds, col=as.numeric(var.mds),
             gene.selection="common", main = "After mapping probes to genes")
   mat
 }
@@ -671,8 +671,8 @@ aggreg.probes.2 <- function(data, map, var.mds = NULL, plot = TRUE, verbose = TR
   datag = aggregate(.~TargetID, data = map, median)
   rownames(datag) <- datag[,1]
   datag <- datag[,-1]
-  if(plot & !is.null(var.mds))  
-    limma:::plotMDS(datag, top=1000, labels=var.mds, col=as.numeric(var.mds), 
+  if(plot & !is.null(var.mds))
+    limma:::plotMDS(datag, top=1000, labels=var.mds, col=as.numeric(var.mds),
                     gene.selection="common", main = "After mapping probes to genes")
   datag
 }
@@ -701,7 +701,7 @@ diff.gene.expr <- function(data, des, contrasts, pvalue, fcvalue, p.adjust.metho
   list.top.tables <- list()
   if(verbose)  cat(" - generating top tables.. \n", sep="")
   for(i in 1:length(contrasts)) {
-    list.top.tables[[i]] <- topTable(fit2, coef=i, p.value=pvalue, lfc=log2(fcvalue), 
+    list.top.tables[[i]] <- topTable(fit2, coef=i, p.value=pvalue, lfc=log2(fcvalue),
                                      adjust.method=p.adjust.method,
                                      number=max.ngenes, sort.by="logFC")
     if(verbose) {
@@ -722,9 +722,9 @@ diff.gene.expr <- function(data, des, contrasts, pvalue, fcvalue, p.adjust.metho
     }else{
       ids <- rownames(list.top.tables[[i]])
     }
-    list.top.tables[[i]]$score <- list.top.tables[[i]]$logFC * -log(list.top.tables[[i]]$P.Value)
+    list.top.tables[[i]]$score <- list.top.tables[[i]]$logFC * -log10(list.top.tables[[i]]$P.Value)
     if(!is.null(ids)) list.top.tables[[i]]$ID <- rownames(list.top.tables[[i]])
-    colnames(list.top.tables[[i]])[which(colnames(list.top.tables[[i]]) == "t")] <- "t-statistic" 
+    colnames(list.top.tables[[i]])[which(colnames(list.top.tables[[i]]) == "t")] <- "t-statistic"
     colnames(list.top.tables[[i]])[which(colnames(list.top.tables[[i]]) == "B")] <- "B-statistic"
   }
   list.top.tables
@@ -732,7 +732,7 @@ diff.gene.expr <- function(data, des, contrasts, pvalue, fcvalue, p.adjust.metho
 volcano.plot <- function(data, cutoff.pvalue = .05, cutoff.lfc = 1) {
   require(calibrate)
   plot(data$logFC, -log10(data$P.Value), pch=20, main="Volcano plot", xlim=c(-2.5,2))
-  pdata <- subset(data, P.Value < cutoff.pvalue) 
+  pdata <- subset(data, P.Value < cutoff.pvalue)
   points(pdata$logFC, -log10(pdata$P.Value), pch=20, col="gray")
   fdata <- subset(data, abs(logFC) > cutoff.lfc)
   points(fdata$logFC, -log10(fdata$P.Value), pch=20, col="orange")
@@ -770,13 +770,13 @@ david.annot <- function(list.top.tables) {
   split <- read.input.number("Enter [1] to split each list in two sublists: down- and up-regulated genes.")
   # building the gene list
   if(split == 1) {
-    gene.lists <- unlist(lapply(list.top.tables, function(d) { 
+    gene.lists <- unlist(lapply(list.top.tables, function(d) {
       down.genes <- rownames(d)[which(d$logFC < 0)]
       if(length(down.genes)==0) down.genes <- "1"
-      up.genes <- rownames(d)[which(d$logFC >= 0)]  
+      up.genes <- rownames(d)[which(d$logFC >= 0)]
       if(length(up.genes)==0) up.genes <- "1"
       list(down.genes, up.genes)}), recursive = FALSE)
-    # naming the gene lists 
+    # naming the gene lists
     names(gene.lists) <- unlist(lapply(names(list.top.tables), function(x) paste(x,c(1,2),sep="_")))
     print(length(gene.lists))
   }
@@ -786,24 +786,24 @@ david.annot <- function(list.top.tables) {
   }
   return(gene.lists)
   # querying DAVID for KEGG.PATHWAYS
-  kegg.pathways <- DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi", 
+  kegg.pathways <- DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi",
                                idType = "ENTREZ_GENE_ID", annotation = "KEGG_PATHWAY")
 
-  bp.terms <- DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi", 
+  bp.terms <- DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi",
                                idType = "ENTREZ_GENE_ID", annotation = "GOTERM_BP_ALL")
-  
-  mf.terms <- DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi", 
+
+  mf.terms <- DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi",
                                idType = "ENTREZ_GENE_ID", annotation = "GOTERM_MF_ALL")
-  
-  cc.terms <- DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi", 
+
+  cc.terms <- DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi",
                           idType = "ENTREZ_GENE_ID", annotation = "GOTERM_CC_ALL")
-  
+
   list(show.bbplot(kegg.pathways, "BBplot - KEGG", names(list.top.tables)),
        show.bbplot(bp.terms, "BBplot - GO terms (BP)", names(list.top.tables)),
        show.bbplot(mf.terms, "BBplot - GO terms (MF)", names(list.top.tables)),
        show.bbplot(cc.terms, "BBplot - GO terms (CC)", names(list.top.tables)))
-  
-} 
+
+}
 show.bbplot <- function(res.david.query, title.query, col.names, verbose = TRUE) {
   cont.it <- TRUE
   if(verbose)  cat("Building the bbplot..", title.query, "\n", sep="")
@@ -813,21 +813,21 @@ show.bbplot <- function(res.david.query, title.query, col.names, verbose = TRUE)
     cat("Do you want to specify the max number of genes?", "\n")
     if(continue.read.inputs()) {
       max.ngenes <- read.input.number("Indicate the max number of genes:")
-      bbplot <- BBplot(res.david.query, max.pval = max.pval, 
-                       min.ngenes = min.ngenes, 
+      bbplot <- BBplot(res.david.query, max.pval = max.pval,
+                       min.ngenes = min.ngenes,
                        max.ngenes = max.ngenes,
                        adj.method = "",
-                       name.com = col.names, 
+                       name.com = col.names,
                        title = paste(title.query, "<p.value=", max.pval,
                                      ";min.num.genes=", min.ngenes,
                                      ";max.num.genes=", max.ngenes,
-                                     ">", sep=""), print.term = "full") 
+                                     ">", sep=""), print.term = "full")
       print(bbplot)
     }
     else {
       # plotting
-      bbplot <- BBplot(res.david.query, max.pval = max.pval, min.ngenes = min.ngenes, name.com = col.names, 
-                       title = paste(title.query, "<p.value=", max.pval,";min.num.genes=", min.ngenes,">", sep=""), print.term = "full") 
+      bbplot <- BBplot(res.david.query, max.pval = max.pval, min.ngenes = min.ngenes, name.com = col.names,
+                       title = paste(title.query, "<p.value=", max.pval,";min.num.genes=", min.ngenes,">", sep=""), print.term = "full")
       print(bbplot)
     }
     cont.it <- continue.read.inputs()
@@ -860,7 +860,7 @@ continue.read.inputs <- function(message="Press [y] to continue, [n].") {
   }
   if(next.it == "y") TRUE
   else FALSE
-} 
+}
 ## UTILITY functions
 droplevels.annot <- function(a, remove = F) {
   id.col.to.remove <- NULL
@@ -876,7 +876,7 @@ droplevels.annot <- function(a, remove = F) {
       id.col.to.remove <- c(id.col.to.remove, j)
   }
   print(j)
-  if(remove) 
+  if(remove)
     a[,-j]
   else
     a
@@ -911,14 +911,14 @@ hclust2 <- function(x, method="ward.D2", ...) hclust(x, method=method, ...)
 dist2 <- function(x, ...) as.dist(1-cor(t(x), method="pearson"))
 plot.heatmap <- function(data, labels, top = 500) {
   sidebarcolors <- color.map(labels)
-  hvars <- apply(data, 1, var,na.rm=TRUE) 
-  hvars <- sort(hvars, decreasing=TRUE) 
-  hvars <- hvars[1:top] 
+  hvars <- apply(data, 1, var,na.rm=TRUE)
+  hvars <- sort(hvars, decreasing=TRUE)
+  hvars <- hvars[1:top]
   print(dim(data[names(hvars),]))
-  heatmap.2(data[names(hvars),], Rowv=TRUE, 
-            scale="column", trace="none", 
+  heatmap.2(data[names(hvars),], Rowv=TRUE,
+            scale="column", trace="none",
             distfun=dist2, hclustfun = hclust2,
-            col=redgreen, xlab=NULL, ylab=NULL, 
+            col=redgreen, xlab=NULL, ylab=NULL,
             labRow = "", dendrogram = "column", cexCol = .7,
             ColSideColors=sidebarcolors)
   par(lend = 1)           # square line ends for the color legend
@@ -931,7 +931,7 @@ plot.heatmap <- function(data, labels, top = 500) {
          cex = .7,
          lty= 1,            # line style
          lwd = 10           # line width
-  )     
+  )
 }
 plot.heatmpa.genes <- function(expr.dat, col, sf = 3, ze = 0.4, pi = 0.4, o = 1, ccolors) {
   require(Biobase)
@@ -950,13 +950,13 @@ plot.heatmpa.genes <- function(expr.dat, col, sf = 3, ze = 0.4, pi = 0.4, o = 1,
   dat$value <- round(melt(attr(dfp,"ifs"))$value, 2)
   dat$labels <- melt(dl)$value
   print(dat)
-  ggplot(dat, aes(x=var1,y=var2))+ 
+  ggplot(dat, aes(x=var1,y=var2))+
     geom_point(aes(size = value, colour = labels)) +
     scale_colour_manual(values=ccolors) +
     scale_size(range = c(5, 10), breaks=c(0.25,.5,.75),labels=c("25%","50%","75%")) +
-    #scale_size(range = c(5, 10)) + 
+    #scale_size(range = c(5, 10)) +
     scale_x_continuous(breaks = 1:nrow(dfp), labels = feats) +
-    scale_y_discrete(limits = sort(levels(expr.dat$class), decreasing = T)) + 
+    scale_y_discrete(limits = sort(levels(expr.dat$class), decreasing = T)) +
     labs(size = "Coverage", colour="Gene status") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
           axis.text.y = element_text(size = 10),
@@ -964,17 +964,17 @@ plot.heatmpa.genes <- function(expr.dat, col, sf = 3, ze = 0.4, pi = 0.4, o = 1,
           legend.text = element_text(size = 10),
           legend.position="right") +
     xlab("Genes") +
-    ylab("Class Labels") 
+    ylab("Class Labels")
 }
-split.top.tables <- function(list.tables, fc = 1.5) { 
-  gene.lists <- unlist(lapply(list.tables, function(d) { 
+split.top.tables <- function(list.tables, fc = 1.5) {
+  gene.lists <- unlist(lapply(list.tables, function(d) {
     rownames(d) <- sub("_at",'', rownames(d))
     down.genes <- rownames(d)[which(d$logFC < -log2(fc))]
     if(length(down.genes)==0) down.genes <- "1"
-    up.genes <- rownames(d)[which(d$logFC >= log2(fc))]  
+    up.genes <- rownames(d)[which(d$logFC >= log2(fc))]
     if(length(up.genes)==0) up.genes <- "1"
     list(down.genes, up.genes)}), recursive = FALSE)
-  # naming the gene lists 
+  # naming the gene lists
   names(gene.lists) <- unlist(lapply(names(list.tables), function(x) paste(x,c("down","up"),sep="_")))
   print(length(gene.lists))
   print(lapply(gene.lists, length))
@@ -1007,8 +1007,8 @@ featSelDFP <- function(exprData, skipFactor = 3, zeta = 0.5, piVal = 0.9, overla
   print("discretizeExpressionValues <DONE>")
   fps <- calculateFuzzyPatterns(exprData, dvs, piVal, overlapping)
   print("calculateFuzzyPatterns <DONE>")
-  list.fps <- lapply(names(table(exprData$class)), function(c) { 
-    fp <- showFuzzyPatterns(fps, c) 
+  list.fps <- lapply(names(table(exprData$class)), function(c) {
+    fp <- showFuzzyPatterns(fps, c)
     rownames(exprData)[which((rownames(exprData) %in% names(fp)) == TRUE)]
   })
   #xlistFPs <- lapply(names(table(exprData$class)), FUN= function(c) { fp = showFuzzyPatterns(fps, c); which( (rownames(exprData) %in% names(fp)) == TRUE)})
@@ -1044,7 +1044,7 @@ merge.combat <- function (esets, covariates = NULL, verbose = T)  {
   n.array <- sum(n.batches)
   B.hat <- solve(t(design) %*% design) %*% t(design) %*% t(as.matrix(dat))
   grand.mean <- t(n.batches/n.array) %*% B.hat[1:n.batch, ]
-  var.pooled <- ((dat - t(design %*% B.hat))^2) %*% rep(1/n.array, 
+  var.pooled <- ((dat - t(design %*% B.hat))^2) %*% rep(1/n.array,
                                                         n.array)
   stand.mean <- t(grand.mean) %*% t(rep(1, n.array))
   if (!is.null(design)) {
@@ -1054,11 +1054,11 @@ merge.combat <- function (esets, covariates = NULL, verbose = T)  {
   }
   s.data <- (dat - stand.mean)/(sqrt(var.pooled) %*% t(rep(1, n.array)))
   batch.design <- design[, 1:n.batch]
-  gamma.hat <- solve(t(batch.design) %*% batch.design) %*% 
+  gamma.hat <- solve(t(batch.design) %*% batch.design) %*%
     t(batch.design) %*% t(as.matrix(s.data))
   delta.hat <- NULL
   for (i in batches) {
-    delta.hat <- rbind(delta.hat, apply(s.data[, i], 1, var, 
+    delta.hat <- rbind(delta.hat, apply(s.data[, i], 1, var,
                                         na.rm = T))
   }
   gamma.bar <- apply(gamma.hat, 1, mean)
@@ -1067,8 +1067,8 @@ merge.combat <- function (esets, covariates = NULL, verbose = T)  {
   b.prior <- apply(delta.hat, 1, bprior)
   gamma.star <- delta.star <- NULL
   for (i in 1:n.batch) {
-    temp <- it.sol(s.data[, batches[[i]]], gamma.hat[i, ], 
-                   delta.hat[i, ], gamma.bar[i], t2[i], a.prior[i], 
+    temp <- it.sol(s.data[, batches[[i]]], gamma.hat[i, ],
+                   delta.hat[i, ], gamma.bar[i], t2[i], a.prior[i],
                    b.prior[i])
     gamma.star <- rbind(gamma.star, temp[1, ])
     delta.star <- rbind(delta.star, temp[2, ])
@@ -1076,12 +1076,12 @@ merge.combat <- function (esets, covariates = NULL, verbose = T)  {
   bayesdata <- s.data
   j <- 1
   for (i in batches) {
-    bayesdata[, i] <- (bayesdata[, i] - t(batch.design[i, 
-                                                       ] %*% gamma.star))/(sqrt(delta.star[j, ]) %*% t(rep(1, 
+    bayesdata[, i] <- (bayesdata[, i] - t(batch.design[i,
+                                                       ] %*% gamma.star))/(sqrt(delta.star[j, ]) %*% t(rep(1,
                                                                                                            n.batches[j])))
     j <- j + 1
   }
-  bayesdata <- (bayesdata * (sqrt(var.pooled) %*% t(rep(1, 
+  bayesdata <- (bayesdata * (sqrt(var.pooled) %*% t(rep(1,
                                                         n.array)))) + stand.mean
   eset = raw_merged
   exprs(eset) = bayesdata
@@ -1105,20 +1105,20 @@ merge.array <- function (esets)  {
     tp = sort(unique(union(colnames(p1), colnames(p2))))
     sp1 = setdiff(colnames(p1), cp)
     sp2 = setdiff(colnames(p2), cp)
-    pheno = matrix(NA, ncol = length(tp), nrow = nrow(p1) + 
+    pheno = matrix(NA, ncol = length(tp), nrow = nrow(p1) +
                      nrow(p2))
     rownames(pheno) = c(rownames(p1), rownames(p2))
     colnames(pheno) = tp
     if (length(cp) != 0) {
       pheno[1:nrow(p1), cp] = as.matrix(p1[, cp])
-      pheno[(nrow(p1) + 1):(nrow(p1) + nrow(p2)), cp] = as.matrix(p2[, 
+      pheno[(nrow(p1) + 1):(nrow(p1) + nrow(p2)), cp] = as.matrix(p2[,
                                                                      cp])
     }
     if (length(sp1) != 0) {
       pheno[1:nrow(p1), sp1] = as.matrix(p1[, sp1])
     }
     if (length(sp2) != 0) {
-      pheno[(nrow(p1) + 1):(nrow(p1) + nrow(p2)), sp2] = as.matrix(p2[, 
+      pheno[(nrow(p1) + 1):(nrow(p1) + nrow(p2)), sp2] = as.matrix(p2[,
                                                                       sp2])
     }
     pData = as.data.frame(pheno)
@@ -1142,7 +1142,7 @@ design.mat <- function (saminfo, verbose = TRUE) {
   if(verbose) cat("  => Found", ncov, "covariate(s)")
   if (ncov > 0) {
     for (j in 1:ncov) {
-      tmp1 <- as.factor(as.matrix(saminfo[, -c(1:2, tmp)])[, 
+      tmp1 <- as.factor(as.matrix(saminfo[, -c(1:2, tmp)])[,
                                                            j])
       design <- build.design(tmp1, des = design)
     }
@@ -1182,7 +1182,7 @@ it.sol <- function (sdat, g.hat, d.hat, g.bar, t2, a, b, conv = 1e-04)  {
   count <- 0
   while (change > conv) {
     g.new <- postmean(g.hat, g.bar, n, d.old, t2)
-    sum2 <- apply((sdat - g.new %*% t(rep(1, ncol(sdat))))^2, 
+    sum2 <- apply((sdat - g.new %*% t(rep(1, ncol(sdat))))^2,
                   1, sum, na.rm = T)
     d.new <- postvar(sum2, n, a, b)
     change <- max(abs(g.new - g.old)/g.old, abs(d.new - d.old)/d.old)
@@ -1215,12 +1215,12 @@ plotMDS <- function (eset, colLabel, symLabel, legend = TRUE, file = NULL,  ctr 
   }
   range_x = range(mds$points[, 1])
   range_y = range(mds$points[, 2])
-  plot(mds$points, col = colVec, pch = as.numeric(pData(eset)[, 
+  plot(mds$points, col = colVec, pch = as.numeric(pData(eset)[,
                                                               symLabel]), panel.first = {
                                                                 U = par("usr")
-                                                                rect(U[1], U[3], U[2], U[4], col = "azure2", border = "black", 
+                                                                rect(U[1], U[3], U[2], U[4], col = "azure2", border = "black",
                                                                      lwd = 3)
-                                                              }, lwd = 2, xlab = "", ylab = "", xlim = range_x, ylim = range_y, 
+                                                              }, lwd = 2, xlab = "", ylab = "", xlim = range_x, ylim = range_y,
        ...)
   if(ctr) {
     rect(-.5, -.5, .5, .5, border = "black", lty = 3, lwd = 2)
@@ -1231,9 +1231,9 @@ plotMDS <- function (eset, colLabel, symLabel, legend = TRUE, file = NULL,  ctr 
     x = range_x[2] + (range_x[2] - range_x[1]) * 0.05
     y = range_y[2] - (range_y[2] - range_y[1]) * 0.05
     syms = unique(pData(eset)[, symLabel])
-    legend("topleft", legend = syms, pt.lwd = 2, cex = 0.7, pch = as.numeric(syms), 
+    legend("topleft", legend = syms, pt.lwd = 2, cex = 0.7, pch = as.numeric(syms),
            box.lwd = 3, bg = "azure2")
-    legend("topright", inset=c(-0.3,0), legend = names(colMap), pt.lwd = 2, pch = 19, 
+    legend("topright", inset=c(-0.3,0), legend = names(colMap), pt.lwd = 2, pch = 19,
            col = unlist(colMap), box.lwd = 3, bg = "azure2")
     par(xpd = F, mar = tmp)
   }
@@ -1273,7 +1273,7 @@ get_deg_summary <- function(deg_list, names, lfc=0){
         for(i in 1:length(deg_list)){
                 objectName <- names(deg_list)[i]
                 object <- deg_list[[objectName]]
-                idx<-which(abs(object$logFC)>lfc); 
+                idx<-which(abs(object$logFC)>lfc);
                 if(length(idx)>0){
                         object <- object[idx,]
                         counts <- sapply(cuts, function(x) c("P.Value"=sum(object$P.Value < x), "adj.P.Val"=sum(object$adj.P.Val < x)))
@@ -1339,4 +1339,3 @@ get_color_palette <- function(iVec, asFactor=FALSE){
         print(colorVec)
         return(colorVec)
 }
-
