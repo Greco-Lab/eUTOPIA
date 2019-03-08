@@ -3,6 +3,10 @@
 
 Graphically accessible guided workflow for preprocessing and analysis of omics data. Supports Agilent 2-color, Agilent 1-color, Affymetrix, and Illumina methylation microarray platforms (Ongoing efforts to add support for RNA-Seq data). Discreetly separated steps in analysis designed in R Shiny, incorporates widely used microarray analysis practices and R packages. Reporting is and data interpretation is leveraged from dynamically generated plots.
 
+Reference Paper: Marwah, V. S., Scala, G., Kinaret, P. A. S., Serra, A., Alenius, H., Fortino, V., & Greco, D. (2019). eUTOPIA: solUTion for Omics data PreprocessIng and Analysis. Source code for biology and medicine, 14(1), 1.
+
+More information at: https://link.springer.com/article/10.1186/s13029-019-0071-7
+
 #### Install Dependencies
 ```R
   #Install impute dependency
