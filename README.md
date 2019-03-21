@@ -83,3 +83,13 @@ More information at: https://link.springer.com/article/10.1186/s13029-019-0071-7
   library(shiny)
   runApp("eUTOPIA-app/")
 ```
+#### Resolve MAX NUMBER DLLs REACHED
+```R
+  install.packages("usethis")
+  usethis::edit_r_environ() #Opens the R enviroenment file in an editor
+  
+  #Specify the following line in the file, save and close
+  R_MAX_NUM_DLLS=256 
+  
+  #Restart R session and OS if required
+```
