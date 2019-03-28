@@ -94,4 +94,5 @@ More information at: https://link.springer.com/article/10.1186/s13029-019-0071-7
   #Restart R session and OS if required
 ```
 
-### Data for the training session: https://drive.google.com/open?id=1CKfuGCgqzYwwNsLY3rsVKpsSI1AOzO-_
+### Data for the training session: 
+https://drive.google.com/drive/folders/1CKfuGCgqzYwwNsLY3rsVKpsSI1AOzO-_?usp=sharing
