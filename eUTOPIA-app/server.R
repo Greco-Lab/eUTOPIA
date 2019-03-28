@@ -143,24 +143,32 @@ shinyServer(
 		})
 
                 ## Get raw data directory
-                roots <- c(wd="/")
-                #gVars$roots <- reactive({
-                #        if(is.null(gVars$phDir){
-                #            roots <- "/"
-                #        }else{
-                #            roots <- gVars$phDir
-                #        }
-                #        return(roots)
-                #})
+								roots <- shinyFiles::getVolumes()
+								tryCatch({
+									shinyDirChoose(input, "dirButton", roots=roots)
+								},
+								error = function(e){
+									shinyjs::info(paste0("Following error was encountered\n", e$message))
+								})
 
-                shinyDirChoose(input, "dirButton", roots=roots)
                 gVars$celDir <- reactive({
                         if(is.null(input$dirButton))
                         return(NULL)
 
-                        roots <- c(wd="/")
+												print("Parsing raw data directory paths")
+
+												roots <- shinyFiles::getVolumes()
+                        #roots <- c(wd="/")
                         #roots <- gVars$roots()
-                        celDir <- parseDirPath(roots, input$dirButton)
+												tryCatch({
+                      		celDir <- parseDirPath(roots, input$dirButton)
+													print("Finished parsing raw data directory paths")
+													print(paste0("Directory path : ", celDir))
+													print(paste0("class(celDir) : ", class(celDir)))
+												},
+												error = function(e){
+					                shinyjs::info(paste0("Following error was encountered\n", e$message))
+								        })
 			updateTextInput(session, "dirTextDisp", value=celDir)
                         return(celDir)
                 })
@@ -273,6 +281,7 @@ shinyServer(
                         if(is.null(gVars$celDir()))
                         return("Select Directory")
 
+												print("Getting raw data directory path text to display")
                         return(gVars$celDir())
                 })
 
