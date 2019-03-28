@@ -1897,6 +1897,8 @@ shinyServer(
                         }else{
                                 shinyjs::info(paste0("All surrogate variables are confounded with variable of interest! Proceed to ComBat with known variables OR rerun SVA with different model!"))
                                 svaStep <- 0
+																svaSV <- NULL
+																svaSVc <- NULL
                                 #return(NULL)
                         }
                         updateProgress(detail="Completed...", value=3/3)
