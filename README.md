@@ -10,9 +10,25 @@ More information at: https://link.springer.com/article/10.1186/s13029-019-0071-7
 
 #### Install Dependencies
 ```R
+
+  #Universal Bioconductor package installation function
+  install.bioc <- function(pkg){
+    vers <- getRversion()
+    if (vers >= "3.6"){
+      if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+      BiocManager::install(pkg)
+    }else{
+      if (!requireNamespace("BiocInstaller", quietly = TRUE)){
+        source("https://bioconductor.org/biocLite.R")
+        biocLite(pkg, suppressUpdates=TRUE)
+      }else{
+        BiocInstaller::biocLite(pkg, suppressUpdates=TRUE)
+      }
+    }
+  }  
+
   #Install impute dependency
-  source("http://bioconductor.org/biocLite.R")
-  biocLite("impute")
+  install.bioc("impute")
 
   #Install CRAN dependencies
   cran_pkgs <- c("bibtex", "RMySQL", "progress", "swamp", "infotheo", "gplots", "RColorBrewer",
@@ -38,7 +54,6 @@ More information at: https://link.springer.com/article/10.1186/s13029-019-0071-7
   devtools::install_github("hms-dbmi/UpSetR")
 
   #Install Bioconductor dependencies
-  source("http://bioconductor.org/biocLite.R")
   bioc_pkgs <- c("limma", "sva", "Biobase", "biomaRt", "affy", "affyQCReport",
   "arrayQualityMetrics", "made4", "vsn", "GEOquery", "minfi",
   "IlluminaHumanMethylation450kmanifest", "IlluminaHumanMethylation450kanno.ilmn12.hg19",
@@ -46,11 +61,10 @@ More information at: https://link.springer.com/article/10.1186/s13029-019-0071-7
   "affyio", "simpleaffy", "yaqcaffy", "GO.db", "shinyMethyl")
   bioc_pkgs.inst <- bioc_pkgs[!(bioc_pkgs %in% rownames(installed.packages()))]
   if(length(bioc_pkgs.inst)>0){
-    source("http://bioconductor.org/biocLite.R")
     print(paste0("Missing ", length(bioc_pkgs.inst), " Bioconductor Packages:"))
     for(pkg in bioc_pkgs.inst){
       print(paste0("Installing Package:'", pkg, "'..."))
-      biocLite(pkg, suppressUpdates=TRUE)
+      install.bioc(pkg)
       print("Installed!!!")
     }
   }
