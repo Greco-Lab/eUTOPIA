@@ -3,7 +3,7 @@
 
 Graphically accessible guided workflow for preprocessing and analysis of omics data. Supports Agilent 2-color, Agilent 1-color, Affymetrix, and Illumina methylation microarray platforms (Ongoing efforts to add support for RNA-Seq data). Discreetly separated steps in analysis designed in R Shiny, incorporates widely used microarray analysis practices and R packages. Reporting is and data interpretation is leveraged from dynamically generated plots.
 
-Reference Paper: 
+Reference Paper:
 > Marwah, V. S., Scala, G., Kinaret, P. A. S., Serra, A., Alenius, H., Fortino, V., & Greco, D. (2019). eUTOPIA: solUTion for Omics data PreprocessIng and Analysis. Source code for biology and medicine, 14(1), 1.
 
 More information at: https://link.springer.com/article/10.1186/s13029-019-0071-7
@@ -87,12 +87,19 @@ More information at: https://link.springer.com/article/10.1186/s13029-019-0071-7
 ```R
   install.packages("usethis")
   usethis::edit_r_environ() #Opens the R enviroenment file in an editor
-  
+
   #Specify the following line in the file, save and close
-  R_MAX_NUM_DLLS=256 
-  
+  R_MAX_NUM_DLLS=256
+
   #Restart R session and OS if required
 ```
 
-### Data for the training session: 
-https://drive.google.com/drive/folders/1CKfuGCgqzYwwNsLY3rsVKpsSI1AOzO-_?usp=sharing
+### Data for demo:
+Sample data can be found at: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE92900
+
+The raw data can be downloaded from:  ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE92nnn/GSE92900/suppl/GSE92900_raw_data_files.tar.gz
+** note: this file has to be decompressed
+
+The pheno data matrix can be found at: https://github.com/Greco-Lab/eUTOPIA/blob/master/sample_data/Phenotype_File.tsv
+
+The platform annotation file can be found at: https://github.com/Greco-Lab/eUTOPIA/blob/master/sample_data/GeneList%5C028005_D_GeneList_20190110.txt
