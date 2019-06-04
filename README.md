@@ -94,7 +94,11 @@ More information at: https://link.springer.com/article/10.1186/s13029-019-0071-7
   #Restart R session and OS if required
 ```
 
+<<<<<<< HEAD
 ### Data for demo:
+=======
+### Data for demo: 
+>>>>>>> 432716d0b6e372d8dd9e613df7daeb05a7271fc3
 Sample data can be found at: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE92900
 
 The raw data can be downloaded from:  ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE92nnn/GSE92900/suppl/GSE92900_raw_data_files.tar.gz
