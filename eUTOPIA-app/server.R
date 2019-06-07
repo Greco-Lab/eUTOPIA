@@ -1032,10 +1032,11 @@ shinyServer(
 				#missingFiles <- fileNames[-fileChk]
 				#missingFilesStr <- paste0(missingFiles, collapse="\n")
 				shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
-				print("missingFilesStr:")
-				print(missingFilesStr)
+				#print("missingFilesStr:")
+				#print(missingFilesStr)
 				shinyjs::info(
-                                        paste0("Could not find the needed raw data files in the selected directory!\n\nPlease check and select the correct directory containing the raw data files specified in the phenotype data.\n\nFound: ", fileChkCount, " of ", fileNameCount, ". \n\nMISSING FILES:\n\n", missingFilesStr)
+                                        #paste0("Could not find the needed raw data files in the selected directory!\n\nPlease check and select the correct directory containing the raw data files specified in the phenotype data.\n\nFound: ", fileChkCount, " of ", fileNameCount, ". \n\nMISSING FILES:\n\n", missingFilesStr)
+																				paste0("Could not find the needed raw data files in the selected directory!\n\nPlease check and select the correct directory containing the raw data files specified in the phenotype data.\n\nFound: ", fileChkCount, " of ", fileNameCount)
 				)
 				return(NULL)
 			}
