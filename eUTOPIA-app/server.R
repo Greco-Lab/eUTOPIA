@@ -1012,7 +1012,7 @@ shinyServer(
                                 fileChk <- which(fileNamesTmp %in% dir(celDir))
                                 fileChkCount <- length(fileChk)
 				missingFiles <- fileNamesTmp[-fileChk]
-				missingFilesStr <- paste0(missingFiles, collapse="\n")
+				missingFilesStr <- paste0(missingFiles, collapse=", ")
                         }else{
                                 #print("fileNames: ")
                                 #print(fileNames)
@@ -1024,7 +1024,7 @@ shinyServer(
                                 }else{
                                         missingFiles <- fileNames
                                 }
-				missingFilesStr <- paste0(missingFiles, collapse="\n")
+				missingFilesStr <- paste0(missingFiles, collapse=", ")
                         }
                         #cat("fileChkCount: ", fileChkCount, "\n")
                         #cat("fileNameCount: ", fileNameCount, "\n")
