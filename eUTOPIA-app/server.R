@@ -419,7 +419,7 @@ shinyServer(
                         print(str(phTable))
                         #Remove columns with single level data
                         nrlevels <- apply(phTable, 2, function(x){length(levels(factor(x)))})
-                        nrlevels.singular <- which(nrlevels==1)
+                        nrlevels.singular <- which(nrlevels<2)
 
                         if(length(nrlevels.singular)>0){
                                 remInfo <- 1
