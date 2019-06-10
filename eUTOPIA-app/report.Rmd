@@ -112,7 +112,7 @@ if(isNorm){
                 print("No plot for Affymetrix data!")
         }else if(params$input$arrType=="ag_exp1"){
                 print("No plot for Agilent single color data!")
-        }else if(is.null(params$gVars$rgList.norm){
+        }else if(is.null(params$gVars$rgList.norm)){
                 print("RG channel object is null for normalized data!")
         }else if(params$input$arrType=="il_methyl"){
                 Mset <- params$gVars$Mset
@@ -163,7 +163,7 @@ if(isNorm){
                 print("No plot for Agilent single color data!")
         }else if(params$input$arrType=="il_methyl"){
                 print("No plot for Illumina methylation data!")
-        }else if(is.null(params$gVars$rgList.norm){
+        }else if(is.null(params$gVars$rgList.norm)){
                 print("RG channel object is null for normalized data!")
         }else{
                 rgList.norm <- params$gVars$rgList.norm
