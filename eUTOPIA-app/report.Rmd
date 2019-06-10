@@ -112,6 +112,8 @@ if(isNorm){
                 print("No plot for Affymetrix data!")
         }else if(params$input$arrType=="ag_exp1"){
                 print("No plot for Agilent single color data!")
+        }else if(is.null(params$gVars$rgList.norm){
+                print("RG channel object is null for normalized data!")
         }else if(params$input$arrType=="il_methyl"){
                 Mset <- params$gVars$Mset
                 if(is(Mset, "RGChannelSet") || is(Mset, "MethylSet")){
@@ -161,6 +163,8 @@ if(isNorm){
                 print("No plot for Agilent single color data!")
         }else if(params$input$arrType=="il_methyl"){
                 print("No plot for Illumina methylation data!")
+        }else if(is.null(params$gVars$rgList.norm){
+                print("RG channel object is null for normalized data!")
         }else{
                 rgList.norm <- params$gVars$rgList.norm
                 plotMD(rgList.norm, main="After Normalization")
@@ -185,7 +189,7 @@ if(isNorm){
                 if(params$gVars$svaStep==1){
                         svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
                         svaSVc <- params$gVars$svaSVc
-                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
+                        phFactor <- cbind(phFactor, svaSV, svaSVc)
                 }
         }
         #res <- confounding(ph, margins = c(15,15), notecex=0.5)
@@ -216,8 +220,8 @@ if(isNorm){
                 if(params$gVars$svaStep==1){
                         svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
                         svaSVc <- params$gVars$svaSVc
-                        #ph <- cbind(ph, svaSV) 
-                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
+                        #ph <- cbind(ph, svaSV)
+                        phFactor <- cbind(phFactor, svaSV, svaSVc)
                 }
         }
         if(npc>ncol(data)){
@@ -250,8 +254,8 @@ if(isCorr){
                 if(params$gVars$svaStep==1){
                         svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
                         svaSVc <- params$gVars$svaSVc
-                        #ph <- cbind(ph, svaSV) 
-                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
+                        #ph <- cbind(ph, svaSV)
+                        phFactor <- cbind(phFactor, svaSV, svaSVc)
                 }
         }
         if(npc>ncol(data)){
@@ -287,8 +291,8 @@ if(isNorm){
                 if(params$gVars$svaStep==1){
                         svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
                         svaSVc <- params$gVars$svaSVc
-                        #ph <- cbind(ph, svaSV) 
-                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
+                        #ph <- cbind(ph, svaSV)
+                        phFactor <- cbind(phFactor, svaSV, svaSVc)
                 }
         }
         #hc plot
@@ -316,7 +320,7 @@ if(isCorr){
                 if(params$gVars$svaStep==1){
                         svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
                         svaSVc <- params$gVars$svaSVc
-                        phFactor <- cbind(phFactor, svaSV, svaSVc) 
+                        phFactor <- cbind(phFactor, svaSV, svaSVc)
                 }
         }
         # hc plot
@@ -569,9 +573,9 @@ if(isExpr){
         #conditions <- params$input$conditions
         conditions <- params$gVars$conditionsBoxplot
 
-        isCond <-TRUE 
+        isCond <-TRUE
         if(is.null(conditions) || is.na(conditions) || conditions=="NA")
-        isCond <- FALSE 
+        isCond <- FALSE
 
         if(isCond){
                 if(length(genes)>=1){
@@ -651,16 +655,16 @@ if(isDeg && isComps && isConds){
         #classPalette <- setNames(randomcoloR::distinctColorPalette(length(conditions)), conditions)
         classPalette <- params$gVars$classPalette
 
-        res <- heatplot(tmp.data.sel, 
-                dend = "column", 
-                scale = "none", 
-                cols.default=F, 
-                lowcol="yellow", 
-                highcol="red", 
-                cexCol=1, 
-                margins=c(8,16), 
-                labRow=rownames(tmp.data.sel), 
-                classvec=dataColsVarI.sel, 
+        res <- heatplot(tmp.data.sel,
+                dend = "column",
+                scale = "none",
+                cols.default=F,
+                lowcol="yellow",
+                highcol="red",
+                cexCol=1,
+                margins=c(8,16),
+                labRow=rownames(tmp.data.sel),
+                classvec=dataColsVarI.sel,
                 #classvecCol=c(1:length(conditions))
                 classvecCol=classPalette
         )

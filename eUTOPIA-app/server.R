@@ -2677,7 +2677,7 @@ shinyServer(
                         shiny::validate(need(input$arrType!="af_exp", "No plot for Affymetrix data!"))
                         shiny::validate(need(input$arrType!="ag_exp1", "No plot for Agilent single color data!"))
                         shiny::validate(need(!is.null(gVars$norm.data), "Waiting for normalization..."))
-                        shiny::validate(need(!is.null(gVars$rgList.norm), "No plot for normalized data..."))
+                        shiny::validate(need(!is.null(gVars$rgList.norm), "RG channel object is null for normalized data..."))
                         if(input$arrType=="il_methyl"){
                                 Mset <- gVars$Mset
                                 shiny::validate(
@@ -2708,7 +2708,7 @@ shinyServer(
                         shiny::validate(need(input$arrType!="ag_exp1", "No plot for Agilent single color data!"))
                         shiny::validate(need(input$arrType!="il_methyl", "No plot for Illumina methylation data!"))
                         shiny::validate(need(!is.null(gVars$norm.data), "Waiting for normalization..."))
-                        shiny::validate(need(!is.null(gVars$rgList.norm), "No plot for normalized data..."))
+                        shiny::validate(need(!is.null(gVars$rgList.norm), "RG channel object is null for normalized data..."))
 			rgList.norm <- gVars$rgList.norm
 			plotMD(rgList.norm, main="After Normalization")
 		})
