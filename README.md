@@ -54,7 +54,7 @@ More information at: https://link.springer.com/article/10.1186/s13029-019-0071-7
   devtools::install_github("hms-dbmi/UpSetR")
 
   #Install Bioconductor dependencies
-  bioc_pkgs <- c("limma", "sva", "Biobase", "biomaRt", "affy", "affyQCReport",
+  bioc_pkgs <- c("limma", "sva", "Biobase", "biomaRt", "affy", 
   "arrayQualityMetrics", "made4", "vsn", "GEOquery", "minfi",
   "IlluminaHumanMethylation450kmanifest", "IlluminaHumanMethylation450kanno.ilmn12.hg19",
   "IlluminaHumanMethylationEPICmanifest", "IlluminaHumanMethylationEPICanno.ilm10b2.hg19",
