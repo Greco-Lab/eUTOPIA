@@ -8,7 +8,13 @@ Reference Paper:
 
 More information at: https://link.springer.com/article/10.1186/s13029-019-0071-7
 
-#### Install Dependencies
+#### Install OS Dependencies
+Pandoc - [https://pandoc.org/installing.html](https://pandoc.org/installing.html)
+Latex Compiling - [http://www.tug.org/texlive/](http://www.tug.org/texlive/)
+Perl - [https://www.perl.org/get.html](https://www.perl.org/get.html)
+Cairo - [https://cairographics.org/download/](https://cairographics.org/download/)
+
+#### Install R Dependencies
 ```R
 
   #Universal Bioconductor package installation function
