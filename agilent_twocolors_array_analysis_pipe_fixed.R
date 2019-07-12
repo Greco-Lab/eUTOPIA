@@ -501,6 +501,7 @@ get.sva.batch.effects <- function(comb.data, pd, vars, npc = 10, verbose = T, cm
   cat("dim(X.c) - ", dim(X.c), "\n")
   X <- discretize(as.matrix(X), disc="equalfreq", nbins=NROW(X)^(1/3))
   X <- as.data.frame(X)
+  X.c <- as.data.frame(X.c)
   if(verbose) print(X)
   colnames(X) <- paste("sva",c(1:ncol(X)),sep=".")
   #colnames(X) <- paste("svaD",c(1:ncol(X)),sep=".")
