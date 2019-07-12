@@ -1877,6 +1877,25 @@ shinyServer(
                         print("sv.filt.names:")
                         print(sv.filt.names)
                         if(length(sv.filt.names)>0){
+				#Remove columns with single level data
+				filt <- batches.sva$sv[,sv.filt.names, FALSE]
+				nrlevels <- apply(filt, 2, function(x){length(levels(factor(x)))})
+				nrlevels.singular <- which(nrlevels==1)
+
+				remInfo <- 0
+				remStr <- ""
+				if(length(nrlevels.singular)>0){
+					remInfo <- 1
+					remStr <- paste0(remStr, "Following surrogate variables are removed because they contain only single repeated value:\n[",paste0(names(nrlevels.singular), collapse=", "), "]")
+					if(length(nrlevels.singular)==ncol(filt)){
+						remStr <- paste0(remStr, "\n\nNo surrogate variables survived filtering!!! Please proceed with known variables.")
+						shinyjs::info(remStr)
+						return(NULL)
+					}
+					sv2rem <- which(sv.filt.names %in% names(nrlevels.singular))
+					sv.filt.names <- sv.filt.names[,-sv2rem, drop=F]
+				}
+
                                 if(length(sv.filt.names)>1){
                                         #Check for confounded sva variables
                                         sva.assoc.mat <- assoc.var.int(batches.sva$sv[sv.filt.names], batches.sva$sv[sv.filt.names])
@@ -1915,8 +1934,8 @@ shinyServer(
                         }else{
                                 shinyjs::info(paste0("All surrogate variables are confounded with variable of interest! Proceed to ComBat with known variables OR rerun SVA with different model!"))
                                 svaStep <- 0
-																svaSV <- NULL
-																svaSVc <- NULL
+				svaSV <- NULL
+				svaSVc <- NULL
                                 #return(NULL)
                         }
                         updateProgress(detail="Completed...", value=3/3)
@@ -2740,8 +2759,8 @@ shinyServer(
                                         phFactor <- cbind(phFactor, svaSV, svaSVc)
                                 }
                         }
-                        print("Printing str(ph):")
-                        print(str(ph))
+                        print("Printing str(phFactor):")
+                        print(str(phFactor))
 			#confounding(ph, margins = c(10,10))
 			confounding(phFactor, margins = c(10,10))
 		},
