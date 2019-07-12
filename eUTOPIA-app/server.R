@@ -1866,11 +1866,14 @@ shinyServer(
                         updateProgress(detail="Getting Surrogate Variables...", value=1/3)
                         #batches.sva <- get.sva.batch.effects(comb.data=data, pd=phTable, vars=batchCorVar, cmd.ui=F)
                         batches.sva <- get.sva.batch.effects(comb.data=data, pd=phFactor, vars=batchCorVar, cmd.ui=F)
+			print("str(batches.sva):")
+			print(str(batches.sva))
 
                         updateProgress(detail="Filtering Confounded Variables...", value=2/3)
                         assoc.cutoff <- 0.05
                         sv.filt.logic <- apply(batches.sva$pd, 2, function(x) x[batchCorVar$var.int]<assoc.cutoff)
                         sv.filt.names <- names(sv.filt.logic[sv.filt.logic==F])
+                        print("sv.filt.names:")
                         print(sv.filt.names)
                         if(length(sv.filt.names)>0){
                                 if(length(sv.filt.names)>1){
@@ -1880,7 +1883,9 @@ shinyServer(
                                         sva.assoc.mat[lower.tri(sva.assoc.mat, diag=T)] <- NA
                                         sva.assoc.DF <- as.data.frame(as.table(sva.assoc.mat), stringsAsFactors=F)
                                         sva.assoc.DF <- sva.assoc.DF[-which(is.na(sva.assoc.DF$Freq)),]
+                                        print("dim(sva.assoc.DF):")
                                         print(dim(sva.assoc.DF))
+                                        print("head(sva.assoc.DF):")
                                         print(head(sva.assoc.DF))
                                         rowSel <- which(sva.assoc.DF$Freq<0.01)
                                         if(length(rowSel)>0){
