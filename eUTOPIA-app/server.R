@@ -1871,7 +1871,8 @@ shinyServer(
 
                         updateProgress(detail="Filtering Confounded Variables...", value=2/3)
                         assoc.cutoff <- 0.05
-                        sv.filt.logic <- apply(batches.sva$pd, 2, function(x) x[batchCorVar$var.int]<assoc.cutoff)
+                        #sv.filt.logic <- apply(batches.sva$pd, 2, function(x) x[batchCorVar$var.int]<assoc.cutoff)
+                        sv.filt.logic <- apply(batches.sva$pd, 2, function(x) {val<-x[batchCorVar$var.int]; if(is.finite(val)){<assoc.cutoff}else{FALSE}})
                         sv.filt.names <- names(sv.filt.logic[sv.filt.logic==F])
                         print("sv.filt.names:")
                         print(sv.filt.names)
