@@ -112,8 +112,6 @@ if(isNorm){
                 print("No plot for Affymetrix data!")
         }else if(params$input$arrType=="ag_exp1"){
                 print("No plot for Agilent single color data!")
-        }else if(is.null(params$gVars$rgList.norm)){
-                print("RG channel object is null for normalized data!")
         }else if(params$input$arrType=="il_methyl"){
                 Mset <- params$gVars$Mset
                 if(is(Mset, "RGChannelSet") || is(Mset, "MethylSet")){
@@ -122,6 +120,9 @@ if(isNorm){
                         print("No plot for this nomalization method!")
                 }
         }else{
+                if(is.null(params$gVars$rgList.norm)){
+                        print("RG channel object is null for normalized data!")
+                }
                 rgList.norm <- params$gVars$rgList.norm
                 plotDensities(rgList.norm, main="After Normalization")
         }
