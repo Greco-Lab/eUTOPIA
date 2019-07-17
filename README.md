@@ -38,9 +38,9 @@ Cairo - [https://cairographics.org/download/](https://cairographics.org/download
 
   #Install CRAN dependencies
   cran_pkgs <- c("bibtex", "RMySQL", "progress", "swamp", "infotheo", "gplots", "RColorBrewer",
-  "shiny", "shinyjs", "shinyBS", "shinydashboard", "shinyFiles", "DT", "shinycssloaders",
-  "ggplot2", "ggrepel", "WriteXLS", "rmarkdown", "VennDiagram", "grid", "futile.logger",
-  "reshape2", "htmlTable", "devtools", "httr", "randomcoloR")
+  "shiny", "shinyjs", "shinyBS", "shinydashboard", "shinyFiles", "DT", "shinycssloaders", "cowplot",
+  "ggplot2", "ggrepel", "WriteXLS", "rmarkdown", "VennDiagram", "grid", "futile.logger", "base2grob",
+  "reshape2", "htmlTable", "devtools", "httr", "randomcoloR", "doParallel", "foreach", "import")
   cran_pkgs.inst <- cran_pkgs[!(cran_pkgs %in% rownames(installed.packages()))]
   if(length(cran_pkgs.inst)>0){
     print(paste0("Missing ", length(cran_pkgs.inst), " CRAN Packages:"))
@@ -60,7 +60,7 @@ Cairo - [https://cairographics.org/download/](https://cairographics.org/download
   devtools::install_github("hms-dbmi/UpSetR")
 
   #Install Bioconductor dependencies
-  bioc_pkgs <- c("limma", "sva", "Biobase", "biomaRt", "affy", 
+  bioc_pkgs <- c("limma", "sva", "Biobase", "biomaRt", "affy", "affyPLM", 
   "arrayQualityMetrics", "made4", "vsn", "GEOquery", "minfi",
   "IlluminaHumanMethylation450kmanifest", "IlluminaHumanMethylation450kanno.ilmn12.hg19",
   "IlluminaHumanMethylationEPICmanifest", "IlluminaHumanMethylationEPICanno.ilm10b2.hg19",

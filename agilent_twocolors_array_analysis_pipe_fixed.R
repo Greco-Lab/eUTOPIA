@@ -1531,7 +1531,8 @@ affy_QC_report <- function(fileNamesCol, samplesCol, phTable, celDir, cdfname, n
 	print(cdfNameBioc)
 	qcCDF <- cdfname
 	if(!any(grepl(cdfNameBioc, allInstalledPkgs))){
-		tryCatch(BiocInstaller::biocLite(cdfNameBioc, suppressUpdates=TRUE))
+		#tryCatch(BiocInstaller::biocLite(cdfNameBioc, suppressUpdates=TRUE))
+		tryCatch(install.bioc(cdfNameBioc))
 		allInstalledPkgs <- rownames(installed.packages())
 		if(any(grepl(cdfNameBioc, allInstalledPkgs))){
 		        qcCDF <- cdfNameBioc
@@ -2066,5 +2067,20 @@ affy_QC_report <- function(fileNamesCol, samplesCol, phTable, celDir, cdfname, n
 	print("lapply(params, class):")
 	print(lapply(params, class))
 	rmarkdown::render(tempR, output_file=outputFile)
+}
+
+install.bioc <- function(pkg){
+	vers <- getRversion()
+	if (vers >= "3.6"){
+		if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+		BiocManager::install(pkg)
+	}else{
+		if (!requireNamespace("BiocInstaller", quietly = TRUE)){
+			source("https://bioconductor.org/biocLite.R")
+			biocLite(pkg, suppressUpdates=TRUE)
+		}else{
+			BiocInstaller::biocLite(pkg, suppressUpdates=TRUE)
+		}
+	}
 }
 
