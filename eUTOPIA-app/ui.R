@@ -333,6 +333,17 @@ fluidPage(
                                         column(12, align="center",
                                         #column(12,
                                                 div(id="download_QC_div",
+							hidden(div(id="affy_QC_div",
+                                                                fluidRow(
+                                                                        column(12, align="center",
+                                                                                uiOutput("selPoolSize")
+                                                                        ),column(12, align="center",
+                                                                                checkboxInput(inputId="chkParallel", label="Multithreaded", value=FALSE),
+                                                                                #shinyjs::disabled(uiOutput("selCores"))
+                                                                                uiOutput("selCores")
+                                                                        )
+                                                                )
+                                                        )),
                                                         downloadButton("exportQC", "QC Report")
                                                 ),
                                                 hidden(div(id="methyl_QC_div", 

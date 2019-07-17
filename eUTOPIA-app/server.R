@@ -1267,21 +1267,21 @@ shinyServer(
                                 cdfNameBioc <- paste0(tolower(cdfName), "cdf")
                                 print("Bioconductor cdfName:")
                                 print(cdfNameBioc)
-                                qcCDF <- affCDF
-                                warned <- FALSE
-                                if(!any(grepl(cdfNameBioc, allInstalledPkgs))){
-                                        tryCatch(BiocInstaller::biocLite(cdfNameBioc, suppressUpdates=TRUE))
-                                        allInstalledPkgs <- rownames(installed.packages())
-                                        if(any(grepl(cdfNameBioc, allInstalledPkgs))){
-                                                #qcCDF <- tolower(cdfName)
-                                                qcCDF <- cdfNameBioc
-                                                library(package=qcCDF, character.only=TRUE)
-                                        }
-                                }else{
-                                        #qcCDF <- tolower(cdfName)
-                                        qcCDF <- cdfNameBioc
-                                        library(package=qcCDF, character.only=TRUE)
-                                }
+                                #qcCDF <- affCDF
+                                #warned <- FALSE
+                                #if(!any(grepl(cdfNameBioc, allInstalledPkgs))){
+                                #        tryCatch(BiocInstaller::biocLite(cdfNameBioc, suppressUpdates=TRUE))
+                                #        allInstalledPkgs <- rownames(installed.packages())
+                                #        if(any(grepl(cdfNameBioc, allInstalledPkgs))){
+                                #                #qcCDF <- tolower(cdfName)
+                                #                qcCDF <- cdfNameBioc
+                                #                library(package=qcCDF, character.only=TRUE)
+                                #        }
+                                #}else{
+                                #        #qcCDF <- tolower(cdfName)
+                                #        qcCDF <- cdfNameBioc
+                                #        library(package=qcCDF, character.only=TRUE)
+                                #}
                                 if(!any(grepl(cdfName, affCDF, ignore.case=T))){
                                         shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
                                         shinyjs::info(
@@ -1306,19 +1306,19 @@ shinyServer(
 				gVars$rma.affy.data <- exprs
                                 gVars$normalized <- TRUE
 
-                                print("qcCDF:")
-                                print(qcCDF)
-                                #Create affyBatch object for QC
-                                err <- 0
-                                #tryCatch(simpleaffy::setQCEnvironment(input$affCDF), error=function(e){err<<-1})
-                                tryCatch(simpleaffy::setQCEnvironment(qcCDF), error=function(e){err<<-1})
-                                if(!err){
-                                        celFilePaths <- file.path(celDir, fileNames)
-                                        #gVars$affyBatchObject <- affy::read.affybatch(filenames=celFilePaths, phenoData=pheno, cdfname=affCDF)
-                                        gVars$affyBatchObject <- affy::read.affybatch(filenames=celFilePaths, phenoData=pheno, cdfname=qcCDF)
-                                }
-                                gVars$qcCDF <- qcCDF
-                                gVars$cdfQCerr <- err
+                                #print("qcCDF:")
+                                #print(qcCDF)
+                                ##Create affyBatch object for QC
+                                #err <- 0
+                                ##tryCatch(simpleaffy::setQCEnvironment(input$affCDF), error=function(e){err<<-1})
+                                #tryCatch(simpleaffy::setQCEnvironment(qcCDF), error=function(e){err<<-1})
+                                #if(!err){
+                                #        celFilePaths <- file.path(celDir, fileNames)
+                                #        #gVars$affyBatchObject <- affy::read.affybatch(filenames=celFilePaths, phenoData=pheno, cdfname=affCDF)
+                                #        gVars$affyBatchObject <- affy::read.affybatch(filenames=celFilePaths, phenoData=pheno, cdfname=qcCDF)
+                                #}
+                                #gVars$qcCDF <- qcCDF
+                                #gVars$cdfQCerr <- err
 
                                 tmpChoices <- rownames(gVars$expr.data)
                                 updateSelectizeInput(session=session, inputId='expGenes', choices=tmpChoices, server=TRUE)
@@ -3960,11 +3960,12 @@ shinyServer(
                 output$exportQC <- shiny::downloadHandler(
 			filename = function(){
                                 if(input$arrType=="af_exp"){
-                                        if(gVars$cdfQCerr){
-                                                exn <- ".txt"
-                                        }else{
-                                                exn <- ".pdf"
-                                        }
+                                #        if(gVars$cdfQCerr){
+                                #                exn <- ".txt"
+                                #        }else{
+                                #                exn <- ".pdf"
+                                #        }
+					exn <- ".pdf"
                                         resStr <- paste0("eUTOPIA_Affymetrix_QC_Report_", Sys.Date(), exn)
                                 }else if(grepl("ag_exp.*", input$arrType)){
                                         exn <- ".tar.gz"
@@ -3978,46 +3979,63 @@ shinyServer(
                                 return(resStr)
 			},
 			content = function(con){
-																#Start loading screen
-																shinyjs::html(id="loadingText", "CREATING QC REPORT")
-																shinyjs::show(id="loading-content")
+				#Start loading screen
+				shinyjs::html(id="loadingText", "CREATING QC REPORT")
+				shinyjs::show(id="loading-content")
 
                                 on.exit({
                                         shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
                                 })
                                 if(input$arrType=="af_exp"){
-                                        if(gVars$cdfQCerr){
-                                                qcCDF <- gVars$qcCDF
-                                                #tempReportDir <- file.path(tempdir(), Sys.Date())
-                                                #arrayQualityMetrics::arrayQualityMetrics(expressionset=gVars$affyBatchObject, outdir=tempReportDir, force=TRUE, do.logtransform=TRUE)
-                                                #tar(tarfile=con, files=tempReportDir, compression="gzip", tar="tar")
-                                                resStr <- paste0("Could not find .qcdef file for '", qcCDF, "'!\n\n No QC was performed.")
-                                                #shinyjs::info(resStr)
-                                                write.table(resStr, file=con, sep="\t")
+                                        #if(gVars$cdfQCerr){
+                                        #        qcCDF <- gVars$qcCDF
+                                        #        #tempReportDir <- file.path(tempdir(), Sys.Date())
+                                        #        #arrayQualityMetrics::arrayQualityMetrics(expressionset=gVars$affyBatchObject, outdir=tempReportDir, force=TRUE, do.logtransform=TRUE)
+                                        #        #tar(tarfile=con, files=tempReportDir, compression="gzip", tar="tar")
+                                        #        resStr <- paste0("Could not find .qcdef file for '", qcCDF, "'!\n\n No QC was performed.")
+                                        #        #shinyjs::info(resStr)
+                                        #        write.table(resStr, file=con, sep="\t")
 
 
-                                                if(!gVars$QC_passed){
-                                                        shinyBS::updateCollapse(session, "bsSidebar", open="BATCH CORRECTION", style=list("QUALITY CONTROL"="success", "BATCH CORRECTION"="warning"))
-                                                }
-                                                gVars$QC_passed <- TRUE
+                                        #        if(!gVars$QC_passed){
+                                        #                shinyBS::updateCollapse(session, "bsSidebar", open="BATCH CORRECTION", style=list("QUALITY CONTROL"="success", "BATCH CORRECTION"="warning"))
+                                        #        }
+                                        #        gVars$QC_passed <- TRUE
 
-                                                return(NULL)
-                                        }else{
-                                                #affyQCReport::QCReport(gVars$affyBatchObject, file=con)
-                                                tempReportDir <- file.path(tempdir(), Sys.Date())
-                                                if(!isTRUE(dir.exists(tempReportDir))){
-                                                        dir.create(tempReportDir)
-                                                }
-                                                plotFilename <- file.path(tempReportDir, "plot.pdf")
-                                                qobj <- yaqcaffy::yaqc(gVars$affyBatchObject)
-                                                pdf(plotFilename, width=10, height=10)
-                                                plot(qobj)
-                                                dev.off()
-                                                file.copy(plotFilename, con)
+                                        #        return(NULL)
+                                        #}else{
+                                        #        #affyQCReport::QCReport(gVars$affyBatchObject, file=con)
+                                        #        tempReportDir <- file.path(tempdir(), Sys.Date())
+                                        #        if(!isTRUE(dir.exists(tempReportDir))){
+                                        #                dir.create(tempReportDir)
+                                        #        }
+                                        #        plotFilename <- file.path(tempReportDir, "plot.pdf")
+                                        #        qobj <- yaqcaffy::yaqc(gVars$affyBatchObject)
+                                        #        pdf(plotFilename, width=10, height=10)
+                                        #        plot(qobj)
+                                        #        dev.off()
+                                        #        file.copy(plotFilename, con)
+                                        #}
+                                        #if(!gVars$QC_passed){
+                                        #        shinyBS::updateCollapse(session, "bsSidebar", open="BATCH CORRECTION", style=list("QUALITY CONTROL"="success", "BATCH CORRECTION"="warning"))
+                                        #}
+
+					#Generate affy_QC_report
+                                        phTable <- gVars$phTable
+                                        fileNameColName <- gVars$fileNameColName
+                                        sampleColName <- gVars$sampleColName
+                                        celDir <- gVars$celDir()
+                                        affCDF <- input$affCDF
+                                        affyPool <- as.integer(input$affyPool)
+                                        cores <- NULL
+                                        chkParallel <- input$chkParallel
+                                        if(isFALSE(is.null(chkParallel)) && isTRUE(chkParallel)){
+                                                cores <- as.integer(input$cores)
                                         }
-                                        if(!gVars$QC_passed){
-                                                shinyBS::updateCollapse(session, "bsSidebar", open="BATCH CORRECTION", style=list("QUALITY CONTROL"="success", "BATCH CORRECTION"="warning"))
-                                        }
+
+                                        affy_QC_report(fileNamesCol=fileNameColName, samplesCol=sampleColName, phTable=phTable, celDir=celDir, nCores=cores, cdfname=affCDF, outputFile=con, isParallel=chkParallel, minFiles=affyPool)
+
+                                        shinyBS::updateCollapse(session, "bsSidebar", open="BATCH CORRECTION", style=list("QUALITY CONTROL"="success", "BATCH CORRECTION"="warning"))
                                 }else if(input$arrType=="ag_exp2"){
                                         tempReportDir <- file.path(tempdir(), Sys.Date())
                                         arrayQualityMetrics::arrayQualityMetrics(expressionset=gVars$rgList, outdir=tempReportDir, force=TRUE, reporttitle=paste0("Array Quality Metrics"))
@@ -4391,6 +4409,26 @@ shinyServer(
                         }
 			selectInput("heatComps", "For Comparison(s)", choices=deChoices, multiple=TRUE, selected=deChoices[1])
 		})
+
+		output$selCores <- shiny::renderUI({
+                        shinyjs::disabled(shiny::selectInput("cores", "No. of Cores", choices=(1:detectCores()), multiple=FALSE, selected=2))
+                })
+
+                output$selPoolSize <- shiny::renderUI({
+                        if(gVars$loadedRaw){
+                                phTable <- gVars$phTable
+                                fileNameColName <- gVars$fileNameColName
+                                fileNames <- unique(phTable[,fileNameColName])
+                                min <- min(length(fileNames), 20)
+                                max <- min(length(fileNames), 50)
+                                poolChoices <- c(min:max)
+                                poolSel <- min
+                        }else{
+                                poolChoices <- c("NA")
+                                poolSel <- c("NA")
+                        }
+                        shiny::selectInput("affyPool", "Pool Size of Raw Data", choices=poolChoices, multiple=FALSE, selected=poolSel)
+                })
 
 		observe({
                         disable_ann <- FALSE
@@ -4891,6 +4929,16 @@ shinyServer(
                         }else{
                                 shinyjs::enable("corr_skip_submit")
                         }
+
+			if(is.null(input$chkParallel) || isFALSE(input$chkParallel)){
+                                print("Disable selCores!")
+                                shinyjs::disable("selCores")
+                        }else{
+                                print("Enable selCores!")
+                                print("input$chkParallel")
+                                print(input$chkParallel)
+                                shinyjs::enable("selCores")
+                        }
 		})
 
 		shinyBS::addTooltip(session, id="selVarI", title="Variable (Column of data) from the phenotype file that represents the biological variation of primary interest!", placement="top", trigger="focus")
@@ -4977,6 +5025,9 @@ shinyServer(
 				hideBSCollapsePanel(session, panel.name="PROBE FILTERING")
 				hideBSCollapsePanel(session, panel.name="NORMALIZATION")
 				hideBSCollapsePanel(session, panel.name="ANNOTATION")
+
+				#For affymetyrix QC with Affymetrix outlier QC script
+				shinyjs::show("affy_QC_div")
                         }else if(arrType=="ag_exp1"){
 				shinyjs::hide("affAnnDiv")
 				#shinyjs::hide("launch_ann_modal")
