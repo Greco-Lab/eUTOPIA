@@ -3979,11 +3979,22 @@ shinyServer(
                                 return(resStr)
 			},
 			content = function(con){
+				#Progress bar callback function
+				progress <- shiny::Progress$new()
+				updateProgress <- function(value=NULL, detail=NULL){
+					if (is.null(value)) {
+						value <- progress$getValue()
+						value <- value + (progress$getMax() - value) / 5
+					}
+					progress$set(value = value, detail = detail)
+				}
+				
 				#Start loading screen
 				shinyjs::html(id="loadingText", "CREATING QC REPORT")
 				shinyjs::show(id="loading-content")
 
                                 on.exit({
+					progress$close()
                                         shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
                                 })
                                 if(input$arrType=="af_exp"){
@@ -4033,7 +4044,7 @@ shinyServer(
                                                 cores <- as.integer(input$cores)
                                         }
 
-                                        affy_QC_report(fileNamesCol=fileNameColName, samplesCol=sampleColName, phTable=phTable, celDir=celDir, nCores=cores, cdfname=affCDF, outputFile=con, isParallel=chkParallel, minFiles=affyPool)
+                                        affy_QC_report(fileNamesCol=fileNameColName, samplesCol=sampleColName, phTable=phTable, celDir=celDir, nCores=cores, cdfname=affCDF, outputFile=con, isParallel=chkParallel, minFiles=affyPool, updateProgress=updateProgress)
 
                                         shinyBS::updateCollapse(session, "bsSidebar", open="BATCH CORRECTION", style=list("QUALITY CONTROL"="success", "BATCH CORRECTION"="warning"))
                                 }else if(input$arrType=="ag_exp2"){
