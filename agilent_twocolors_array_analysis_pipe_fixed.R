@@ -1345,3 +1345,726 @@ get_color_palette <- function(iVec, asFactor=FALSE){
         print(colorVec)
         return(colorVec)
 }
+
+#Get the affybatch object with or without the cdf annotation
+get_affyBatchObject <- function(fileNames, celDir=NULL, pheno, cdfname){
+	if(is.null(celDir) || celDir==""){
+		celFilePaths <- fileNames
+	}else{
+		celFilePaths <- file.path(celDir, fileNames)
+	}
+
+	err <- 0
+	tryCatch(simpleaffy::setQCEnvironment(cdfname), error=function(e){err<<-1})
+	if(!err){
+		affyBatchObject <- affy::read.affybatch(filenames=celFilePaths, phenoData=pheno, cdfname=cdfname)
+	}else{
+		headdetails <- affyio::read.celfile.header(celFilePaths[1])
+		ref.cdfName <- headdetails[[1]]
+		dim.intensity <- headdetails[[2]]
+		rm.mask <- FALSE
+		rm.outliers <- FALSE
+		rm.extra <- FALSE
+		verbose <- FALSE
+		exprs <- affyio::read_abatch(celFilePaths, rm.mask, rm.outliers, rm.extra, ref.cdfName, dim.intensity[c(1, 2)], verbose)
+		colnames(exprs) <- affy::sampleNames(pheno)
+		scandates <- sapply(seq_len(length(celFilePaths)), function(i){
+			sdate <- affyio::read.celfile.header(celFilePaths[i], info="full")[["ScanDate"]]
+			if (is.null(sdate) || length(sdate)==0)
+			    NA_character_
+			else sdate
+		})
+		protocol <- new("AnnotatedDataFrame", data=data.frame(ScanDate=scandates,
+			row.names=affy::sampleNames(pheno), stringsAsFactors=FALSE),
+			dimLabels=c("sampleNames", "sampleColumns")
+		)
+		#protocol <- new("AnnotatedDataFrame")
+		description <- new("MIAME")
+		notes <- ""
+		if (is.null(cdfname)) cdfname <- ref.cdfName
+		affyBatchObject <- new("AffyBatch", exprs=exprs, cdfName=cdfname,
+		      phenoData=pheno, nrow=dim.intensity[2], ncol=dim.intensity[1],
+		      annotation=affy::cleancdfname(cdfname, addcdf=FALSE),
+		      protocolData=protocol, description=description,
+		      notes=notes)
+	}
+	return(affyBatchObject)
+}
+
+#Combine function for dopar loop returning plots and stats
+combine_stat_plot <- function(l1, l2){
+	st <- cbind(l1$st, l2$st)
+	pls <- append(l1$pl, l2$pl)
+	return(list(st=st, pl=pls))
+}
+
+#Format boxplots
+format_boxplot_grob <- function(box_grob, l1, l2){
+	#Get names of vp
+	nm <- names(box_grob[["children"]])
+	#Get index of reference *-points-* vp
+	ptIdx <- grep("-points-", nm)
+
+	#Check dotted line and min max bars extending y ranges
+	for(i in ptIdx){
+		#Get index of segment after points
+		j <- i+1
+		#Get vp name
+		vp <- nm[j]
+
+		#Get y0 value of bottom line
+		val <- box_grob[["children"]][[vp]][["y0"]][1]
+		#Check whether y0 value is below l1 lower limit of range
+		if(as.numeric(val) < l1){
+			#Update y0 value to l1 for bottom line
+			box_grob[["children"]][[vp]][["y0"]][1] <- unit(l1, "native")
+		}
+
+		#Get y0 value of top line
+		val <- box_grob[["children"]][[vp]][["y0"]][2]
+		#Check whether y0 value is above l2 upper limit of range
+		if(as.numeric(val) > l2){
+			#Update y0 value to l2 for top line
+			box_grob[["children"]][[vp]][["y0"]][2] <- unit(l2, "native")
+		}
+
+		##update line col of min max bars
+		#Get index of segment for min max bars
+		j <- j+1
+		#Get vp name
+		vp <- nm[j]
+
+		#Set col for min max bars as 1
+		barCol <- c(1,1)
+		box_grob[["children"]][[vp]][["gp"]][["col"]] <- barCol
+
+		#Get y0 value of min bar
+		val <- box_grob[["children"]][[vp]][["y0"]][[1]]
+		#Check whether y0 value is below l1 lower limit of range
+		if(as.numeric(val) < l1){
+			#Assign the col of min bar to 0
+			box_grob[["children"]][[vp]][["gp"]][["col"]][1] <- 0
+		}
+
+		#Get y0 value of max bar
+		val <- box_grob[["children"]][[vp]][["y0"]][[2]]
+		#Check whether y0 value is above l2 upper limit of range
+		if(as.numeric(val) > l2){
+			#Assign the col of max bar to 0
+			box_grob[["children"]][[vp]][["gp"]][["col"]][2] <- 0
+		}
+	}
+	return(box_grob)
+}
+
+#Generate QC report for Affymetrix raw data
+affy_QC_report <- function(fileNamesCol, samplesCol, phTable, celDir, cdfname, nCores=NULL, outputFile="affy_QC_report.pdf", isParallel=TRUE, minFiles=20, updateProgress=NULL){
+	require("foreach")
+	require("grid")
+	import::from("Biobase", "AnnotatedDataFrame")
+	import::from("Biobase", "featureNames")
+
+	minFiles <- as.integer(minFiles)
+
+	#Assign sample names as rownames
+	samples <- phTable[,samplesCol]
+	rownames(phTable) <- samples
+
+	#create AnnotatedDataFrame
+	pheno <- new("AnnotatedDataFrame", data=phTable)
+
+	if(is.function(updateProgress)){
+		text <- "Preparing CEL files for QC..."
+		value <- 1/2
+		updateProgress(detail=text, value=value)
+	}
+
+	print("Reading cel files...")
+	#samples is the vector of sample names
+	nFiles <- length(samples) #number of samples to analyse
+
+	# The RLE, NUSE and RNA degradation indices will be evaluated on random partition of the pool of samples
+	#Chunk of files specified by the user, minimum is 20, maximum is 50 #minFiles <- 20 #maxFiles <- 50
+	if(nFiles > minFiles){
+		print("Creating file chunks...")
+		print(paste0("nFiles: ", nFiles))
+		print(paste0("minFiles: ", minFiles))
+		groupSize <- trunc(nFiles/minFiles) #how many groups of files will be randomly created
+		print(paste0("groupSize: ", groupSize))
+		ElemToSplit <- trunc(length(samples)/groupSize) * groupSize
+		print("ElemToSplit")
+		print(ElemToSplit)
+		SS <- split(samples[1:ElemToSplit], sample(1:groupSize))
+		print("str(SS):")
+		print(str(SS))
+
+		if(length(unlist(SS))<length(samples)){
+			print("Fixing final chunk...")
+			SS[[groupSize]] <- c(SS[[groupSize]],samples[(ElemToSplit+1):length(samples)])
+		}
+		print("Its chunky now!")
+	}else{
+		SS <- list(samples)
+	}
+	numOfChunks <- length(SS)
+
+	RS <- lapply(SS, function(x){idx<-which(phTable[,samplesCol] %in% x);file.path(celDir,phTable[idx,fileNamesCol])})
+	PH <- lapply(SS, function(x){pheno[x,]})
+
+	if(is.function(updateProgress)){
+		text <- "Beginning QC..."
+		value <- 2/2
+		updateProgress(detail=text, value=value)
+	}
+
+	#params for rmaekdown script
+	params <- list()
+
+	#Get AffyBatch Object
+	tmpFile <- file.path(celDir, phTable[1,fileNamesCol])
+	cdfName <- affy::whatcdf(tmpFile)
+	print("cdfName:")
+	print(cdfName)
+	allInstalledPkgs <- rownames(installed.packages())
+	cdfNameBioc <- affy::cleancdfname(cdfName)
+	print("Bioconductor cdfName:")
+	print(cdfNameBioc)
+	qcCDF <- cdfname
+	if(!any(grepl(cdfNameBioc, allInstalledPkgs))){
+		tryCatch(BiocInstaller::biocLite(cdfNameBioc, suppressUpdates=TRUE))
+		allInstalledPkgs <- rownames(installed.packages())
+		if(any(grepl(cdfNameBioc, allInstalledPkgs))){
+		        qcCDF <- cdfNameBioc
+		        library(package=qcCDF, character.only=TRUE)
+		}
+	}else{
+		qcCDF <- cdfNameBioc
+		library(package=qcCDF, character.only=TRUE)
+	}
+
+	print("qcCDF:")
+	print(qcCDF)
+
+	err <- 0
+	tryCatch(simpleaffy::setQCEnvironment(qcCDF), error=function(e){err<<-1})
+	if(!err){
+		message("Performing yaqc...")
+		if(is.function(updateProgress)){
+			text <- "Perofrming yaqc..."
+			value <- 1/1
+			updateProgress(detail=text, value=value)
+		}
+		celFilePaths <- file.path(celDir,phTable[,fileNamesCol])
+		affyBatchObject <- affy::read.affybatch(filenames=celFilePaths, phenoData=pheno, cdfname=qcCDF)
+		params[["YAQC_stat"]] <- yaqcaffy::yaqc(affyBatchObject)
+	}
+
+	tempPDF <- tempfile("temp_PDF_", fileext = c(".R"))
+
+	print("tempPDF:")
+	print(tempPDF)
+
+	#Execute methods RLE, NUSE, and RNA degradation indices
+	#isParallel <- TRUE #Whether parallel exexutable or not, user specified.
+	if(isTRUE(isParallel) && numOfChunks>1){
+		print("Performing parallel execution...")
+		print("Setting parallel cluster...")
+		nCores <- min(as.integer(nCores), parallel::detectCores())
+
+		print("nCores:")
+		print(nCores)
+
+		cl <- parallel::makeCluster(nCores, outfile="")
+		doParallel::registerDoParallel(cl)
+		on.exit({parallel::stopCluster(cl); registerDoSEQ()})
+
+		env <- environment()
+		parallel::clusterExport(cl, list("get_affyBatchObject", "combine_stat_plot"), envir=env)
+
+		limit <- 6
+		now <- 1
+		if(is.function(updateProgress)){
+			text <- "Fitting Data..."
+			value <- now/limit
+			now <- now+1
+			updateProgress(detail=text, value=value)
+		}
+
+		cat("Read RAW data\n")
+		affyBatchList <- foreach::foreach(i=1:length(RS)) %dopar% {
+			message(i)
+			affyB <- get_affyBatchObject(fileNames=RS[[i]], pheno=PH[[i]], cdfname=cdfname)
+		}
+
+		pdf(tempPDF)
+		on.exit({dev.off()})
+		cat("FitPLM\n")
+		PSetList <- foreach::foreach(i=1:length(RS)) %dopar% {
+			message(i)
+			affyB <- affyBatchList[[i]]
+			Pset <- affyPLM::fitPLM(affyB)
+		}
+		dev.off()
+
+		if(is.function(updateProgress)){
+			text <- "Performing RNA Deg QC..."
+			value <- now/limit
+			now <- now+1
+			updateProgress(detail=text, value=value)
+		}
+
+		pdf(tempPDF)
+		on.exit({dev.off()})
+		cat("RNA DEG STAT & PLOT\n")
+		res <- foreach::foreach(i=1:length(RS), .combine="combine_stat_plot") %dopar% {
+			affyB <- affyBatchList[[i]]
+			deg <- affy::AffyRNAdeg(affyB)
+			st <- affy::summaryAffyRNAdeg(deg)
+			pl <- base2grob::base2grob(function() affy::plotAffyRNAdeg(deg))
+			ll <- list(st=st, pl=list(pl))
+		}
+		dev.off()
+
+		RNADeg <- res$st
+		params[["RNADeg_plot"]] <- res$pl
+
+		if(is.function(updateProgress)){
+			text <- "Performing RLE QC..."
+			value <- now/limit
+			now <- now+1
+			updateProgress(detail=text, value=value)
+		}
+
+		pdf(tempPDF)
+		on.exit({dev.off()})
+		cat("RLE STAT & PLOT\n")
+		res <- foreach::foreach(i=1:length(PSetList), .combine="combine_stat_plot") %dopar% {
+			Pset <- PSetList[[i]]
+			st <- affyPLM::RLE(Pset,type="stat")
+			pl <- base2grob::base2grob(function() affyPLM::RLE(Pset))
+			ll <- list(st=st, pl=list(pl))
+		}
+		dev.off()
+
+		RLE_stat <- res$st
+		params[["RLE_plot"]] <- res$pl
+
+		if(is.function(updateProgress)){
+			text <- "Performing NUSE QC..."
+			value <- now/limit
+			now <- now+1
+			updateProgress(detail=text, value=value)
+		}
+
+		pdf(tempPDF)
+		on.exit({dev.off()})
+		cat("NUSE STAT & PLOT\n")
+		res <- foreach::foreach(i=1:length(PSetList), .combine="combine_stat_plot") %dopar% {
+			Pset <- PSetList[[i]]
+			st <- affyPLM::NUSE(Pset,type="stat")
+			pl <- base2grob::base2grob(function() affyPLM::NUSE(Pset))
+			ll <- list(st=st, pl=list(pl))
+		}
+		dev.off()
+
+		NUSE_stat <- res$st
+		params[["NUSE_plot"]] <- res$pl
+
+		parallel::stopCluster(cl)
+		registerDoSEQ()
+	}else{
+		print("Performing serial execution...")
+		RLE_plot <- list()
+		RLE_stat <- c()
+		RLE_values <- c()
+		NUSE_plot <- list()
+		NUSE_stat <- c()
+		RNADeg_plot <- list()
+		RNADeg <- c()
+
+		print("Starting the analyses...")
+
+		limit <- (numOfChunks*4)+2
+		now <- 1
+		if(is.function(updateProgress)){
+			text <- "Processing Serially..."
+			value <- now/limit
+			now <- now+1
+			updateProgress(detail=text, value=value)
+		}
+
+		pdf(tempPDF)
+		on.exit({dev.off()})
+
+		PSetList <- list()
+		affyBList <- list()
+		for(i in 1:length(RS)){
+			cat("Reading data...\n")
+			affyB <- get_affyBatchObject(fileNames=RS[[i]], pheno=PH[[i]], cdfname=cdfname)
+
+			if(is.function(updateProgress)){
+				text <- pate0("Processing (", i, "/", length(RS), ") Fitting Data...")
+				value <- now/limit
+				now <- now+1
+				updateProgress(detail=text, value=value)
+			}
+
+			cat("AffyPLM...\n")
+			Pset <- affyPLM::fitPLM(affyB)
+			PSetList[[i]] <- Pset
+			affyBList[[i]] <- affyB
+
+			if(is.function(updateProgress)){
+				text <- pate0("Processing (", i, "/", length(RS), ") RNA Deg QC...")
+				value <- now/limit
+				now <- now+1
+				updateProgress(detail=text, value=value)
+			}
+
+			cat("DEG...\n")
+			#measure the difference in the signal at the 5' and 3' of a gene
+			deg <- affy::AffyRNAdeg(affyB)
+
+			#RNADeg plot
+			RNADeg_plot[[i]] <- base2grob::base2grob(function() affy::plotAffyRNAdeg(deg))
+
+			#RNADeg stat
+			RNADeg <- cbind(RNADeg, affy::summaryAffyRNAdeg(deg))
+
+			if(is.function(updateProgress)){
+				text <- pate0("Processing (", i, "/", length(RS), ") RLE QC...")
+				value <- now/limit
+				now <- now+1
+				updateProgress(detail=text, value=value)
+			}
+
+			#   # Relative Log Expression (RLE) values. Specifically,
+			#   #these RLE values are computed for each probeset by comparing the expression value
+			#   #on each array against the median expression value for that probeset across all arrays.
+			cat("RLE...\n")
+
+			#RLE plot
+			RLE_plot[[i]] <- base2grob::base2grob(function() affyPLM::RLE(Pset))
+
+			#RLE stat
+			RLE_stat <- cbind(RLE_stat, affyPLM::RLE(Pset,type="stat"))
+
+			if(is.function(updateProgress)){
+				text <- pate0("Processing (", i, "/", length(RS), ") NUSE QC...")
+				value <- now/limit
+				now <- now+1
+				updateProgress(detail=text, value=value)
+			}
+
+			#   #Normalized Unscaled Standard Errors (NUSE) can also be used for assessing quality. In
+			#   #this case, the standard error estimates obtained for each gene on each array from fitPLM
+			#   #are taken and standardized across arrays so that the median standard error for that
+			#   #genes is 1 across all arrays
+			cat("NUSE...\n")
+
+			#NUSE plot
+			NUSE_plot[[i]] <- base2grob::base2grob(function() affyPLM::NUSE(Pset))
+
+			#NUSE stat
+			NUSE_stat <- cbind(NUSE_stat, affyPLM::NUSE(Pset,type="stat"))
+		}
+		dev.off()
+
+		params[["RNADeg_plot"]] <- RNADeg_plot
+		params[["RLE_plot"]] <- RLE_plot
+		params[["NUSE_plot"]] <- NUSE_plot
+	}
+
+	##Format boxplot grobs
+	#Format RLE
+	params$RLE_plot <- lapply(params$RLE_plot, function(x){l1<--0.80; l2<-0.80; format_boxplot_grob(box_grob=x, l1=l1, l2=l2)})
+	#Format NUSE
+	params$NUSE_plot <- lapply(params$NUSE_plot, function(x){l1<-0.89; l2<-1.21; format_boxplot_grob(box_grob=x, l1=l1, l2=l2)})
+
+	if(is.function(updateProgress)){
+		text <- "Identifying outliers..."
+		value <- now/limit
+		now <- now+1
+		updateProgress(detail=text, value=value)
+	}
+
+	#RNADeg slope plot
+	#params[["RNADeg_slope_plot"]] <- base2grob::base2grob(function() boxplot(RNADeg["slope",]))
+	params[["RNADeg_slope"]] <- RNADeg["slope",]
+
+	#RLE median plot
+	#params[["RLE_median_plot"]] <- base2grob::base2grob(function() boxplot(RLE_stat["median",]))
+	params[["RLE_median"]] <- RLE_stat["median",]
+
+	#NUSE median plot
+	#params[["NUSE_median_plot"]] <- base2grob::base2grob(function() boxplot(NUSE_stat["median",]))
+	params[["NUSE_median"]] <- NUSE_stat["median",]
+
+	pdf(tempPDF)
+	on.exit({dev.off()})
+
+	print("Computing outliers...")
+	RLEout <- names(boxplot.stats(RLE_stat["median",])$out)  # outlier values.
+	NUSEout <- names(boxplot.stats(NUSE_stat["median",])$out)  # outlier values.
+	deg_bstat <- boxplot(RNADeg["slope",])$stats[4] #value of the 4% quantile
+	DEGout <- colnames(RNADeg)[which(RNADeg["slope",]>deg_bstat)]
+	outs <- union(DEGout,union(RLEout,NUSEout)) #names of all the outliers samples
+
+	dev.off()
+
+	#M is a matrix of samples that contains a 1 or a 0 if the sample is considered outliers for one of the 6 measures
+	M <- c("NA")
+	outliers_atleast1 <- c("NA")
+	outliers_multi <- c("NA")
+	if(length(outs)>0){
+		M <- matrix(0,nrow=length(outs),ncol=3)
+		rownames(M) <- outs
+		colnames(M) <- c("RLE","NUSE","DEG")
+		M[outs %in% RLEout,"RLE"] <- 1
+		M[outs %in% NUSEout,"NUSE"] <- 1
+		M[outs %in% DEGout,"DEG"] <- 1
+
+		M <- cbind(M,rowSums(M))
+		colnames(M)[4] <- "SUM"
+
+		outliers_atleast1 <- outs
+
+		idx <- which(M[,4]>1)
+		if(length(idx)>0){
+			outliers_multi <- rownames(M)[idx]
+		}
+	}
+
+	params[["M_outliers"]] <- M
+	params[["outliers_atleast1"]] <- outliers_atleast1
+	params[["outliers_multi"]] <- outliers_multi
+
+	if(is.function(updateProgress)){
+		text <- "Publishing Report..."
+		value <- now/limit
+		now <- now+1
+		updateProgress(detail=text, value=value)
+	}
+
+	if(file.exists(tempPDF)){
+		file.remove(tempPDF)
+	}
+
+	##Write to report R file
+
+	tempR <- tempfile("affy_QC_report_", fileext = c(".Rmd"))
+	#tempR <- "affy_QC_report.Rmd"
+	fileConn <- file(tempR, "w")
+	on.exit({
+		return(params)
+		if(isFALSE(is.null(fileConn)) && isOpen(fileConn))
+		close(fileConn)
+	})
+
+	#Report header
+	str <- c(
+		"---",
+		"title: eUTOPIA Affymetrix QC Report",
+		"author: eUTOPIA",
+		"output:",
+		"  pdf_document:",
+		"    toc: true",
+		"    toc_depth: 2",
+		"    number_sections: true",
+		"    latex_engine: pdflatex",
+		"---"
+	)
+
+	#Write to report
+	writeLines(str, fileConn)
+
+	#Create str for outlier matrix
+	str <- c(
+		"# Outliers Table",
+		"",
+		"```{r outliers-matrix, echo=FALSE, results='asis'}",
+		"M_outliers <- params$M_outliers",
+		"knitr::kable(M_outliers)",
+		"```",
+		""
+	)
+
+	#Write to report
+	writeLines(str, fileConn)
+
+	#Create str for outlier multi
+	str <- c(
+		"## Outliers (All Methods)",
+		"",
+		"```{r outliers-all, echo=FALSE, results='asis'}",
+		"outliers_multi <- params$outliers_multi",
+		"knitr::kable(outliers_multi, col.names='Outliers overall')",
+		"```",
+		""
+	)
+
+	#Write to report
+	writeLines(str, fileConn)
+
+	#Create str for outlier at least one
+	str <- c(
+		"## Outliers (At Least One Method)",
+		"",
+		"```{r outliers-atleast-one, echo=FALSE, results='asis'}",
+		"outliers_atleast1 <- params$outliers_atleast1",
+		"knitr::kable(outliers_atleast1, col.names='Outliers at least 1')",
+		"```",
+		""
+	)
+
+	#Write to report
+	writeLines(str, fileConn)
+
+	#Create str for RNADeg_slope_plot
+	str <- c(
+		"# RNA Degradation",
+		"## Summarized Mean QC",
+		"",
+		"```{r RNADeg-slope, echo=FALSE}",
+		#"RNADeg_slope_plot <- params$RNADeg_slope_plot",
+		#"cowplot::plot_grid(RNADeg_slope_plot)",
+		"RNADeg_slope <- params$RNADeg_slope",
+		"boxplot(RNADeg_slope)",
+		"```",
+		""
+	)
+
+	#Write to report
+	writeLines(str, fileConn)
+
+	#Create str for RNADeg_plot
+	ht <- wt <- max(length(params$RNADeg_plot)*4, 10)
+	str <- c(
+		"## Discrete QC Plots",
+		"",
+		paste0("```{r RNADeg-discrete, echo=FALSE, fig.width=", wt, ", fig.height=", ht, ", dpi=50}"),
+		"RNADeg_plot <- params$RNADeg_plot",
+		"RNADeg_plot.count <- length(RNADeg_plot)",
+		"itr <- 1",
+		"while(itr <= RNADeg_plot.count){",
+		"	jtr <- ifelse(itr==RNADeg_plot.count, itr, itr+1)",
+		"	print(cowplot::plot_grid(plotlist=RNADeg_plot[itr:jtr], ncol=1, labels=paste0('Sample Group [', itr:jtr, ']')))",
+		"	itr <- itr+2",
+		"	cat('\n\n')",
+		"}",
+		"```",
+		""
+	)
+
+	#Write to report
+	writeLines(str, fileConn)
+
+	#Create str for RLE_median_plot
+	str <- c(
+		"# Relative Log Expression",
+		"## Summarized Median QC",
+		"",
+		"```{r RLE-median, echo=FALSE}",
+		#"RLE_median_plot <- params$RLE_median_plot",
+		#"cowplot::plot_grid(RLE_median_plot)",
+		"RLE_median <- params$RLE_median",
+		"boxplot(RLE_median)",
+		"```",
+		""
+	)
+
+	#Write to report
+	writeLines(str, fileConn)
+
+	#Create str for RLE_plot
+	ht <- wt <- max(max(unlist(lapply(RS,length)))*2, 10)
+	str <- c(
+		"## Discrete QC Plots",
+		"",
+		paste0("```{r RLE-discrete, echo=FALSE, fig.width=", wt, ", fig.height=", ht, ", dpi=50}"),
+		"RLE_plot <- params$RLE_plot",
+		"RLE_plot.count <- length(RLE_plot)",
+		"itr <- 1",
+		"while(itr <= RLE_plot.count){",
+		"	jtr <- ifelse(itr==RLE_plot.count, itr, itr+1)",
+		"	print(cowplot::plot_grid(plotlist=RLE_plot[itr:jtr], ncol=1, labels=paste0('Sample Group [', itr:jtr, ']')))",
+		"	itr <- itr+2",
+		"	cat('\n\n')",
+		"}",
+		"```",
+		""
+	)
+
+	#Write to report
+	writeLines(str, fileConn)
+
+	#Create str for NUSE_median_plot
+	str <- c(
+		"# Normalized Unscaled Standard Errors",
+		"## Summarized Median QC",
+		"",
+		"```{r NUSE-median, echo=FALSE}",
+		#"NUSE_median_plot <- params$NUSE_median_plot",
+		#"cowplot::plot_grid(NUSE_median_plot)",
+		"NUSE_median <- params$NUSE_median",
+		"boxplot(NUSE_median)",
+		"```",
+		""
+	)
+
+	#Write to report
+	writeLines(str, fileConn)
+
+	#Create str for NUSE_plot
+	ht <- wt <- max(max(unlist(lapply(RS,length)))*2, 10)
+	str <- c(
+		"## Discrete QC Plots",
+		"",
+		paste0("```{r NUSE-discrete, echo=FALSE, fig.width=", wt, ", fig.height=", ht, ", dpi=50}"),
+		"NUSE_plot <- params$NUSE_plot",
+		"NUSE_plot.count <- length(NUSE_plot)",
+		"itr <- 1",
+		"while(itr <= NUSE_plot.count){",
+		"	jtr <- ifelse(itr==NUSE_plot.count, itr, itr+1)",
+		"	print(cowplot::plot_grid(plotlist=NUSE_plot[itr:jtr], ncol=1, labels=paste0('Sample Group [', itr:jtr, ']')))",
+		"	itr <- itr+2",
+		"	cat('\n\n')",
+		"}",
+		"```",
+		""
+	)
+
+	#Write to report
+	writeLines(str, fileConn)
+
+	#YAQC report
+	if(err==0){
+		#Create str for YAQC_plot
+		str <- c(
+			"",
+			"# YAQC Plots",
+			"```{r YAQC-plot, echo=FALSE}",
+			"YAQC_stat <- params$YAQC_stat",
+			"yaqcaffy::plot(YAQC_stat)",
+			"```",
+			""
+		)
+
+		#Write to report
+		writeLines(str, fileConn)
+	}
+
+	print("End...")
+	close(fileConn)
+
+	#Render PDF report
+	if(is.null(outputFile) || is.na(outputFile) || outputFile==""){
+		outputFile <- "affy_QC_report.pdf"
+	}
+	print("names(params):")
+	print(names(params))
+	print("lapply(params, class):")
+	print(lapply(params, class))
+	rmarkdown::render(tempR, output_file=outputFile)
+}
+
