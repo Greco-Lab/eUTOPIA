@@ -1704,7 +1704,7 @@ affy_QC_report <- function(fileNamesCol, samplesCol, phTable, celDir, cdfname, n
 			affyB <- get_affyBatchObject(fileNames=RS[[i]], pheno=PH[[i]], cdfname=cdfname)
 
 			if(is.function(updateProgress)){
-				text <- pate0("Processing (", i, "/", length(RS), ") Fitting Data...")
+				text <- paste0("Processing (", i, "/", length(RS), ") Fitting Data...")
 				value <- now/limit
 				now <- now+1
 				updateProgress(detail=text, value=value)
@@ -1716,7 +1716,7 @@ affy_QC_report <- function(fileNamesCol, samplesCol, phTable, celDir, cdfname, n
 			affyBList[[i]] <- affyB
 
 			if(is.function(updateProgress)){
-				text <- pate0("Processing (", i, "/", length(RS), ") RNA Deg QC...")
+				text <- paste0("Processing (", i, "/", length(RS), ") RNA Deg QC...")
 				value <- now/limit
 				now <- now+1
 				updateProgress(detail=text, value=value)
@@ -1733,7 +1733,7 @@ affy_QC_report <- function(fileNamesCol, samplesCol, phTable, celDir, cdfname, n
 			RNADeg <- cbind(RNADeg, affy::summaryAffyRNAdeg(deg))
 
 			if(is.function(updateProgress)){
-				text <- pate0("Processing (", i, "/", length(RS), ") RLE QC...")
+				text <- paste0("Processing (", i, "/", length(RS), ") RLE QC...")
 				value <- now/limit
 				now <- now+1
 				updateProgress(detail=text, value=value)
@@ -1751,7 +1751,7 @@ affy_QC_report <- function(fileNamesCol, samplesCol, phTable, celDir, cdfname, n
 			RLE_stat <- cbind(RLE_stat, affyPLM::RLE(Pset,type="stat"))
 
 			if(is.function(updateProgress)){
-				text <- pate0("Processing (", i, "/", length(RS), ") NUSE QC...")
+				text <- paste0("Processing (", i, "/", length(RS), ") NUSE QC...")
 				value <- now/limit
 				now <- now+1
 				updateProgress(detail=text, value=value)
