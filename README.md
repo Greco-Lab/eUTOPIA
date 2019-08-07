@@ -8,6 +8,12 @@ Reference Paper:
 
 More information at: https://link.springer.com/article/10.1186/s13029-019-0071-7
 
+#### Running the eUTOPIA Docker image (suggested)
+
+If you don't have docker installed on your system you can install it by following the instructions at https://www.docker.com/get-docker.
+
+The eUTOPIA docker image is available at https://hub.docker.com/r/grecolab/eutopia
+
 #### Install OS Dependencies
 Pandoc - [https://pandoc.org/installing.html](https://pandoc.org/installing.html)  
 Latex Compiling - [http://www.tug.org/texlive/](http://www.tug.org/texlive/)  
