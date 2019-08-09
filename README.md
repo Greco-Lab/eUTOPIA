@@ -1,7 +1,6 @@
 Docker for eUTOPIA
 =======================
 
-# eUTOPIA
 ### A solUTion for Omics data PreprocessIng and Analysis
 
 Graphically accessible guided workflow for preprocessing and analysis of omics data. Supports Agilent 2-color, Agilent 1-color, Affymetrix, and Illumina methylation microarray platforms (Ongoing efforts to add support for RNA-Seq data). Discreetly separated steps in analysis designed in R Shiny, incorporates widely used microarray analysis practices and R packages. Reporting is and data interpretation is leveraged from dynamically generated plots.
@@ -17,7 +16,7 @@ https://docs.docker.com/toolbox/toolbox_install_windows/
 
 https://docs.docker.com/docker-for-windows/install/
 
-####Install Docker application for Mac
+#### Install Docker application for Mac
 
 https://docs.docker.com/docker-for-mac/install/
 
