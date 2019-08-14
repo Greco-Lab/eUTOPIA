@@ -1,6 +1,0 @@
-.directory
-mountpoints/apps/*
-!mountpoints/apps/eUTOPIA
-!mountpoints/apps/index.html
-!mountpoints/apps/example-app
-!mountpoints/apps/shinyMethyl_QC
