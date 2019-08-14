@@ -9,14 +9,20 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
   libgit2-dev \
   libssh2-1-dev \
   libmagick++-dev \
+  gtk-doc-tools \
+  libgeos-dev \
+  libgdal-dev \
+  libudunits2-dev \
   texlive-full
 
 # Install Bioconductor and CRAN packages
 RUN install2.r --error \
   -r "https://cran.rstudio.com" \
   -r "http://www.bioconductor.org/packages/release/bioc" \
+  -r "http://www.bioconductor.org/packages/data/annotation" \
   --deps TRUE \
   impute \ 
+  units \ 
   bibtex \ 
   RMySQL \ 
   progress \ 
@@ -37,7 +43,6 @@ RUN install2.r --error \
   WriteXLS \ 
   rmarkdown \ 
   VennDiagram \ 
-  grid \ 
   futile.logger \ 
   base2grob \ 
   reshape2 \ 
@@ -57,6 +62,7 @@ RUN installGithub.r jrowen/rhandsontable \
 RUN install2.r --error \
   -r "https://cran.rstudio.com" \
   -r "http://www.bioconductor.org/packages/release/bioc" \
+  -r "http://www.bioconductor.org/packages/data/annotation" \
   --deps TRUE \
   limma \ 
   sva \ 
@@ -84,12 +90,18 @@ RUN installGithub.r GuangchuangYu/GOSemSim \
   && rm -rf /tmp/downloaded_packages/
 
 # Create .Renviron with variables
-RUN echo -e 'R_LIBS_USER="/home/shiny/Rlibs"\nR_MAX_NUM_DLLS=256' > /root/.Renviron \
+#RUN echo -e 'R_LIBS_USER="/home/shiny/Rlibs"\nR_MAX_NUM_DLLS=256' > /root/.Renviron \
+RUN echo 'R_LIBS_USER="/home/shiny/Rlibs"\nR_MAX_NUM_DLLS=256' > /root/.Renviron \
   && cp /root/.Renviron /home/shiny/ \
   && chown shiny.shiny /home/shiny/.Renviron \
   && mkdir /home/shiny/Rlibs \
   && chown -R shiny.shiny /home/shiny/Rlibs \
   && chmod -R 777 /home/shiny/Rlibs
+
+# Cooy your Shiny apps to the docker image
+COPY ./mountpoints/apps/eUTOPIA /srv/shiny-server/eUTOPIA
+COPY ./mountpoints/apps/example-app /srv/shiny-server/example-app
+COPY ./mountpoints/apps/shinyMethyl_QC /srv/shiny-server/shinyMethyl_QC
 
 # Recursively change bit mode of shiny apps
 #RUN chmod -R 777 /srv/shiny-server \
