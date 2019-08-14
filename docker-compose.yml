@@ -24,7 +24,7 @@ services:
       # Comment the line below out for initial testing. With it commented out,
       # going to localhost:80 in one's web browser will show a "Welcome to
       # Shiny Server!" diagnostics page.
-      # - './mountpoints/apps:/srv/shiny-server'
+       - './mountpoints/apps:/srv/shiny-server'
 
 volumes:
   shiny_logs:
