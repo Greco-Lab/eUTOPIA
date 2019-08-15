@@ -1,5 +1,26 @@
 FROM rocker/shiny:3.6.0
 
+# Install Bioconductor and CRAN packages
+RUN install2.r --error \
+  -r "https://cran.rstudio.com" \
+  -r "http://www.bioconductor.org/packages/release/bioc" \
+  -r "http://www.bioconductor.org/packages/data/annotation" \
+  --deps TRUE \
+  IlluminaHumanMethylation450kmanifest
+
+# Clear temporary downloaded R packages
+RUN rm -rf /tmp/downloaded_packages/
+
+RUN install2.r --error \
+  -r "https://cran.rstudio.com" \
+  -r "http://www.bioconductor.org/packages/release/bioc" \
+  -r "http://www.bioconductor.org/packages/data/annotation" \
+  --deps TRUE \
+  IlluminaHumanMethylation450kanno.ilmn12.hg19
+
+# Clear temporary downloaded R packages
+RUN rm -rf /tmp/downloaded_packages/
+
 # Install system dependencies
 RUN apt-get update -qq && apt-get -y --no-install-recommends install \
   libv8-3.14-dev \
@@ -57,6 +78,9 @@ RUN install2.r --error \
   foreach \ 
   import
 
+# Clear temporary downloaded R packages
+RUN rm -rf /tmp/downloaded_packages/
+
 # Install GitHub packages
 RUN installGithub.r jrowen/rhandsontable \
   hms-dbmi/UpSetR
@@ -77,11 +101,37 @@ RUN install2.r --error \
   made4 \ 
   vsn \ 
   GEOquery \ 
-  minfi \ 
-  IlluminaHumanMethylation450kmanifest \ 
-  IlluminaHumanMethylation450kanno.ilmn12.hg19 \ 
-  IlluminaHumanMethylationEPICmanifest \ 
-  IlluminaHumanMethylationEPICanno.ilm10b2.hg19 \ 
+  minfi
+
+# Clear temporary downloaded R packages
+RUN rm -rf /tmp/downloaded_packages/
+
+RUN install2.r --error \
+  -r "https://cran.rstudio.com" \
+  -r "http://www.bioconductor.org/packages/release/bioc" \
+  -r "http://www.bioconductor.org/packages/data/annotation" \
+  --deps TRUE \
+  IlluminaHumanMethylationEPICmanifest
+
+# Clear temporary downloaded R packages
+RUN rm -rf /tmp/downloaded_packages/
+
+RUN install2.r --error \
+  -r "https://cran.rstudio.com" \
+  -r "http://www.bioconductor.org/packages/release/bioc" \
+  -r "http://www.bioconductor.org/packages/data/annotation" \
+  --deps TRUE \
+  IlluminaHumanMethylationEPICanno.ilm10b2.hg19 
+
+# Clear temporary downloaded R packages
+RUN rm -rf /tmp/downloaded_packages/
+
+# Install Bioconductor and CRAN packages
+RUN install2.r --error \
+  -r "https://cran.rstudio.com" \
+  -r "http://www.bioconductor.org/packages/release/bioc" \
+  -r "http://www.bioconductor.org/packages/data/annotation" \
+  --deps TRUE \
   affyio \ 
   simpleaffy \ 
   yaqcaffy \ 
