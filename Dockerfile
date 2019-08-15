@@ -15,6 +15,9 @@ RUN apt-get update -qq && apt-get -y --no-install-recommends install \
   libudunits2-dev \
   texlive-full
 
+# Edit install2.r add INSTALL_opts in install.packages() to avoid loading tests
+RUN sed -i '10itrace(install.packages, quote({INSTALL_opts<-"--no-test-load";print("INSTALL_opts:");print(INSTALL_opts)}))' /usr/local/bin/install2.r
+
 # Install Bioconductor and CRAN packages
 RUN install2.r --error \
   -r "https://cran.rstudio.com" \
