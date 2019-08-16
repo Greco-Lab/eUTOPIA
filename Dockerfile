@@ -1,26 +1,5 @@
 FROM rocker/shiny:3.6.0
 
-# Install Bioconductor and CRAN packages
-RUN install2.r --error \
-  -r "https://cran.rstudio.com" \
-  -r "http://www.bioconductor.org/packages/release/bioc" \
-  -r "http://www.bioconductor.org/packages/data/annotation" \
-  --deps TRUE \
-  IlluminaHumanMethylation450kmanifest
-
-# Clear temporary downloaded R packages
-RUN rm -rf /tmp/downloaded_packages/
-
-RUN install2.r --error \
-  -r "https://cran.rstudio.com" \
-  -r "http://www.bioconductor.org/packages/release/bioc" \
-  -r "http://www.bioconductor.org/packages/data/annotation" \
-  --deps TRUE \
-  IlluminaHumanMethylation450kanno.ilmn12.hg19
-
-# Clear temporary downloaded R packages
-RUN rm -rf /tmp/downloaded_packages/
-
 # Install system dependencies
 RUN apt-get update -qq && apt-get -y --no-install-recommends install \
   libv8-3.14-dev \
@@ -85,6 +64,9 @@ RUN rm -rf /tmp/downloaded_packages/
 RUN installGithub.r jrowen/rhandsontable \
   hms-dbmi/UpSetR
 
+# Clear temporary downloaded R packages
+RUN rm -rf /tmp/downloaded_packages/
+
 # Install Bioconductor and CRAN packages
 RUN install2.r --error \
   -r "https://cran.rstudio.com" \
@@ -102,6 +84,27 @@ RUN install2.r --error \
   vsn \ 
   GEOquery \ 
   minfi
+
+# Clear temporary downloaded R packages
+RUN rm -rf /tmp/downloaded_packages/
+
+# Install Bioconductor and CRAN packages
+RUN install2.r --error \
+  -r "https://cran.rstudio.com" \
+  -r "http://www.bioconductor.org/packages/release/bioc" \
+  -r "http://www.bioconductor.org/packages/data/annotation" \
+  --deps TRUE \
+  IlluminaHumanMethylation450kmanifest
+
+# Clear temporary downloaded R packages
+RUN rm -rf /tmp/downloaded_packages/
+
+RUN install2.r --error \
+  -r "https://cran.rstudio.com" \
+  -r "http://www.bioconductor.org/packages/release/bioc" \
+  -r "http://www.bioconductor.org/packages/data/annotation" \
+  --deps TRUE \
+  IlluminaHumanMethylation450kanno.ilmn12.hg19
 
 # Clear temporary downloaded R packages
 RUN rm -rf /tmp/downloaded_packages/
