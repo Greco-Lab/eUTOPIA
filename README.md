@@ -129,4 +129,4 @@ The raw data can be downloaded from:  ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE9
 
 The pheno data matrix can be found at: https://github.com/Greco-Lab/eUTOPIA/blob/master/sample_data/Phenotype_File.tsv
 
-The platform annotation file can be found at: https://github.com/Greco-Lab/eUTOPIA/blob/master/sample_data/GeneList%5C028005_D_GeneList_20190110.txt
+The platform annotation file can be found at: https://github.com/Greco-Lab/eUTOPIA/blob/master/sample_data/GeneList_028005_D_GeneList_20190110.txt
