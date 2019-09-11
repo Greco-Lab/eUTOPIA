@@ -121,12 +121,16 @@ Cairo - [https://cairographics.org/download/](https://cairographics.org/download
 ```
 
 ### Data for demo:
->>>>>>> 432716d0b6e372d8dd9e613df7daeb05a7271fc3
-Sample data can be found at: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE92900
 
-The raw data can be downloaded from:  ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE92nnn/GSE92900/suppl/GSE92900_raw_data_files.tar.gz
-** note: this file has to be decompressed
+#### GEO Sample data
+https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE92900
 
-The pheno data matrix can be found at: https://github.com/Greco-Lab/eUTOPIA/blob/master/sample_data/Phenotype_File.tsv
+#### Raw data (Archived/Compressed)
+[ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE92nnn/GSE92900/suppl/GSE92900_raw_data_files.tar.gz](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE92nnn/GSE92900/suppl/GSE92900_raw_data_files.tar.gz)
 
-The platform annotation file can be found at: https://github.com/Greco-Lab/eUTOPIA/blob/master/sample_data/GeneList_028005_D_GeneList_20190110.txt
+#### Pheno data matrix
+https://github.com/Greco-Lab/eUTOPIA/blob/master/sample_data/Phenotype_File.tsv
+
+#### Array annotation
+https://github.com/Greco-Lab/eUTOPIA/blob/master/sample_data/GeneList_028005_D_GeneList_20190110.txt
+
