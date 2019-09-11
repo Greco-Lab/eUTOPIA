@@ -18,7 +18,7 @@ agilent.twocolors.analysis <- function(pd.file, id.rem.samp = NULL, type.data = 
   pd <- read.table(pd.file, sep="\t", header=T)
   id_file_names <- grep("file", colnames(pd), ignore.case = TRUE)
   if(length(id_file_names) == 0) stop("The <file.name> field is missing!")
-  rgList <- read.maimages(files=unique(pd[,id_file_names]),
+  rgList <- limma::read.maimages(files=unique(pd[,id_file_names]),
                           source="agilent.median", verbose = verbose)
   # generate nc.data, c.data and pd
   st <- fix.data(pd, id_file_names, rgList, GR = T, id.rem.samp)
@@ -150,10 +150,10 @@ run.norm <- function(filt.data, rgList, method, method2, plot=FALSE){
   }
   norm_switch <- function(method){
    switch(method,
-    "quantile" = normalizeQuantiles(log2(filt.data)),
-    "vsn" = normalizeVSN(log2(filt.data)),
-    "cl" = normalizeCyclicLoess(log2(filt.data), method="fast"),
-    "BA" = normalizeBetweenArrays(log2(filt.data), method=method2)
+    "quantile" = limma::normalizeQuantiles(log2(filt.data)),
+    "vsn" = limma::normalizeVSN(log2(filt.data)),
+    "cl" = limma::normalizeCyclicLoess(log2(filt.data), method="fast"),
+    "BA" = limma::normalizeBetweenArrays(log2(filt.data), method=method2)
    )
   }
   #norm.data <- normalizeQuantiles(log2(filt.data))
@@ -195,7 +195,7 @@ pre.proc <- function(pd, rgList, var.mds, qdist = c(.75, .9), perc = c(75, 50), 
     if(plot)  {
       boxplot(log2(filt.data[[n1]]), las=2, cex=0.7, main="Before normalization.")
     }
-    norm.data <- normalizeQuantiles(log2(filt.data[[n1]]))
+    norm.data <- limma::normalizeQuantiles(log2(filt.data[[n1]]))
     if(plot)  {
       boxplot(norm.data, las=2, cex=0.7, main="After normalization.")
     }
@@ -209,7 +209,7 @@ pre.proc <- function(pd, rgList, var.mds, qdist = c(.75, .9), perc = c(75, 50), 
     if(plot)  {
      boxplot(log2(filt.data), las=2, cex=0.7, main="Before normalization.")
     }
-    norm.data <- normalizeQuantiles(log2(filt.data))
+    norm.data <- limma::normalizeQuantiles(log2(filt.data))
     if(plot)  {
      boxplot(norm.data, las=2, cex=0.7, main="After normalization.")
     }
@@ -254,13 +254,13 @@ monitor.technical.variation <- function(data, pd, npc = 10, verbose = TRUE, ...)
   test <- sapply(colnames(pd), function(b) length(table(pd[,b])) > 1 & length(table(pd[,b])) != length(pd[,b]))
   # generate the counfounding plot
   print(test)
-  res <- confounding(pd[,test], margins = c(10,10))
-  pr <- prince(data, pd[,test], top=npc)
+  res <- swamp::confounding(pd[,test], margins = c(10,10))
+  pr <- swamp::prince(data, pd[,test], top=npc)
   print(pr)
   # generate the prince plot
-  prince.plot(prince=pr, margins = c(15,15))
+  swamp::prince.plot(prince=pr, margins = c(15,15))
   # hc plot
-  hca.plot(data, pd[,test], method = "correlation")
+  swamp::hca.plot(data, pd[,test], method = "correlation")
   list(conf = res, pr = pr)
 }
 pc.anaylsis <- function(data, pd, npc = 10, verbose = TRUE, ...) {
@@ -407,13 +407,13 @@ remove.batch.effects <- function(comb.data, pd, num.pc, vars, inter = "", method
       print(form)
       prev.comb.data <- comb.data
       if(method == "Combat")
-        res <- try(comb.data <- ComBat(dat=comb.data, batch=pd[,batch],
+        res <- try(comb.data <- sva::ComBat(dat=comb.data, batch=pd[,batch],
                                      mod=model.matrix(form),
                                      par.prior=T,  prior.plots=F))
       if(method == "Limma")
-        res <- try(comb.data <- removeBatchEffect(x = comb.data,
-                                                  batch = pd[,batch],
-                                                  design = model.matrix(form)))
+        res <- try(comb.data <- limma::removeBatchEffect(x=comb.data,
+                                                  batch=pd[,batch],
+                                                  design=model.matrix(form)))
 
       if(inherits(res, "try-error")) {
         ##error handling: restore the previous state
@@ -430,10 +430,10 @@ remove.batch.effects <- function(comb.data, pd, num.pc, vars, inter = "", method
           cat(" - Running Principal Component Analysis..\n")
           assoc <- pc.anaylsis.2(g=comb.data, o=pd, npc=num.pc)
           print(assoc)
-          limma:::plotMDS(comb.data, top=500, labels=pd[,vars$var.int], col=as.numeric(pd[,vars$var.int]),gene.selection="common", main = paste("After removing", batch))
+          limma:::plotMDS(comb.data, top=500, labels=pd[,vars$var.int], col=as.numeric(pd[,vars$var.int]),gene.selection="common", main=paste("After removing", batch))
       }
   }
-  if(plot)  {
+  if(plot){
     boxplot(comb.data, las=2, cex=0.7, main="After removing batch effects.")
     #plot.heatmap(comb.data, pd[,vars$var.int], 1000)
   }
@@ -493,13 +493,13 @@ get.sva.batch.effects <- function(comb.data, pd, vars, npc = 10, verbose = T, cm
   print(string.formula)
   form <- formula(string.formula)
   print(form)
-  X <- sva(dat=comb.data, mod=model.matrix(form), method = "two-step")$sv
+  X <- sva::sva(dat=comb.data, mod=model.matrix(form), method = "two-step")$sv
   cat("class(X) - ", class(X), "\n")
   cat("dim(X) - ", dim(X), "\n")
   X.c <- X
   cat("class(X.c) - ", class(X.c), "\n")
   cat("dim(X.c) - ", dim(X.c), "\n")
-  X <- discretize(as.matrix(X), disc="equalfreq", nbins=NROW(X)^(1/3))
+  X <- infotheo::discretize(as.matrix(X), disc="equalfreq", nbins=NROW(X)^(1/3))
   X <- as.data.frame(X)
   cat("class(X) - ", class(X), "\n")
   cat("dim(X) - ", dim(X), "\n")
@@ -530,18 +530,18 @@ get.sva.batch.effects <- function(comb.data, pd, vars, npc = 10, verbose = T, cm
 }
 ## ANNOT-PROCESSING functions
 connect.to.biomart <- function(verbose = TRUE, ...) {
-  marts <- listMarts(host="www.ensembl.org")
+  marts <- biomaRt::listMarts(host="www.ensembl.org")
   print(as.data.frame(marts[,1]))
   n1 <- read.input.number("Please enter a number to indicate the BioMart database to use.")
   if(verbose) cat(" - selected BioMart database:", as.character(marts[n1,1]), "\n", sep="")
-  mart <- useMart(as.character(marts[n1,1]))
-  datasets <- listDatasets(mart)
+  mart <- biomaRt::useMart(as.character(marts[n1,1]))
+  datasets <- biomaRt::listDatasets(mart)
   organism <- read.input.word(1, "mmusculus or hsapiens")
   print(class(organism))
   ids <- grep(organism, datasets[,1])
   if(length(ids) > 0) cat(" - selected organism:", as.character(datasets[ids,1]), "\n", sep="")
   else stop("dataset not found")
-  mart <- useMart(biomart=as.character(marts[n1,1]), dataset=as.character(datasets[ids,1]))
+  mart <- biomaRt::useMart(biomart=as.character(marts[n1,1]), dataset=as.character(datasets[ids,1]))
   mart
 }
 connect.to.biomart.2 <- function(verbose = TRUE, ...) {
@@ -550,7 +550,7 @@ connect.to.biomart.2 <- function(verbose = TRUE, ...) {
   cat("Please select the BioMart database to use...\n")
   n1 <- scan(n=1)
   if(is.numeric(n1))
-    list(mart = useMart("ENSEMBL_MART_ENSEMBL", dataset=organisms[n1], host="www.ensembl.org"), organisms[n1])
+    list(mart = biomaRt::useMart("ENSEMBL_MART_ENSEMBL", dataset=organisms[n1], host="www.ensembl.org"), organisms[n1])
   else
     NULL
 }
@@ -562,7 +562,7 @@ query.biomart <- function(mart, organism, data, verbose = TRUE, ...) {
     print(as.data.frame(agilent.annot, stringsAsFactors = F))
     cat("Please enter a number to indicate the filter to use as input to the query...\n")
     n1 <- scan(n=1)
-    attributes <- listAttributes(mart)[c(1:100),1]
+    attributes <- biomaRt::listAttributes(mart)[c(1:100),1]
     print(as.data.frame(attributes, stringsAsFactors = F))
     cat("Please enter a number to indicate the annotation to use...\n")
     n2 <- scan(n=1)
@@ -572,7 +572,7 @@ query.biomart <- function(mart, organism, data, verbose = TRUE, ...) {
       print(c(agilent.annot[n1], attributes[n2]))
       print(agilent.annot[n1])
       print(head(probes))
-      resq <- getBM(attributes = c(agilent.annot[n1], attributes[n2]),
+      resq <- biomaRt::getBM(attributes = c(agilent.annot[n1], attributes[n2]),
                     filters = agilent.annot[n1],
                     values = probes,
                     mart = mart)
@@ -614,7 +614,7 @@ getGene <- function (id, type, mart) {
   return(table)
 }
 get.genes <- function(geneids, mart, species="Homo sapiens", type) {
-  require(biomaRt)
+  #require(biomaRt)
   if(species=="Homo sapiens")
     gannot <- getGene(id = geneids, type = type, mart = mart)[,c(type, "hgnc_symbol","description","ensembl_gene_id")]
   else {
@@ -685,18 +685,18 @@ aggreg.probes.2 <- function(data, map, var.mds = NULL, plot = TRUE, verbose = TR
 diff.gene.expr <- function(data, des, contrasts, pvalue, fcvalue, p.adjust.method, annot = NULL, max.ngenes=Inf, save.file = NULL, plot = TRUE, verbose = TRUE, ...) {
   # make the matrix of contrasts
   colnames(des) <- make.names(colnames(des))
-  cont <- makeContrasts(contrasts=contrasts, levels=des)
+  cont <- limma::makeContrasts(contrasts=contrasts, levels=des)
   if(verbose) {
     print(des)
     print(cont)
   }
-  fit <- lmFit(data, des)
+  fit <- limma::lmFit(data, des)
   ##Added the print for contrast matrix
   #print(contrasts.fit(fit, cont))
-  fit2 <- eBayes(contrasts.fit(fit, cont))
+  fit2 <- limma::eBayes(limma::contrasts.fit(fit, cont))
   #max.ngenes <- read.input.number(" - indicate the max number of genes:")
   if(plot & length(contrasts) < 6) {
-    vennDiagram(decideTests(fit2, p.value=pvalue, lfc=log2(fcvalue), adjust.method=p.adjust.method),
+    limma::vennDiagram(limma::decideTests(fit2, p.value=pvalue, lfc=log2(fcvalue), adjust.method=p.adjust.method),
                 cex=c(.8,.8,0.7),
                 main = paste("Venn Diagram <p.value=", pvalue, ",FC=", fcvalue, ">",sep=""))
     #vennDiagram(decideTests(fit2, p.value=pvalue, lfc=log2(fcvalue), adjust.method=methods[n1]), include=c("up","down"), counts.col=c("red","green"),
@@ -707,7 +707,7 @@ diff.gene.expr <- function(data, des, contrasts, pvalue, fcvalue, p.adjust.metho
   list.top.tables <- list()
   if(verbose)  cat(" - generating top tables.. \n", sep="")
   for(i in 1:length(contrasts)) {
-    list.top.tables[[i]] <- topTable(fit2, coef=i, p.value=pvalue, lfc=log2(fcvalue),
+    list.top.tables[[i]] <- limma::topTable(fit2, coef=i, p.value=pvalue, lfc=log2(fcvalue),
                                      adjust.method=p.adjust.method,
                                      number=max.ngenes, sort.by="logFC")
     if(verbose) {
@@ -736,7 +736,7 @@ diff.gene.expr <- function(data, des, contrasts, pvalue, fcvalue, p.adjust.metho
   list.top.tables
 }
 volcano.plot <- function(data, cutoff.pvalue = .05, cutoff.lfc = 1) {
-  require(calibrate)
+  #require(calibrate)
   plot(data$logFC, -log10(data$P.Value), pch=20, main="Volcano plot", xlim=c(-2.5,2))
   pdata <- subset(data, P.Value < cutoff.pvalue)
   points(pdata$logFC, -log10(pdata$P.Value), pch=20, col="gray")
@@ -744,35 +744,35 @@ volcano.plot <- function(data, cutoff.pvalue = .05, cutoff.lfc = 1) {
   points(fdata$logFC, -log10(fdata$P.Value), pch=20, col="orange")
   gdata <- subset(data, P.Value < cutoff.pvalue & abs(logFC) > cutoff.lfc)
   points(gdata$logFC, -log10(gdata$P.Value), pch=20, col="blue")
-  textxy(gdata$logFC, -log10(gdata$P.Value), labs=gdata$hgnc_symbol, cex=.6)
+  calibrate::textxy(gdata$logFC, -log10(gdata$P.Value), labs=gdata$hgnc_symbol, cex=.6)
 }
 save.xls.file <- function(lists.diff.genes = NULL, file.name = "diff_genes.xlsx") {
   #require(xlsx)
-  require(XLConnect)
+  #require(XLConnect)
   options(java.parameters = "-Xmx4g")
   if(!is.null(lists.diff.genes)) {
     gc()
     # creating work book
     # wb <- createWorkbook()
-    xlcFreeMemory()
-    wb <- loadWorkbook(file.name, create=TRUE)
+    XLConnect::xlcFreeMemory()
+    wb <- XLConnect::loadWorkbook(file.name, create=TRUE)
     for(i in 1:length(lists.diff.genes)) {
       # making each as a sheet
       #sheet <- createSheet(wb, sheetName=names(lists.diff.genes)[i])
       sheet <- names(lists.diff.genes)[i]
-      createSheet(wb, sheet)
+      XLConnect::createSheet(wb, sheet)
       #addDataFrame(lists.diff.genes[[i]], sheet)
-      writeWorksheet(wb, lists.diff.genes[[i]], sheet, startRow=1, startCol=1, header=TRUE, rownames=rownames(lists.diff.genes[[i]]))
+      XLConnect::writeWorksheet(wb, lists.diff.genes[[i]], sheet, startRow=1, startCol=1, header=TRUE, rownames=rownames(lists.diff.genes[[i]]))
     }
     # saving the workbook
     #saveWorkbook(wb, file.name)
-    saveWorkbook(wb)
+    XLConnect::saveWorkbook(wb)
   }
   NULL
 }
 david.annot <- function(list.top.tables) {
-  require(BACA)
-  require(ggplot2)
+  #require(BACA)
+  #require(ggplot2)
   split <- read.input.number("Enter [1] to split each list in two sublists: down- and up-regulated genes.")
   # building the gene list
   if(split == 1) {
@@ -792,16 +792,16 @@ david.annot <- function(list.top.tables) {
   }
   return(gene.lists)
   # querying DAVID for KEGG.PATHWAYS
-  kegg.pathways <- DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi",
+  kegg.pathways <- BACA::DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi",
                                idType = "ENTREZ_GENE_ID", annotation = "KEGG_PATHWAY")
 
-  bp.terms <- DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi",
+  bp.terms <- BACA::DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi",
                                idType = "ENTREZ_GENE_ID", annotation = "GOTERM_BP_ALL")
 
-  mf.terms <- DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi",
+  mf.terms <- BACA::DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi",
                                idType = "ENTREZ_GENE_ID", annotation = "GOTERM_MF_ALL")
 
-  cc.terms <- DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi",
+  cc.terms <- BACA::DAVIDsearch(gene.lists, david.user = "vittorio.fortino@ttl.fi",
                           idType = "ENTREZ_GENE_ID", annotation = "GOTERM_CC_ALL")
 
   list(show.bbplot(kegg.pathways, "BBplot - KEGG", names(list.top.tables)),
@@ -819,7 +819,7 @@ show.bbplot <- function(res.david.query, title.query, col.names, verbose = TRUE)
     cat("Do you want to specify the max number of genes?", "\n")
     if(continue.read.inputs()) {
       max.ngenes <- read.input.number("Indicate the max number of genes:")
-      bbplot <- BBplot(res.david.query, max.pval = max.pval,
+      bbplot <- BACA::BBplot(res.david.query, max.pval = max.pval,
                        min.ngenes = min.ngenes,
                        max.ngenes = max.ngenes,
                        adj.method = "",
@@ -832,7 +832,7 @@ show.bbplot <- function(res.david.query, title.query, col.names, verbose = TRUE)
     }
     else {
       # plotting
-      bbplot <- BBplot(res.david.query, max.pval = max.pval, min.ngenes = min.ngenes, name.com = col.names,
+      bbplot <- BACA::BBplot(res.david.query, max.pval = max.pval, min.ngenes = min.ngenes, name.com = col.names,
                        title = paste(title.query, "<p.value=", max.pval,";min.num.genes=", min.ngenes,">", sep=""), print.term = "full")
       print(bbplot)
     }
@@ -921,7 +921,7 @@ plot.heatmap <- function(data, labels, top = 500) {
   hvars <- sort(hvars, decreasing=TRUE)
   hvars <- hvars[1:top]
   print(dim(data[names(hvars),]))
-  heatmap.2(data[names(hvars),], Rowv=TRUE,
+  gplots::heatmap.2(data[names(hvars),], Rowv=TRUE,
             scale="column", trace="none",
             distfun=dist2, hclustfun = hclust2,
             col=redgreen, xlab=NULL, ylab=NULL,
@@ -940,8 +940,8 @@ plot.heatmap <- function(data, labels, top = 500) {
   )
 }
 plot.heatmpa.genes <- function(expr.dat, col, sf = 3, ze = 0.4, pi = 0.4, o = 1, ccolors) {
-  require(Biobase)
-  require(DFP)
+  #require(Biobase)
+  #require(DFP)
   dfp <- featSelDFP(expr.dat, skipFactor = sf, zeta = ze, piVal = pi, overlapping = o)[[3]]
   dl <- as.matrix(dfp)
   dl <- apply(dl, MARGIN = 2, FUN = function(x) {
@@ -953,24 +953,24 @@ plot.heatmpa.genes <- function(expr.dat, col, sf = 3, ze = 0.4, pi = 0.4, o = 1,
   dat <- expand.grid(var1=1:nrow(dfp), var2=1:ncol(dfp))
   lev <- colnames(attr(dfp,"ifs"))
   dat$var2 <- sapply(dat$var2, function(i) lev[i])
-  dat$value <- round(melt(attr(dfp,"ifs"))$value, 2)
-  dat$labels <- melt(dl)$value
+  dat$value <- round(reshape::melt(attr(dfp,"ifs"))$value, 2)
+  dat$labels <- reshape::melt(dl)$value
   print(dat)
-  ggplot(dat, aes(x=var1,y=var2))+
-    geom_point(aes(size = value, colour = labels)) +
-    scale_colour_manual(values=ccolors) +
-    scale_size(range = c(5, 10), breaks=c(0.25,.5,.75),labels=c("25%","50%","75%")) +
+  ggplot2::ggplot(dat, ggplot2::aes(x=var1,y=var2))+
+    ggplot2::geom_point(ggplot2::aes(size = value, colour = labels)) +
+    ggplot2::scale_colour_manual(values=ccolors) +
+    ggplot2::scale_size(range = c(5, 10), breaks=c(0.25,.5,.75),labels=c("25%","50%","75%")) +
     #scale_size(range = c(5, 10)) +
-    scale_x_continuous(breaks = 1:nrow(dfp), labels = feats) +
-    scale_y_discrete(limits = sort(levels(expr.dat$class), decreasing = T)) +
-    labs(size = "Coverage", colour="Gene status") +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-          axis.text.y = element_text(size = 10),
-          panel.background = element_blank(),
-          legend.text = element_text(size = 10),
+    ggplot2::scale_x_continuous(breaks = 1:nrow(dfp), labels = feats) +
+    ggplot2::scale_y_discrete(limits = sort(levels(expr.dat$class), decreasing = T)) +
+    ggplot2::labs(size = "Coverage", colour="Gene status") +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, size = 10),
+          axis.text.y = ggplot2::element_text(size = 10),
+          panel.background = ggplot2::element_blank(),
+          legend.text = ggplot2::element_text(size = 10),
           legend.position="right") +
-    xlab("Genes") +
-    ylab("Class Labels")
+    ggplot2::xlab("Genes") +
+    ggplot2::ylab("Class Labels")
 }
 split.top.tables <- function(list.tables, fc = 1.5) {
   gene.lists <- unlist(lapply(list.tables, function(d) {
@@ -1006,20 +1006,20 @@ GKtau <- function(x,y){
 }
 # DFP-based analysis
 featSelDFP <- function(exprData, skipFactor = 3, zeta = 0.5, piVal = 0.9, overlapping = 2) {
-  require(DFP)
-  mfs <- calculateMembershipFunctions(exprData, skipFactor)
+  #require(DFP)
+  mfs <- DFP::calculateMembershipFunctions(exprData, skipFactor)
   print("calculateMembershipFunctions <DONE>")
-  dvs <- discretizeExpressionValues(exprData, mfs, zeta, overlapping)
+  dvs <- DFP::discretizeExpressionValues(exprData, mfs, zeta, overlapping)
   print("discretizeExpressionValues <DONE>")
-  fps <- calculateFuzzyPatterns(exprData, dvs, piVal, overlapping)
+  fps <- DFP::calculateFuzzyPatterns(exprData, dvs, piVal, overlapping)
   print("calculateFuzzyPatterns <DONE>")
   list.fps <- lapply(names(table(exprData$class)), function(c) {
-    fp <- showFuzzyPatterns(fps, c)
+    fp <- DFP::showFuzzyPatterns(fps, c)
     rownames(exprData)[which((rownames(exprData) %in% names(fp)) == TRUE)]
   })
   #xlistFPs <- lapply(names(table(exprData$class)), FUN= function(c) { fp = showFuzzyPatterns(fps, c); which( (rownames(exprData) %in% names(fp)) == TRUE)})
   # print(xlistFPs)
-  dfps <- calculateDiscriminantFuzzyPattern(exprData, fps)
+  dfps <- DFP::calculateDiscriminantFuzzyPattern(exprData, fps)
   #plotDiscriminantFuzzyPattern(dfps, overlapping)
   return(list(fps,list.fps,dfps,dvs))
 }
@@ -1032,16 +1032,16 @@ merge.combat <- function (esets, covariates = NULL, verbose = T)  {
   #mod = cbind(as.factor(imp_ann$Nano2), as.factor(imp_ann$TimeExposition),as.factor(imp_ann$cell_type2))
   #print(colnames(pData(raw_merged)))
   c.names <- c("Array name", "Sample name", "Batch")
-  saminfo = cbind(rownames(pData(raw_merged)), rownames(pData(raw_merged)), batchInfo)
+  saminfo = cbind(rownames(Biobase::pData(raw_merged)), rownames(Biobase::pData(raw_merged)), batchInfo)
   if(!is.null(covariates)) {
     for(i in 1:length(covariates)) {
-      saminfo <- cbind(saminfo, as.factor(pData(raw_merged)[,covariates[i]]))
+      saminfo <- cbind(saminfo, as.factor(Biobase::pData(raw_merged)[,covariates[i]]))
       c.names <- c(c.names, covariates[i])
     }
   }
   #colnames(saminfo) = c("Array name", "Sample name", "Batch")
   colnames(saminfo) = c.names
-  dat = exprs(raw_merged)
+  dat = Biobase::exprs(raw_merged)
   design <- design.mat(saminfo)
   if(verbose) print(design)
   batches <- list.batch(saminfo)
@@ -1090,23 +1090,23 @@ merge.combat <- function (esets, covariates = NULL, verbose = T)  {
   bayesdata <- (bayesdata * (sqrt(var.pooled) %*% t(rep(1,
                                                         n.array)))) + stand.mean
   eset = raw_merged
-  exprs(eset) = bayesdata
+  Biobase::exprs(eset) = bayesdata
   return(eset)
 }
 merge.array <- function (esets)  {
   eset1 = esets[[1]]
-  annot1 = annotation(eset1)
+  annot1 = BiocGenerics::annotation(eset1)
   for (i in 2:length(esets)) {
     eset2 = esets[[i]]
-    d1 = exprs(eset1)
-    d2 = exprs(eset2)
+    d1 = Biobase::exprs(eset1)
+    d2 = Biobase::exprs(eset2)
     cg = sort(intersect(rownames(d1), rownames(d2)))
     if (length(cg) < (min(dim(d1)[1], dim(d2)[1])/100)) {
       msg(" ! WARNING ! Number of common genes < 1%")
     }
-    fData = fData(eset1)[cg, ]
-    p1 = pData(eset1)
-    p2 = pData(eset2)
+    fData = Biobase::fData(eset1)[cg, ]
+    p1 = Biobase::pData(eset1)
+    p2 = Biobase::pData(eset2)
     cp = sort(intersect(colnames(p1), colnames(p2)))
     tp = sort(unique(union(colnames(p1), colnames(p2))))
     sp1 = setdiff(colnames(p1), cp)
@@ -1131,12 +1131,12 @@ merge.array <- function (esets)  {
     d1 = d1[cg, , drop = FALSE]
     d2 = d2[cg, , drop = FALSE]
     eset1 = new("ExpressionSet")
-    exprs(eset1) = cbind(d1, d2)
-    pData(eset1) = pData
-    fData(eset1) = fData
-    annot1 = c(annot1, annotation(eset2))
+    Biobase::exprs(eset1) = cbind(d1, d2)
+    Biobase::pData(eset1) = pData
+    fBiobase::Data(eset1) = fData
+    annot1 = c(annot1, BiocGenerics::annotation(eset2))
   }
-  annotation(eset1) = unique(annot1)
+  BiocGenerics::annotation(eset1) = unique(annot1)
   return(eset1)
 }
 design.mat <- function (saminfo, verbose = TRUE) {
@@ -1212,7 +1212,7 @@ plotMDS <- function (eset, colLabel, symLabel, legend = TRUE, file = NULL,  ctr 
   if (!is.null(file)) {
     pdf(file, width = 12, height = 7)
   }
-  mds = cmdscale(dist(t(exprs(eset))), eig = TRUE)
+  mds = cmdscale(dist(t(Biobase::exprs(eset))), eig = TRUE)
   colMap = makeColorMap(eset, colLabel)
   colVec = makeColorVec(eset, colLabel, colMap)
   tmp = par()$mar
@@ -1221,7 +1221,7 @@ plotMDS <- function (eset, colLabel, symLabel, legend = TRUE, file = NULL,  ctr 
   }
   range_x = range(mds$points[, 1])
   range_y = range(mds$points[, 2])
-  plot(mds$points, col = colVec, pch = as.numeric(pData(eset)[,
+  plot(mds$points, col = colVec, pch = as.numeric(Biobase::pData(eset)[,
                                                               symLabel]), panel.first = {
                                                                 U = par("usr")
                                                                 rect(U[1], U[3], U[2], U[4], col = "azure2", border = "black",
@@ -1236,7 +1236,7 @@ plotMDS <- function (eset, colLabel, symLabel, legend = TRUE, file = NULL,  ctr 
   if (legend) {
     x = range_x[2] + (range_x[2] - range_x[1]) * 0.05
     y = range_y[2] - (range_y[2] - range_y[1]) * 0.05
-    syms = unique(pData(eset)[, symLabel])
+    syms = unique(Biobase::pData(eset)[, symLabel])
     legend("topleft", legend = syms, pt.lwd = 2, cex = 0.7, pch = as.numeric(syms),
            box.lwd = 3, bg = "azure2")
     legend("topright", inset=c(-0.3,0), legend = names(colMap), pt.lwd = 2, pch = 19,
@@ -1250,14 +1250,14 @@ plotMDS <- function (eset, colLabel, symLabel, legend = TRUE, file = NULL,  ctr 
 }
 makeColorMap <- function (eset, label){
   colMap = list()
-  vec = unique(as.vector(pData(eset)[, label]))
+  vec = unique(as.vector(Biobase::pData(eset)[, label]))
   for (i in 1:length(vec)) {
     colMap[[vec[i]]] = COLORS[i]
   }
   return(colMap)
 }
 makeColorVec <- function (eset, label, colMap) {
-  labels = as.vector(pData(eset)[, label])
+  labels = as.vector(Biobase::pData(eset)[, label])
   return(as.vector(unlist(sapply(labels, function(x) {
     colMap[x]
   }))))
@@ -1304,8 +1304,52 @@ get_deg_summary <- function(deg_list, names, lfc=0){
         return(countsDF)
 }
 
+randomPal <- function(n=20, generic="rgb"){
+        if(tolower(generic)=="rgb"){
+                matRGB <- matrix(c(sample(0:255, n),sample(0:255, n),sample(0:255, n)), nrow=3, byrow=TRUE)
+                print(class(matRGB))
+                print(dim(matRGB))
+                rI <- matRGB[1,]
+                gI <- matRGB[2,]
+                bI <- matRGB[3,]
+                myPal <- rgb(rI, gI, bI, maxColorValue=255)
+                return(list(pal=myPal, mat=matRGB))
+        }else if(tolower(generic)=="hsv"){
+                matHSV <- matrix(c(runif(n, min=0.1, max=1), runif(n, min=0.6, max=1), runif(n, min=0.1, max=1)), nrow=3, byrow=TRUE)
+                print(class(matHSV))
+                print(dim(matHSV))
+                hI <- matHSV[1,]
+                sI <- matHSV[2,]
+                vI <- matHSV[3,]
+                myPal <- hsv(hI, sI, vI)
+                return(list(pal=myPal, mat=matHSV))
+        }else if(tolower(generic)=="hcl"){
+                matHCL <- matrix(c(sample(0:360, n), sample(10:100, n), rep(60, n)), nrow=3, byrow=TRUE)
+                hI <- matHCL[1,]
+                cI <- matHCL[2,]
+                lI <- matHCL[3,]
+                print(class(matHCL))
+                print(dim(matHCL))
+                myPal <- hcl(h=hI, c=cI, l=lI)
+                return(list(pal=myPal, mat=matHCL))
+        }
+}
+
+darkenRGB <- function(rgbMat){
+                tmp <- rgb2hsv(rgbMat[1,],rgbMat[2,],rgbMat[3,])
+		tmp[2,which(tmp[2,]<0.6)] <- tmp[2,which(tmp[2,]<0.6)] + 0.4
+                res <- hsv(tmp[1,],tmp[2,],tmp[3,])
+                return(res)
+}
+
 #Get color palette for factor
 get_color_palette <- function(iVec, asFactor=FALSE){
+	#require(V8)
+	#require(colorspace)
+	#require(grDevices)
+	#require(scales)
+	#require(methods)
+	#require(randomcoloR)
         set.seed(1) #Block randomness. Set seed
         print("Getting color palette..")
         if(asFactor){
@@ -1323,8 +1367,13 @@ get_color_palette <- function(iVec, asFactor=FALSE){
                 }
                 print("levels:")
                 print(nm)
-                #nmPalette <- setNames(randomcoloR::distinctColorPalette(length(nm)), seq(nm))
-                nmPalette <- setNames(randomcoloR::randomColor(length(nm), luminosity="dark"), seq(nm))
+
+		#Use random color palette function
+                n <- length(nm)
+                myPal <- randomPal(n, generic="rgb")
+                darkPal <- darkenRGB(myPal$mat)
+                nmPalette <- setNames(darkPal, seq(n))
+
                 print("Palette base:")
                 print(nmPalette)
                 print("Levels as integer:")
@@ -1338,8 +1387,11 @@ get_color_palette <- function(iVec, asFactor=FALSE){
                 }
                 print("iVec:")
                 print(iVec)
-                #colorVec <- setNames(randomcoloR::distinctColorPalette(length(iVec)), iVec)
-                colorVec <- setNames(randomcoloR::randomColor(length(iVec), luminosity="dark"), iVec)
+
+		n <- length(iVec)
+                myPal <- randomPal(n, generic="rgb")
+                darkPal <- darkenRGB(myPal$mat)
+                colorVec <- setNames(darkPal, iVec)
         }
         print("Palette vector:")
         print(colorVec)
@@ -1461,6 +1513,7 @@ format_boxplot_grob <- function(box_grob, l1, l2){
 affy_QC_report <- function(fileNamesCol, samplesCol, phTable, celDir, cdfname, nCores=NULL, outputFile="affy_QC_report.pdf", isParallel=TRUE, minFiles=20, updateProgress=NULL){
 	require("foreach")
 	require("grid")
+	require("affy")
 	import::from("Biobase", "AnnotatedDataFrame")
 	import::from("Biobase", "featureNames")
 
@@ -1577,7 +1630,7 @@ affy_QC_report <- function(fileNamesCol, samplesCol, phTable, celDir, cdfname, n
 
 		cl <- parallel::makeCluster(nCores, outfile="")
 		doParallel::registerDoParallel(cl)
-		on.exit({parallel::stopCluster(cl); registerDoSEQ()})
+		on.exit({parallel::stopCluster(cl); foreach::registerDoSEQ()})
 
 		env <- environment()
 		parallel::clusterExport(cl, list("get_affyBatchObject", "combine_stat_plot"), envir=env)
@@ -1672,7 +1725,7 @@ affy_QC_report <- function(fileNamesCol, samplesCol, phTable, celDir, cdfname, n
 		params[["NUSE_plot"]] <- res$pl
 
 		parallel::stopCluster(cl)
-		registerDoSEQ()
+		foreach::registerDoSEQ()
 	}else{
 		print("Performing serial execution...")
 		RLE_plot <- list()
@@ -1853,7 +1906,7 @@ affy_QC_report <- function(fileNamesCol, samplesCol, phTable, celDir, cdfname, n
 
 	##Write to report R file
 
-	tempR <- tempfile("affy_QC_report_", fileext = c(".Rmd"))
+	tempR <- tempfile("affy_QC_report_", fileext=c(".Rmd"))
 	#tempR <- "affy_QC_report.Rmd"
 	fileConn <- file(tempR, "w")
 	on.exit({
@@ -2071,11 +2124,11 @@ affy_QC_report <- function(fileNamesCol, samplesCol, phTable, celDir, cdfname, n
 
 install.bioc <- function(pkg){
 	vers <- getRversion()
-	if (vers >= "3.6"){
-		if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+	if(vers >= "3.6"){
+		if(!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 		BiocManager::install(pkg)
 	}else{
-		if (!requireNamespace("BiocInstaller", quietly = TRUE)){
+		if(!requireNamespace("BiocInstaller", quietly = TRUE)){
 			source("https://bioconductor.org/biocLite.R")
 			biocLite(pkg, suppressUpdates=TRUE)
 		}else{

@@ -96,7 +96,7 @@ if(isNorm){
                 minfi::densityPlot(RGset, main="Before Normalization", xlab="Beta")
         }else{
                 rgList <- params$gVars$rgList
-                plotDensities(rgList, main="Before Normalization")
+                limma::plotDensities(rgList, main="Before Normalization")
         }
 }else{
         print("Normalized data not found!")
@@ -124,7 +124,7 @@ if(isNorm){
                         print("RG channel object is null for normalized data!")
                 }
                 rgList.norm <- params$gVars$rgList.norm
-                plotDensities(rgList.norm, main="After Normalization")
+                limma::plotDensities(rgList.norm, main="After Normalization")
         }
 }else{
         print("Normalized data not found!")
@@ -146,7 +146,7 @@ if(isNorm){
                 print("No plot for Illumina methylation data!")
         }else{
                 rgList <- params$gVars$rgList
-                plotMD(rgList, main="Before Normalization")
+                limma::plotMD(rgList, main="Before Normalization")
         }
 }else{
         print("Normalized data not found!")
@@ -168,7 +168,7 @@ if(isNorm){
                 print("RG channel object is null for normalized data!")
         }else{
                 rgList.norm <- params$gVars$rgList.norm
-                plotMD(rgList.norm, main="After Normalization")
+                limma::plotMD(rgList.norm, main="After Normalization")
         }
 }else{
         print("Normalized data not found!")
@@ -194,7 +194,7 @@ if(isNorm){
                 }
         }
         #res <- confounding(ph, margins = c(15,15), notecex=0.5)
-        res <- confounding(phFactor, margins = c(15,15), notecex=0.5)
+        res <- swamp::confounding(phFactor, margins = c(15,15), notecex=0.5)
 }else{
         print("Normalized data not found!")
 }
@@ -229,9 +229,9 @@ if(isNorm){
                 npc <- ncol(data)
         }
         #pr <- prince(data, ph, top=npc)
-        pr <- prince(data, phFactor, top=npc)
+        pr <- swamp::prince(data, phFactor, top=npc)
         # generate the prince plot
-        prince.plot(prince=pr, margins=c(15,15), note=TRUE, notecex=0.5)
+        swamp::prince.plot(prince=pr, margins=c(15,15), note=TRUE, notecex=0.5)
 }else{
         print("Normalized data not found!")
 }
@@ -263,9 +263,9 @@ if(isCorr){
                 npc <- ncol(data)
         }
         #pr <- prince(data, ph[,test], top=npc)
-        pr <- prince(data, phFactor, top=npc)
+        pr <- swamp::prince(data, phFactor, top=npc)
         #generate the prince plot
-        prince.plot(prince=pr, margins = c(5,5), note=TRUE, notecex=0.5)
+        swamp::prince.plot(prince=pr, margins = c(5,5), note=TRUE, notecex=0.5)
 }else{
         print("Corrected data not found!")
 }
@@ -298,7 +298,7 @@ if(isNorm){
         }
         #hc plot
         #hca.plot(data, ph, method="correlation")
-        hca.plot(data, phFactor, method="correlation")
+        swamp::hca.plot(data, phFactor, method="correlation")
 }else{
         print("Normalized data not found!")
 }
@@ -327,7 +327,7 @@ if(isCorr){
         # hc plot
         #ph <- as.data.frame(apply(ph, 2, factor))
         #hca.plot(data, ph[,test], method = "correlation")
-        hca.plot(data, phFactor, method = "correlation")
+        swamp::hca.plot(data, phFactor, method = "correlation")
 }else{
         print("Corrected data not found!")
 }
@@ -354,7 +354,7 @@ if(isNorm){
                 ###limma:::plotMDS(norm.data, top=500, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "Before removing any batch", cex=0.5)
                 ##limma:::plotMDS(norm.data, top=topNum, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "Before removing any batch", cex=0.5)
                 #limma:::plotMDS(norm.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=as.numeric(phFactor[,params$input$mdsColor]), gene.selection="common", main="Before removing any batch", cex=0.5)
-                limma:::plotMDS(norm.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=colVec, gene.selection="common", main="Before removing any batch", cex=0.5)
+                limma:::plotMDS(norm.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=colVec, gene.selection="common", main="Before removing any batch", cex=0.5, font=2)
         }else{
                 print("Missing label and color information...")
         }
@@ -382,7 +382,7 @@ if(isCorr){
                 ###limma:::plotMDS(comb.data, top=500, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After removing batches", cex=0.5)
                 ##limma:::plotMDS(comb.data, top=topNum, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After removing batches", cex=0.5)
                 #limma:::plotMDS(comb.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=as.numeric(phFactor[,params$input$mdsColor]), gene.selection="common", main="After removing batches", cex=0.5)
-                limma:::plotMDS(comb.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=colVec, gene.selection="common", main="After removing batches", cex=0.5)
+                limma:::plotMDS(comb.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=colVec, gene.selection="common", main="After removing batches", cex=0.5, font=2)
         }else{
                 print("Missing label and color information...")
         }
@@ -411,7 +411,7 @@ if(isAgg){
                         ###limma:::plotMDS(agg.data, top=500, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After aggregation", cex=0.5)
                         ##limma:::plotMDS(agg.data, top=topNum, labels=phTable[,params$input$mdsLabel], col=as.numeric(phTable[,params$input$mdsColor]), gene.selection="common", main = "After aggregation", cex=0.5)
                         #limma:::plotMDS(agg.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=as.numeric(phFactor[,params$input$mdsColor]), gene.selection="common", main="After aggregation", cex=0.5)
-                        limma:::plotMDS(agg.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=colVec, gene.selection="common", main="After aggregation", cex=0.5)
+                        limma:::plotMDS(agg.data, top=topNum, labels=as.character(phFactor[,params$input$mdsLabel]), col=colVec, gene.selection="common", main="After aggregation", cex=0.5, font=2)
                 }else{
                         print(paste0("No plot for ", params$input$arrType, " data!"))
                 }
@@ -495,7 +495,7 @@ if(isDeg){
                         printMode <- "raw"
                         marginSize <- 0.12
                         futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
-                        venn.plot <- venn.diagram(
+                        venn.plot <- VennDiagram::venn.diagram(
                                   x=deg.item.list,
                                   filename=NULL,
                                   cat.cex=cat_label_size,
@@ -505,7 +505,7 @@ if(isDeg){
                                   margin=marginSize,
                                   print.mode=printMode
                         )
-                        grid.draw(venn.plot)
+                        grid::grid.draw(venn.plot)
                 }else{
                         print("Too Many Sets for Venn Representation!")
                 }
@@ -552,7 +552,7 @@ if(isDeg){
                 textScale <- 1
                 intersectSize <- 10
                 xLabel <- "Set Size"
-                upset(deg.item.DF, nintersects=intersectSize, sets=setNames, order.by="freq", decreasing=T, line.size=0.1, sets.x.label=xLabel, keep.order=keepingOrder, text.scale=textScale, sets.bar.color=setColors)
+                UpSetR::upset(deg.item.DF, nintersects=intersectSize, sets=setNames, order.by="freq", decreasing=T, line.size=0.1, sets.x.label=xLabel, keep.order=keepingOrder, text.scale=textScale, sets.bar.color=setColors)
         }else{
                 print("Not Enough Sets to Intersect!")
         }
@@ -588,7 +588,7 @@ if(isExpr){
 
                         selCols <- which(colnames(tmp.data) %in% conditions)
                         selRows <- which(rownames(tmp.data) %in% genes)
-                        melted.tmp.data <- melt(tmp.data[selRows, selCols])
+                        melted.tmp.data <- reshape2::melt(tmp.data[selRows, selCols])
                         if(ncol(melted.tmp.data)==1){
                                 melted.tmp.data <- data.frame(Var1=rownames(tmp.data)[selRows], Var2=colnames(tmp.data)[selCols], value=melted.tmp.data, stringsAsFactors=F)
                         }
@@ -656,7 +656,7 @@ if(isDeg && isComps && isConds){
         #classPalette <- setNames(randomcoloR::distinctColorPalette(length(conditions)), conditions)
         classPalette <- params$gVars$classPalette
 
-        res <- heatplot(tmp.data.sel,
+        res <- made4::heatplot(tmp.data.sel,
                 dend = "column",
                 scale = "none",
                 cols.default=F,
