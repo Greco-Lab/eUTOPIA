@@ -59,6 +59,9 @@ if(isNorm){
                 par(cex.axis=0.5)
                 boxplot(filt.data, las=2, cex=0.7, main="Before Normalization")
         }else{
+		if(params$input$arrType=="rna_seq"){
+			filt.data[filt.data==0] <- 0.000000000000001
+		}
                 par(cex.axis=0.5)
                 boxplot(log2(filt.data), las=2, cex=0.7, main="Before Normalization")
         }
@@ -73,6 +76,10 @@ if(isNorm){
 ```{r boxplot_after_normalization, echo=F, fig.height=4, fig.width=9}
 if(isNorm){
         norm.data <- params$gVars$norm.data
+	if(params$input$arrType=="rna_seq"){
+		norm.data[norm.data==0] <- 0.000000000000001
+		norm.data <- log2(norm.data)
+	}
         par(cex.axis=0.5)
         boxplot(norm.data, las=2, cex=0.7, main="After Normalization")
 }else{
@@ -94,6 +101,9 @@ if(isNorm){
         }else if(params$input$arrType=="il_methyl"){
                 RGset <- params$gVars$RGset
                 minfi::densityPlot(RGset, main="Before Normalization", xlab="Beta")
+	}else if(params$input$arrType=="rna_seq"){
+		filt.data <- params$gVars$filt.data
+		plotCountDensities(count.data=filt.data, main="Before Normalization")
         }else{
                 rgList <- params$gVars$rgList
                 limma::plotDensities(rgList, main="Before Normalization")
@@ -112,6 +122,10 @@ if(isNorm){
                 print("No plot for Affymetrix data!")
         }else if(params$input$arrType=="ag_exp1"){
                 print("No plot for Agilent single color data!")
+        }else if(params$input$arrType=="ag_exp2"){
+                if(is.null(params$gVars$rgList.norm)){
+                        print("RG channel object is null for normalized data!")
+                }
         }else if(params$input$arrType=="il_methyl"){
                 Mset <- params$gVars$Mset
                 if(is(Mset, "RGChannelSet") || is(Mset, "MethylSet")){
@@ -119,10 +133,10 @@ if(isNorm){
                 }else{
                         print("No plot for this nomalization method!")
                 }
+	}else if(params$input$arrType=="rna_seq"){
+		norm.data <- params$gVars$norm.data
+		plotCountDensities(count.data=norm.data, main="After Normalization")
         }else{
-                if(is.null(params$gVars$rgList.norm)){
-                        print("RG channel object is null for normalized data!")
-                }
                 rgList.norm <- params$gVars$rgList.norm
                 limma::plotDensities(rgList.norm, main="After Normalization")
         }
@@ -144,6 +158,9 @@ if(isNorm){
                 print("No plot for Agilent single color data!")
         }else if(params$input$arrType=="il_methyl"){
                 print("No plot for Illumina methylation data!")
+	}else if(params$input$arrType=="rna_seq"){
+		filt.data <- params$gVars$filt.data
+		plotCountMA(count.data=filt.data, main="Before Normalization")
         }else{
                 rgList <- params$gVars$rgList
                 limma::plotMD(rgList, main="Before Normalization")
@@ -166,6 +183,9 @@ if(isNorm){
                 print("No plot for Illumina methylation data!")
         }else if(is.null(params$gVars$rgList.norm)){
                 print("RG channel object is null for normalized data!")
+	}else if(params$input$arrType=="rna_seq"){
+		norm.data <- params$gVars$norm.data
+		plotCountMA(count.data=norm.data, main="After Normalization")
         }else{
                 rgList.norm <- params$gVars$rgList.norm
                 limma::plotMD(rgList.norm, main="After Normalization")

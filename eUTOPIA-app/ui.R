@@ -245,13 +245,21 @@ fluidPage(
 	div(id="sel-array-type",
 		div(id="widget-wrap",
 			fluidRow(column(12, align="center",
-				selectInput("arrType", "Select Platform", choices=c("Agilent Expression (2 color)"="ag_exp2", "Agilent Expression (1 color)"="ag_exp1", "Affymetrix Expression"="af_exp", "Illumina Methylation"="il_methyl"), selected="ag_exp2"),
+				selectInput("arrType", "Select Platform", 
+					choices=c(
+						"Agilent Expression (2 color)"="ag_exp2", 
+						"Agilent Expression (1 color)"="ag_exp1", 
+						"Affymetrix Expression"="af_exp", 
+						"Illumina Methylation"="il_methyl",
+						"RNA-Seq"="rna_seq"
+					), 
+					selected="ag_exp2"
+				),
 				actionButton("submit_array_type", "Begin")
 			))
 		)
 	),
 	dashboardPage(
-	#dashboardHeader(title="eTOPA: soluTion for Omics data Preprocessing and Analysis", titleWidth="25%"),
 	dashboardHeader(title="eUTOPIA: solUTion for Omics data PreprocessIng and Analysis", titleWidth="35%"),
 	dashboardSidebar(disable=FALSE,
                 bsCollapse(id="bsSidebar", open="LOAD PHENOTYPE DATA",
@@ -306,7 +314,7 @@ fluidPage(
                                                                 )
                                                         )
 						),
-						div(id="affAnnDiv", class="contentDiv",
+						hidden(div(id="affAnnDiv", class="contentDiv",
 							h4("Select Annotation"),
 							fluidRow(
 								column(1, align="center",
@@ -318,7 +326,16 @@ fluidPage(
 									uiOutput("selAffCDF")
 								)
 							)
-						)
+						)),
+						hidden(div(id="seqAnnDiv", 
+							fluidRow(column(12,
+									checkboxInput(inputId="chkPaired", label="Paired End", value=FALSE),
+									uiOutput("selCoresSeq"),
+									h4("Load Annotation"),
+									fileInput("fGTF", label="GTF Annotation File")
+								)
+							)
+						))
 					)
                                 ),fluidRow(
                                         #column(1, align="center",
@@ -355,12 +372,28 @@ fluidPage(
                                                 actionButton("qc_skip_submit", "Skip QC")
                                         )
                                 )
-                        ),bsCollapsePanel("PROBE FILTERING", style="danger",
+                        ),bsCollapsePanel("FEATURE FILTERING", style="danger",
                                 fluidRow(
                                         column(12,
                                                 sliderInput("filtDist", "Quantile Based Cutoff", min=0.10, max=1.0, value=0.75, step=0.05, round=2),
-                                                selectInput("detectPV", "P.value detection threshold", choices=c(0.01, 0.05), selected=0.01),
+                                                selectInput("detectPV", "P.value detection threshold", choices=c(0.01, 0.05), selected=0.01), #For Illumina Methylation
                                                 sliderInput("perSamples", "Percentage of Samples", min=1, max=100, value=75, step=1),
+						uiOutput("selVarIFilt"), #For RNA-Seq
+                                                uiOutput("selFiltMethod"), #For RNA-Seq
+						numericInput("filtCPM", "Counts Per Million", value=1, min=1, max=NA), #For RNA-Seq
+                                                selectInput("filtPvAdj", "P.value Adjustment", 
+							choices=c(
+								"Holm"="holm", 
+								"Hochberg"="hochberg", 
+								"Hommel"="hommel", 
+								"Bonferroni"="bonferroni", 
+								"Benjamini & Hochberg"="BH", 
+								"Benjamini & Yekutieli"="BY", 
+								"False Detection Rate"="fdr", 
+								"None"="none"
+							), 
+							selected="none"
+						), #For RNA-Seq
                                                 hr()
                                         )
                                 ),fluidRow(

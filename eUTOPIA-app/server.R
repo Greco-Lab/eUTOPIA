@@ -50,7 +50,7 @@ print(srcDir)
 array_pipeline_R <- file.path(srcDir, "agilent_twocolors_array_analysis_pipe_fixed.R")
 source(array_pipeline_R)
 
-options(shiny.maxRequestSize=500*1024^2)
+options(shiny.maxRequestSize=20*1024^3)
 #data(Other)
 set.seed(1) #Block randomness. Set seed
 
@@ -101,8 +101,6 @@ shinyServer(
 		gVars$normChoices <- c("Between Arrays"="BA", "Quantile"="quantile", "Variance Stabilizing"="vsn", "Cyclic Loess"="cl")
 		gVars$baChoices <- c("None"="none", "Scale"="scale", "Quantile"="quantile", "Cyclic Loess"="cyclicloess")
 
-
-
                 ## Get available Affymetrix CDF annotations
 		allPkgNames <- rownames(installed.packages())
 		gVars$cdfPkgNames <- allPkgNames[grep(".*cdf", allPkgNames)]
@@ -144,32 +142,32 @@ shinyServer(
 		})
 
                 ## Get raw data directory
-								roots <- shinyFiles::getVolumes()
-								tryCatch({
-									shinyFiles::shinyDirChoose(input, "dirButton", roots=roots)
-								},
-								error = function(e){
-									shinyjs::info(paste0("Following error was encountered\n", e$message))
-								})
+		roots <- shinyFiles::getVolumes()
+		tryCatch({
+			shinyFiles::shinyDirChoose(input, "dirButton", roots=roots)
+		},
+		error = function(e){
+			shinyjs::info(paste0("Following error was encountered\n", e$message))
+		})
 
                 gVars$celDir <- reactive({
                         if(is.null(input$dirButton))
                         return(NULL)
 
-												print("Parsing raw data directory paths")
+			print("Parsing raw data directory paths")
 
-												roots <- shinyFiles::getVolumes()
+			roots <- shinyFiles::getVolumes()
                         #roots <- c(wd="/")
                         #roots <- gVars$roots()
-												tryCatch({
-                      		celDir <- shinyFiles::parseDirPath(roots, input$dirButton)
-													print("Finished parsing raw data directory paths")
-													print(paste0("Directory path : ", celDir))
-													print(paste0("class(celDir) : ", class(celDir)))
-												},
-												error = function(e){
-					                shinyjs::info(paste0("Following error was encountered\n", e$message))
-								        })
+			tryCatch({
+				celDir <- shinyFiles::parseDirPath(roots, input$dirButton)
+				print("Finished parsing raw data directory paths")
+				print(paste0("Directory path : ", celDir))
+				print(paste0("class(celDir) : ", class(celDir)))
+			},
+			error = function(e){
+				shinyjs::info(paste0("Following error was encountered\n", e$message))
+			})
 			shiny::updateTextInput(session, "dirTextDisp", value=celDir)
                         return(celDir)
                 })
@@ -368,8 +366,8 @@ shinyServer(
                         coltypes.nonChar.idx <- which(!coltypes=="character")
                         coltypes.charOnly.len <- length(coltypes.charOnly.idx)
                         coltypes.nonChar.len <- length(coltypes.nonChar.idx)
-												remInfo <- 0
-												remStr <- ""
+			remInfo <- 0
+			remStr <- ""
                         if(coltypes.charOnly.len>0){
                                 phTable.charOnly <- phTable[, coltypes.charOnly.idx, drop=F]
                                 print("dim(phTable.charOnly)")
@@ -1224,7 +1222,7 @@ shinyServer(
 				gVars$rgList <- rgList
 				gVars$nc.data <- nc.data
 				gVars$c.data <- c.data
-				#shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("LOAD RAW DATA"="success", "PROBE FILTERING"="warning"))
+				#shinyBS::updateCollapse(session, "bsSidebar", open="FEATURE FILTERING", style=list("LOAD RAW DATA"="success", "FEATURE FILTERING"="warning"))
 			}else if(arrType=="ag_exp1"){
 				eListRaw <- limma::read.maimages(files=fileNames, source="agilent.median", path=celDir, green.only=T, other.columns=c("gIsGeneDetected"),verbose=TRUE, skipNul=TRUE)
                                 data <- eListRaw$E
@@ -1255,7 +1253,7 @@ shinyServer(
 				gVars$c.data <- c.data
                                 gVars$map <- map
                                 gVars$eListRaw <- eListRaw
-				#shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("LOAD RAW DATA"="success", "PROBE FILTERING"="warning"))
+				#shinyBS::updateCollapse(session, "bsSidebar", open="FEATURE FILTERING", style=list("LOAD RAW DATA"="success", "FEATURE FILTERING"="warning"))
 			}else if(arrType=="af_exp"){
                                 tmpFile <- file.path(celDir, fileNames[1])
                                 celHeader <- affyio::read.celfile.header(tmpFile)
@@ -1346,28 +1344,48 @@ shinyServer(
                                 gVars$RGset <- RGset
                                 gVars$detP <- detP
 
-				#shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("LOAD RAW DATA"="success", "PROBE FILTERING"="warning"))
+				#shinyBS::updateCollapse(session, "bsSidebar", open="FEATURE FILTERING", style=list("LOAD RAW DATA"="success", "FEATURE FILTERING"="warning"))
+			}else if(arrType=="rna_seq"){
+				if(is.null(input$fGTF)){
+					shinyjs::info("No GTF annotation provided!")
+					return(NULL)
+				}
+
+				annGTF <- input$fGTF$datapath
+				print(paste0("!!!!!!!Cores : ", as.integer(input$coresSeq)))
+				filePaths <- file.path(celDir, fileNames)
+				total_raw_counts <- get_raw_counts(bam.files=filePaths, annotation=annGTF, paired.end=input$chkPaired, ncores=as.integer(input$coresSeq))
+				print("str(total_raw_counts)")
+				print(str(total_raw_counts))
+				#colnames(total_raw_counts[[1]]) <- bam.files
+				colnames(total_raw_counts[[1]]) <- fileNames
+				gVars$counts.data <- total_raw_counts[[1]]
+				print("str(gVars$counts.data)")
+				print(str(gVars$counts.data))
+				gVars$geneLengths <- total_raw_counts[[2]]
 			}
-                        shinyBS::updateCollapse(session, "bsSidebar", open="QUALITY CONTROL", style=list("LOAD RAW DATA"="success", "QUALITY CONTROL"="warning"))
+
+			if(arrType=="rna_seq"){
+				shinyBS::updateCollapse(session, "bsSidebar", open="FEATURE FILTERING", style=list("LOAD RAW DATA"="success", "FEATURE FILTERING"="warning"))
+			}else{
+				shinyBS::updateCollapse(session, "bsSidebar", open="QUALITY CONTROL", style=list("LOAD RAW DATA"="success", "QUALITY CONTROL"="warning"))
+			}
+
                         gVars$loadedRaw <- TRUE
 
                         #Update buttons and sidebar style for following steps
                         shinyBS::updateButton(session, "launch_sva_modal", style="danger", icon=shiny::icon("exclamation-circle"))
 			shinyBS::updateButton(session, "launch_combat_modal", style="danger", icon=shiny::icon("exclamation-circle"))
 			shinyBS::updateButton(session, "launch_ann_modal", style="danger", icon=shiny::icon("exclamation-circle"))
-                        shinyBS::updateCollapse(session, "bsSidebar", style = list("PROBE FILTERING"="danger", "NORMALIZATION"="danger", "BATCH CORRECTION"="danger", "DIFFERENTIAL ANALYSIS"="danger", "ANNOTATION"="danger"))
+                        shinyBS::updateCollapse(session, "bsSidebar", style = list("FEATURE FILTERING"="danger", "NORMALIZATION"="danger", "BATCH CORRECTION"="danger", "DIFFERENTIAL ANALYSIS"="danger", "ANNOTATION"="danger"))
 		})
 
                 observeEvent(input$qc_skip_submit, {
                         if(!gVars$QC_passed){
                                 if(input$arrType=="af_exp"){
                                         shinyBS::updateCollapse(session, "bsSidebar", open="BATCH CORRECTION", style=list("QUALITY CONTROL"="success", "BATCH CORRECTION"="warning"))
-                                }else if(input$arrType=="ag_exp2"){
-                                        shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("QUALITY CONTROL"="success", "PROBE FILTERING"="warning"))
-                                }else if(input$arrType=="ag_exp1"){
-                                        shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("QUALITY CONTROL"="success", "PROBE FILTERING"="warning"))
-                                }else if(input$arrType=="il_methyl"){
-                                        shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("QUALITY CONTROL"="success", "PROBE FILTERING"="warning"))
+                                }else if(input$arrType=="ag_exp2" || input$arrType=="ag_exp1" || input$arrType=="il_methyl" || input$arrType=="rna_seq"){
+                                        shinyBS::updateCollapse(session, "bsSidebar", open="FEATURE FILTERING", style=list("QUALITY CONTROL"="success", "FEATURE FILTERING"="warning"))
                                 }
                                 gVars$QC_passed <- TRUE
                         }
@@ -1383,9 +1401,9 @@ shinyServer(
 				progress$set(value = value, detail = detail)
 			}
 
-												#start loading screen
-												shinyjs::html(id="loadingText", "CREATING QC REPORT")
-				                shinyjs::show(id="loading-content")
+			#start loading screen
+			shinyjs::html(id="loadingText", "CREATING QC REPORT")
+			shinyjs::show(id="loading-content")
 
                         on.exit({
                                 progress$close()
@@ -1420,7 +1438,7 @@ shinyServer(
                         system(cmdStr, wait=FALSE)
 
                         if(!gVars$QC_passed){
-                                shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("QUALITY CONTROL"="success", "PROBE FILTERING"="warning"))
+                                shinyBS::updateCollapse(session, "bsSidebar", open="FEATURE FILTERING", style=list("QUALITY CONTROL"="success", "FEATURE FILTERING"="warning"))
                         }
 
                         gVars$QC_passed <- TRUE
@@ -1437,9 +1455,9 @@ shinyServer(
 				progress$set(value = value, detail = detail)
 			}
 
-												#start loading screen
-												shinyjs::html(id="loadingText", "FILTERING DATA")
-				                shinyjs::show(id="loading-content")
+			#start loading screen
+			shinyjs::html(id="loadingText", "FILTERING DATA")
+			shinyjs::show(id="loading-content")
 
                         on.exit({
                                 progress$close()
@@ -1478,11 +1496,20 @@ shinyServer(
                         RGset <- gVars$RGset
                         detP <- gVars$detP
 			if(arrType=="il_methyl"){
-                                if(is.null(RGset))
-                                return(NULL)
+                                if(is.null(RGset)){
+					shinyjs::info("RGset methylation data object is empty!")
+					return(NULL)
+				}
+                        }else if(arrType=="rna_seq"){
+                                if(is.null(gVars$counts.data)){
+					shinyjs::info("RNA-Seq counts data object is empty!")
+					return(NULL)
+				}
                         }else{
-                                if(is.null(gVars$nc.data) || is.null(gVars$c.data))
-                                return(NULL)
+                                if(is.null(gVars$nc.data) || is.null(gVars$c.data)){
+					shinyjs::info("Array expression data object is empty!")
+					return(NULL)
+				}
                         }
 
 			nc.data <- gVars$nc.data
@@ -1532,11 +1559,18 @@ shinyServer(
                                 valType <- "M"
                                 methFilt.data <- minfi::getMethSignal(GMsetFilt, valType)
                                 gVars$methFilt.data <- methFilt.data
+                        }else if(arrType=="rna_seq"){
+				counts.data <- gVars$counts.data
+				varI <- input$varIFilt
+				phFactor <- gVars$phFactor
+				conditions <- phFactor[,varI]
+				filtMethod <- as.integer(input$filtMethod)
+				filt.data <- filter_low_counts(counts.matrix=counts.data, conditions=conditions, method=filtMethod, depth=NULL, normalized=FALSE, p.adj=input$filtPvAdj)
                         }else{
                                 filt.data <- filt.by.neg.probes(nc.data, c.data, qdist=qfilt, perc=perc, verbose=T)
                         }
                         updateProgress(detail="Completed!", value=2/2)
-                        shinyBS::updateCollapse(session, "bsSidebar", open="NORMALIZATION", style=list("PROBE FILTERING"="success", "NORMALIZATION"="warning"))
+                        shinyBS::updateCollapse(session, "bsSidebar", open="NORMALIZATION", style=list("FEATURE FILTERING"="success", "NORMALIZATION"="warning"))
 			#return(filt.data)
                         gVars$filt.data <- filt.data
 
@@ -1552,34 +1586,38 @@ shinyServer(
 		output$percProbesText <- renderText({
 			#if(is.null(gVars$filt.data()))
 			if(is.null(gVars$filt.data))
-			return("Probes Removed: NA")
+			return("Features Removed: NA")
 
 			#filt.data <- gVars$filt.data()
 			filt.data <- gVars$filt.data
 			nc.data <- gVars$nc.data
                         arrType <- input$arrType
-                        RGset <- gVars$RGset
-                        detP <- gVars$detP
 
                         if(arrType=="il_methyl"){
+				RGset <- gVars$RGset
+				detP <- gVars$detP
                                 #countProbes <- nrow(RGset)-nrow(filt.data)
                                 #percProbes <- round((countProbes/nrow(RGset))*100, digits=2)
                                 keep <- gVars$keepMeth
                                 countProbes <- sum(!keep)
                                 percProbes <- round((countProbes/length(keep))*100, digits=2)
+                        }else if(arrType=="rna_seq"){
+				counts.data <- gVars$counts.data
+                                countProbes <- nrow(counts.data)-nrow(filt.data)
+                                percProbes <- round((countProbes/nrow(counts.data))*100, digits=2)
                         }else{
                                 countProbes <- nrow(nc.data)-nrow(filt.data)
                                 percProbes <- round((countProbes/nrow(nc.data))*100, digits=2)
                         }
 
-			percProbesText <- paste0("Probes Removed: ", countProbes, " (", percProbes, ")")
+			percProbesText <- paste0("Features Removed: ", countProbes, " (", percProbes, ")")
 			return(percProbesText)
 		})
 
 		output$numProbesText <- renderText({
 			#if(is.null(gVars$filt.data()))
 			if(is.null(gVars$filt.data))
-			return("Probes Remaining: NA")
+			return("Features Remaining: NA")
 
                         arrType <- input$arrType
                         if(arrType=="il_methyl"){
@@ -1591,7 +1629,7 @@ shinyServer(
                             countProbes <- nrow(filt.data)
                         }
 
-			numProbesText <- paste0("Probes Remaining: ", countProbes)
+			numProbesText <- paste0("Features Remaining: ", countProbes)
 			return(numProbesText)
 		})
 
@@ -1605,9 +1643,9 @@ shinyServer(
 				progress$set(value = value, detail = detail)
 			}
 
-												#start loading screen
-												shinyjs::html(id="loadingText", "NORMALIZING DATA")
-				                shinyjs::show(id="loading-content")
+			#start loading screen
+			shinyjs::html(id="loadingText", "NORMALIZING DATA")
+			shinyjs::show(id="loading-content")
 
                         on.exit({
                                 progress$close()
@@ -1771,6 +1809,10 @@ shinyServer(
 				#colnames(norm.data) <- phTable[,sampleColID] ## Update colnames to match sampleIDs
 				colnames(norm.data) <- phTable[,sampleColName] ## Update colnames to match sampleIDs
                                 print("Exiting if il_methyl NORM!")
+                        }else if(arrType=="rna_seq"){
+				geneLengths <- gVars$geneLengths[rownames(filt.data)]
+				#norm.data <- normalize_counts(filtered.counts=filt.data, method=method, length.correction=input$chkLenCorr, gene.lengths=geneLengths)
+				norm.data <- normalize_counts(filtered.counts=filt.data, method=method, gene.lengths=geneLengths)
                         }else{
 			        norm.data <- run.norm(filt.data=filt.data, method=method, method2=method2, plot=FALSE)
                         }
@@ -1895,7 +1937,8 @@ shinyServer(
 
                         updateProgress(detail="Getting Surrogate Variables...", value=1/3)
                         #batches.sva <- get.sva.batch.effects(comb.data=data, pd=phTable, vars=batchCorVar, cmd.ui=F)
-                        batches.sva <- get.sva.batch.effects(comb.data=data, pd=phFactor, vars=batchCorVar, cmd.ui=F)
+                        #batches.sva <- get.sva.batch.effects(comb.data=data, pd=phFactor, vars=batchCorVar, cmd.ui=F)
+                        batches.sva <- get.sva.batch.effects(comb.data=data, pd=phFactor, vars=batchCorVar, arrType=input$arrType, cmd.ui=F)
 			print("str(batches.sva):")
 			print(str(batches.sva))
 
@@ -2252,9 +2295,9 @@ shinyServer(
 				progress$set(value = value, detail = detail)
 			}
 
-												#start loading screen
-												shinyjs::html(id="loadingText", "ANNOTATION & AGGREGATION")
-				                shinyjs::show(id="loading-content")
+			#start loading screen
+			shinyjs::html(id="loadingText", "ANNOTATION & AGGREGATION")
+			shinyjs::show(id="loading-content")
 
                         on.exit({
                                 progress$close()
@@ -2272,7 +2315,6 @@ shinyServer(
                         shinyjs::html(id="loadingText", "ANNOTATION & AGGREGATION")
 
 			progress <- shiny::Progress$new()
-
                         progress$set(message="Annotation:", value=0)
 
                         correctionLvl <- gVars$correctionLvl
@@ -2461,9 +2503,9 @@ shinyServer(
 				progress$set(value = value, detail = detail)
 			}
 
-												#start loading screen
-												shinyjs::html(id="loadingText", "DIFFERENTIAL ANALYSIS")
-												shinyjs::show(id="loading-content")
+			#start loading screen
+			shinyjs::html(id="loadingText", "DIFFERENTIAL ANALYSIS")
+			shinyjs::show(id="loading-content")
 
                         on.exit({
                                 progress$close()
@@ -2708,6 +2750,10 @@ shinyServer(
                                 filt.data <- minfi::getMethSignal(filt.data, "M")
 			        boxplot(filt.data, las=2, cex=0.7, main="Before Normalization")
                         }else{
+				if(input$arrType=="rna_seq"){
+					#filt.data[filt.data==0] <- 0.000000000000001
+					filt.data <- filt.data + 1
+				}
 			        boxplot(log2(filt.data), las=2, cex=0.7, main="Before Normalization")
                         }
 		})
@@ -2715,6 +2761,11 @@ shinyServer(
 		output$postBoxPlot <- renderPlot({
                         shiny::validate(shiny::need(!is.null(gVars$norm.data), "Waiting for normalization..."))
 			norm.data <- gVars$norm.data
+			if(input$arrType=="rna_seq"){
+				#norm.data[norm.data==0] <- 0.000000000000001
+				norm.data <- norm.data + 1
+				norm.data <- log2(norm.data)
+			}
 			boxplot(norm.data, las=2, cex=0.7, main="After Normalization")
 		})
 
@@ -2725,6 +2776,9 @@ shinyServer(
                         if(input$arrType=="il_methyl"){
                                 RGset <- gVars$RGset
                                 minfi::densityPlot(RGset, main="Before Normalization", xlab="Beta")
+                        }else if(input$arrType=="rna_seq"){
+				filt.data <- gVars$filt.data
+				plotCountDensities(count.data=filt.data, main="Before Normalization")
                         }else{
                                 rgList <- gVars$rgList
                                 limma::plotDensities(rgList, main="Before Normalization")
@@ -2745,8 +2799,11 @@ shinyServer(
                                 #}else{
                                 #        return("No plot for this nomalization method!")
                                 #}
+                        }else if(input$arrType=="rna_seq"){
+				norm.data <- gVars$norm.data
+				plotCountDensities(count.data=norm.data, main="After Normalization")
                         }else{
-																shiny::validate(shiny::need(!is.null(gVars$rgList.norm), "RG channel object is null for normalized data..."))
+				shiny::validate(shiny::need(!is.null(gVars$rgList.norm), "RG channel object is null for normalized data..."))
                                 rgList.norm <- gVars$rgList.norm
                                 limma::plotDensities(rgList.norm, main="After Normalization")
                         }
@@ -2757,8 +2814,13 @@ shinyServer(
                         shiny::validate(shiny::need(input$arrType!="ag_exp1", "No plot for Agilent single color data!"))
                         shiny::validate(shiny::need(input$arrType!="il_methyl", "No plot for Illumina methylation data!"))
                         shiny::validate(shiny::need(!is.null(gVars$norm.data), "Waiting for normalization..."))
-			rgList <- gVars$rgList
-			limma::plotMD(rgList, main="Before Normalization")
+                        if(input$arrType=="rna_seq"){
+				filt.data <- gVars$filt.data
+				plotCountMA(count.data=filt.data, main="Before Normalization")
+                        }else{
+				rgList <- gVars$rgList
+				limma::plotMD(rgList, main="Before Normalization")
+                        }
 		})
 
 		output$postMDPlot <- renderPlot({
@@ -2766,9 +2828,14 @@ shinyServer(
                         shiny::validate(shiny::need(input$arrType!="ag_exp1", "No plot for Agilent single color data!"))
                         shiny::validate(shiny::need(input$arrType!="il_methyl", "No plot for Illumina methylation data!"))
                         shiny::validate(shiny::need(!is.null(gVars$norm.data), "Waiting for normalization..."))
-                        shiny::validate(shiny::need(!is.null(gVars$rgList.norm), "RG channel object is null for normalized data..."))
-			rgList.norm <- gVars$rgList.norm
-			limma::plotMD(rgList.norm, main="After Normalization")
+                        if(input$arrType=="rna_seq"){
+				norm.data <- gVars$norm.data
+				plotCountMA(count.data=norm.data, main="After Normalization")
+                        }else{
+				shiny::validate(shiny::need(!is.null(gVars$rgList.norm), "RG channel object is null for normalized data..."))
+				rgList.norm <- gVars$rgList.norm
+				limma::plotMD(rgList.norm, main="After Normalization")
+                        }
 		})
 
 		output$confPlot <- renderPlot({
@@ -3053,6 +3120,7 @@ shinyServer(
 		output$postAggMDS <- renderPlot({
                         shiny::validate(shiny::need(input$arrType!="af_exp", "No plot for Affymetrix data!"))
                         shiny::validate(shiny::need(input$arrType!="il_methyl", "No plot for Illumina methylation data!"))
+                        shiny::validate(shiny::need(input$arrType!="rna_seq", "No plot for RNA-Seq data!"))
                         shiny::validate(shiny::need(!is.null(gVars$agg.data), "Waiting for batch correction..."))
 			agg.data <- gVars$agg.data
 			phTable <- gVars$phTable
@@ -3285,9 +3353,9 @@ shinyServer(
 				progress$set(value = value, detail = detail)
 			}
 
-												#start loading screen
-												shinyjs::html(id="loadingText", "FILTERING DIFFERENTIAL TABLE")
-												shinyjs::show(id="loading-content")
+			#start loading screen
+			shinyjs::html(id="loadingText", "FILTERING DIFFERENTIAL TABLE")
+			shinyjs::show(id="loading-content")
 
                         on.exit({
                                 progress$close()
@@ -4141,7 +4209,7 @@ shinyServer(
                                         arrayQualityMetrics::arrayQualityMetrics(expressionset=gVars$rgList, outdir=tempReportDir, force=TRUE, reporttitle=paste0("Array Quality Metrics"))
                                         tar(tarfile=con, files=tempReportDir, compression="gzip", tar="tar")
                                         if(!gVars$QC_passed){
-                                                shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("QUALITY CONTROL"="success", "PROBE FILTERING"="warning"))
+                                                shinyBS::updateCollapse(session, "bsSidebar", open="FEATURE FILTERING", style=list("QUALITY CONTROL"="success", "FEATURE FILTERING"="warning"))
                                         }
                                 }else if(input$arrType=="ag_exp1"){
                                         eset <- Biobase::ExpressionSet(assayData=Biobase::assayDataNew(exprs=gVars$eListRaw$E))
@@ -4149,13 +4217,13 @@ shinyServer(
                                         arrayQualityMetrics::arrayQualityMetrics(expressionset=eset, outdir=tempReportDir, force=TRUE, reporttitle=paste0("Array Quality Metrics"))
                                         tar(tarfile=con, files=tempReportDir, compression="gzip", tar="tar")
                                         if(!gVars$QC_passed){
-                                                shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("QUALITY CONTROL"="success", "PROBE FILTERING"="warning"))
+                                                shinyBS::updateCollapse(session, "bsSidebar", open="FEATURE FILTERING", style=list("QUALITY CONTROL"="success", "FEATURE FILTERING"="warning"))
                                         }
                                 }else if(input$arrType=="il_methyl"){
                                         #minfi::qcReport(gVars$RGset, sampNames=NULL, sampGroups=NULL, pdf=con, maxSamplesPerPage=24, controls=c("BISULFITE CONVERSION I", "BISULFITE CONVERSION II", "EXTENSION", "HYBRIDIZATION", "NON-POLYMORPHIC", "SPECIFICITY I", "SPECIFICITY II", "TARGET REMOVAL"))
 
                                         if(!gVars$QC_passed){
-                                                shinyBS::updateCollapse(session, "bsSidebar", open="PROBE FILTERING", style=list("QUALITY CONTROL"="success", "PROBE FILTERING"="warning"))
+                                                shinyBS::updateCollapse(session, "bsSidebar", open="FEATURE FILTERING", style=list("QUALITY CONTROL"="success", "FEATURE FILTERING"="warning"))
                                         }
                                 }
                                 gVars$QC_passed <- TRUE
@@ -4201,6 +4269,10 @@ shinyServer(
 
 		output$selAffCDF <- renderUI({
 			shiny::selectInput("affCDF", "Available Annotation CDF", choices=gVars$cdfChoices(), selected=gVars$cdfChoices()[1])
+		})
+
+		output$selVarIFilt <- renderUI({
+			shiny::selectInput("varIFilt", label="Variable of Interest", choices=gVars$pcChoices())
 		})
 
 		output$selVarI <- renderUI({
@@ -4348,22 +4420,41 @@ shinyServer(
 
 		output$selNormMethod <- renderUI({
                         if(input$arrType=="il_methyl"){
-			        shiny::selectInput("normMethod", "Normalization Method",
-                                        choices=c(
-                                                #"Siubset-quantile Within Array Normalization"="SWAN",
-                                                "SWAN"="SWAN",
-                                                "Raw"="Raw",
-                                                "Quantile"="Quantile",
-                                                "Normal-exponent out-of-band"="Noob",
-                                                "Illumina"="Illumina",
-                                                "Functional Normalization"="FunNorm"
-                                        ),
-                                        selected="SWAN",
-                                        multiple=FALSE
-                                )
+				normChoices <- c(
+					"SWAN"="SWAN",
+					"Raw"="Raw",
+					"Quantile"="Quantile",
+					"Normal-exponent out-of-band"="Noob",
+					"Illumina"="Illumina",
+					"Functional Normalization"="FunNorm"
+				)
+				sel <- "SWAN"
+			}else if(input$arrType=="rna_seq"){
+				normChoices <- c(
+					"Upper Quartile"="UQUA",
+					"RPKM"="RPKM",
+					"Trimmed Mean of M"="TMM",
+					"Counts per Million"="CPM"
+				)
+				sel <- "UQUA"
                         }else{
-			        shiny::selectInput("normMethod", "Normalization Type", choices=gVars$normChoices, selected="BA", multiple=FALSE)
+				normChoices <- gVars$normChoices
+				sel <- "BA"
                         }
+			shiny::selectInput("normMethod", "Normalization Type", choices=normChoices, selected=sel, multiple=FALSE)
+		})
+
+		output$selFiltMethod <- renderUI({
+			shiny::selectInput("filtMethod", "Filtering Method",
+				choices=c(
+					#"Subset-quantile Within Array Normalization"="SWAN",
+					"Counts Per Million"="1",
+					"Wilcoxon"="2",
+					"Proportion Test"="3"
+				),
+				selected="SWAN",
+				multiple=FALSE
+			)
 		})
 
 		output$selNormMethod2 <- renderUI({
@@ -4514,6 +4605,10 @@ shinyServer(
                         shinyjs::disabled(shiny::selectInput("cores", "No. of Cores", choices=(1:parallel::detectCores()), multiple=FALSE, selected=2))
                 })
 
+		output$selCoresSeq <- shiny::renderUI({
+                        shiny::selectInput("coresSeq", "No. of Cores", choices=(1:parallel::detectCores()), multiple=FALSE, selected=1)
+                })
+
                 output$selPoolSize <- shiny::renderUI({
                         if(gVars$loadedRaw){
                                 phTable <- gVars$phTable
@@ -4619,6 +4714,8 @@ shinyServer(
                         }else if(input$arrType=="ag_exp1"){
 				shinyjs::hide("selDyeCol")
                         }else if(input$arrType=="il_methyl"){
+				shinyjs::hide("selDyeCol")
+                        }else if(input$arrType=="rna_seq"){
 				shinyjs::hide("selDyeCol")
                         }
 
@@ -5116,26 +5213,35 @@ shinyServer(
                         arrType <- input$arrType
 			print(paste0("Array Type: ", arrType))
                         if(arrType=="ag_exp2"){
-				shinyjs::hide("affAnnDiv")
+				#shinyjs::hide("affAnnDiv")
 				shinyjs::hide("detectPV")
+				shinyjs::hide("selVarIFilt")
+				shinyjs::hide("filtCPM")
+				shinyjs::hide("filtPvAdj")
 				shinyjs::show("agSourceDiv")
                         }else if(arrType=="af_exp"){
 				shinyjs::show("affAnnDiv")
 				shinyjs::hide("launch_ann_modal")
 				shinyjs::hide("detectPV")
+				shinyjs::hide("selVarIFilt")
+				shinyjs::hide("filtCPM")
+				shinyjs::hide("filtPvAdj")
 				shinyjs::hide("agSourceDiv")
 
 				#Test bsCollapsePanel hiding function
-				hideBSCollapsePanel(session, panel.name="PROBE FILTERING")
+				hideBSCollapsePanel(session, panel.name="FEATURE FILTERING")
 				hideBSCollapsePanel(session, panel.name="NORMALIZATION")
 				hideBSCollapsePanel(session, panel.name="ANNOTATION")
 
 				#For affymetyrix QC with Affymetrix outlier QC script
 				shinyjs::show("affy_QC_div")
                         }else if(arrType=="ag_exp1"){
-				shinyjs::hide("affAnnDiv")
+				#shinyjs::hide("affAnnDiv")
 				#shinyjs::hide("launch_ann_modal")
 				shinyjs::hide("detectPV")
+				shinyjs::hide("selVarIFilt")
+				shinyjs::hide("filtCPM")
+				shinyjs::hide("filtPvAdj")
 				shinyjs::show("agSourceDiv")
 				#hideBSCollapsePanel(session, panel.name="ANNOTATION")
                         }else if(arrType=="il_methyl"){
@@ -5143,7 +5249,10 @@ shinyServer(
 				#shinyjs::hide("selNormMethod")
 				shinyjs::hide("selNormMethod2")
 				shinyjs::hide("filtDist")
-				shinyjs::hide("affAnnDiv")
+				shinyjs::hide("selVarIFilt")
+				shinyjs::hide("filtCPM")
+				shinyjs::hide("filtPvAdj")
+				#shinyjs::hide("affAnnDiv")
 				shinyjs::hide("launch_ann_modal")
 				shinyjs::hide("agSourceDiv")
 
@@ -5152,6 +5261,22 @@ shinyServer(
                                 shinyjs::show("methyl_QC_div")
                                 shinyjs::show("ilChkDiv")
 
+				hideBSCollapsePanel(session, panel.name="ANNOTATION")
+                        }else if(arrType=="rna_seq"){
+				shinyjs::show("seqAnnDiv")
+				#shinyjs::hide("affAnnDiv")
+				shinyjs::hide("launch_ann_modal")
+
+				shinyjs::show("selVarIFilt")
+				shinyjs::show("filtCPM")
+				shinyjs::show("filtPvAdj")
+				shinyjs::hide("filtDist")
+				shinyjs::hide("perSamples")
+				shinyjs::hide("detectPV")
+
+				shinyjs::hide("agSourceDiv")
+				shinyjs::hide("selNormMethod2")
+				hideBSCollapsePanel(session, panel.name="QUALITY CONTROL")
 				hideBSCollapsePanel(session, panel.name="ANNOTATION")
                         }
 		})

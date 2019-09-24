@@ -485,7 +485,7 @@ remove.batch.effects.2 <- function(comb.data, pd, num.pc, vars, inter = "", meth
   if(plot)  boxplot(comb.data, las=2, cex=0.7, main="After removing batch effects.")
   return(comb.data)
 }
-get.sva.batch.effects <- function(comb.data, pd, vars, npc = 10, verbose = T, cmd.ui = T) {
+get.sva.batch.effects <- function(comb.data, pd, vars, arrType = "ag_exp2", npc = 10, verbose = T, cmd.ui = T) {
   print("Searching for unknown batch effects:")
   covs <- vars$covariates
   string.formula <- paste("~pd$", vars$var.int, sep="")
@@ -493,7 +493,11 @@ get.sva.batch.effects <- function(comb.data, pd, vars, npc = 10, verbose = T, cm
   print(string.formula)
   form <- formula(string.formula)
   print(form)
-  X <- sva::sva(dat=comb.data, mod=model.matrix(form), method = "two-step")$sv
+  if(arrType=="rna_seq"){
+    X <- sva::svaseq(dat=comb.data, mod=model.matrix(form))$sv
+  }else{
+    X <- sva::sva(dat=comb.data, mod=model.matrix(form), method = "two-step")$sv
+  }
   cat("class(X) - ", class(X), "\n")
   cat("dim(X) - ", dim(X), "\n")
   X.c <- X
@@ -2136,4 +2140,195 @@ install.bioc <- function(pkg){
 		}
 	}
 }
+
+### RNA-Seq analysis pipeline functions ###
+
+#' Given one or more .bam files, gives in output the row counts.
+#' 
+#' @param bam.files A vector of .bam file names
+#' @param annotation Annotation file. Typically in .gtf ot .gff format.
+#' @param paired.end Logical value indicating whether the reads are paired end.
+#' @param ncores Integer value indicating the number of cores/threads to be used for the process.
+#' @return A numeric matrix of raw read counts.
+#' @examples
+#' total_raw_counts <- get_raw_counts(bam.files = c("SRX3459558.bam", "SRX3459559.bam", SRX3459560.bam), annotation = "gencode.v30lift37.basic.annotation.2.gtf", paired.end = FALSE, ncores = 8)
+get_raw_counts <- function(bam.files, annotation, paired.end, ncores=2) {
+	if(is.null(bam.files)){stop("Error: please provide one or more .bam files!")}
+	if(is.null(annotation)){stop("Error: please provide an annotation file in .gtf or .gff format!")}
+	if(!class(paired.end)=="logical"){stop("Error: indicate whether the reads are paired end")}
+	print(paste0("~~~~~~Cores : ", ncores))
+	print(class(ncores))
+	if(!is.numeric(ncores)){stop("Error: please input a numeric value!")}
+
+	raw.counts1 <- Rsubread::featureCounts(bam.files, annot.ext=annotation, isPairedEnd=paired.end, isGTFAnnotationFile=TRUE, nthreads=ncores)
+	total.counts.matrix <- raw.counts1[[1]]
+	genelengths <- raw.counts1$annotation$Length
+	names(genelengths) <- raw.counts1$annotation$GeneID
+
+	return(list(total.counts.matrix, genelengths))
+}
+
+filter_low_counts <- function(counts.matrix, conditions, method=1, normalized=FALSE, depth=NULL, cpm=1, p.adj="fdr"){
+	if(is.null(counts.matrix)){stop("Error: please provide a numeric count matrix!")}
+	if(is.null(conditions)){stop("Error: please provide a factor or a vector indicating the conditions!")}
+	#if(!method %in% c("cpm", "wilcoxon", "proportion")) {stop("Error: Please type in one of valid methods!")}
+	if(!method %in% c(1,2,3)) {stop("Error: Please type in one of valid methods!")}
+
+	filtered.counts <- NOISeq::filtered.data(counts.matrix, factor=conditions, norm=normalized, depth=depth, method=method, cv.cutoff=100, cpm=cpm, p.adj=p.adj)
+
+	return(filtered.counts)
+}
+
+normalize_counts <- function(filtered.counts, method="UQUA", gene.lengths=NULL, length.correction=FALSE){
+	if(is.null(filtered.counts)){stop("Error: please provide a matrix of raw or filtered counts")}
+	if(!method %in% c("RPKM", "UQUA", "TMM", "CPM")) {stop("Error: please type in one of the allowed methods!")}
+	if(method == "RPKM" & is.null(gene.lengths)){stop("Error: please provide a vector of transcripts lengths!")}
+
+	length.correction <- as.integer(length.correction)
+
+	if (method=="RPKM"){
+		normalized.counts <- NOISeq::rpkm(filtered.counts, long=gene.lengths, k=0, lc=1)
+	}else if(method=="UQUA"){
+		normalized.counts <- NOISeq::uqua(filtered.counts, long=gene.lengths, lc=0, k=0)
+	}else if(method=="TMM"){
+		normalized.counts <- NOISeq::tmm(filtered.counts, long=gene.lengths, lc=0, k=0)
+	}else if(method=="CPM"){
+		normalized.counts <- edgeR::cpm(filtered.counts, normalized.lib.sizes=FALSE, log=FALSE, prior.count=1)
+	}
+
+	return(normalized.counts)
+}
+
+diff.gene.expr.counts <- function(counts.matrix, des, contrasts, conditions, method, normalization="uqua", replicates="technical", p.adjust.method="none"){
+	if(is.null(counts.matrix)){stop("Error: please provide a numeric matrix of read counts!")}
+	if(is.null(conditions)){stop("Error: please provide a factor or a vector indicating the conditions!")}
+	if(is.null(method)){stop("Error: please type in a valid method!")}
+	if(!method %in% c("edgeR", "NOISeq", "DESeq2")) {stop("Error: please type in a valid method!")}
+
+	colnames(des) <- make.names(colnames(des))
+
+	list.top.tables <- list()
+
+	if(method=="edgeR"){
+		for(i in 1:length(contrasts)){
+			cont <- limma::makeContrasts(contrasts=contrasts[i], levels=des)
+			counts.DGEList <- edgeR::DGEList(counts=counts.matrix, group=conditions)
+			counts.Disp <- edgeR::estimateDisp(counts.DGEList, des)
+			fit <- edgeR::glmQLFit(counts.Disp, des)
+			qlf <- edgeR::glmQLFTest(fit, contrast=cont)
+			list.top.tables[[i]] <- edgeR::topTags(qlf, adjust.method=p.adjust.method)
+		}
+	}else if(method=="NOISeq"){
+		if(is.null(replicates)){stop("Error: please type in the kind of samples replicates")}
+
+		for(i in 1:length(contrasts)){
+			cont <- strsplit(contrasts[i], "-")[[1]]
+			if(replicates=="technical"){
+				DEG = NOISeq::noiseq(counts.matrix, k=0.5, norm="n", factor=conditions, conditions=cont, lc=0, replicates=replicates)  
+			}else if(replicates=="biological"){
+				DEG = NOISeq::noiseqbio(counts.matrix, k=0.5, norm="n", factor=conditions, conditions=cont, lc=0, r=20, adj=1.5, filter=0)
+			}
+			list.top.tables[[i]] <- DEG
+		}
+	}else if(method=="limma"){
+		list.top.tables <- diff.gene.expr(log2(counts.matrix), des, contrasts=comps, pvalue=1, fcvalue=0, p.adjust.method=pvAdjMethod, annot=NULL, plot=F, verbose=T)
+	}
+
+	if(method %in% c("edgeR", "NOISeq")){
+		names(list.top.tables) <- contrasts
+
+		# how to order the gene expression data
+		for(i in 1:length(list.top.tables)) {
+			ids <- NULL
+			if(dim(list.top.tables[[i]])[1] == 0) next
+			ids <- rownames(list.top.tables[[i]])
+			list.top.tables[[i]]$score <- list.top.tables[[i]]$logFC * -log10(list.top.tables[[i]]$P.Value)
+			if(!is.null(ids)) list.top.tables[[i]]$ID <- rownames(list.top.tables[[i]])
+		}
+	}
+
+	return(list.top.tables)
+}
+
+diff.gene.expr.multi <- function(counts.matrix, des, contrasts, conditions, method, normalization="uqua", replicates="technical", p.adjust.method="none"){
+	master.deg.list <- list()
+	for(i.method in method){
+		master.deg.list[[i.method]] <- diff.gene.expr.counts(method=i.method, ...)
+	}
+}
+
+#Plotting functions
+plotCountDensities <- function(count.data, main="Density Plot"){
+	pseudoCount = log2(count.data + 1)
+	df = reshape2::melt(pseudoCount, varnames=c("Features", "Samples"), value.name="Count")
+
+	gp <- ggplot(df, aes(x=Count, colour=Samples)) +
+	ylim(c(0, 0.17)) +
+	geom_density(alpha=0.2, size=1.25) +
+	theme(legend.position="top") +
+	xlab(expression(log[2](count + 1))) +
+	ggtitle(main)
+
+	return(gp)
+}
+
+plotCountMA <- function(count.data, main="Mean-variance trend", span=0.5){
+	design <- matrix(1,ncol(count.data),1)
+	rownames(design) <- colnames(count.data)
+	colnames(design) <- "GrandMean"
+	print("design:")
+	print(design)
+
+	y <- log2(count.data + 0.5)
+	print("str(y)")
+	print(str(y))
+
+	fit <- limma::lmFit(y,design)
+	if(is.null(fit$Amean)) fit$Amean <- rowMeans(y,na.rm=TRUE)
+
+	sx <- fit$Amean
+	sy <- sqrt(fit$sigma)
+	allzero <- rowSums(count.data)==0
+	if(any(allzero)) {
+		sx <- sx[!allzero]
+		sy <- sy[!allzero]
+	}
+	l <- lowess(sx,sy,f=span)
+
+	plot(sx,sy,xlab="log2( count size + 0.5 )",ylab="Sqrt( standard deviation )",pch=16,cex=0.25)
+	title(main)
+	lines(l,col="red")
+
+	#A <- sx
+	#M <- sy
+	#df = data.frame(A, M)
+	#gp <- ggplot(df, aes(x = A, y = M)) + geom_point(size = 1.5, alpha = 1/5) +
+	##geom_hline(aes(yintercept = 0), color = "blue3") +
+	#stat_smooth(se=FALSE, method="loess", color="red3") +
+	#xlab("Average gene count") +
+	#ylab("Count difference") +
+	#ggtitle(main)
+	#return(gp)
+}
+
+plotCountMDS <- function(count.data, labels, col, grp, main="MDS Plot"){
+	count.data.dist <- dist(t(count.data), method = "euclidean")
+
+	mds.cmdscale <- as.data.frame(cmdscale(as.matrix(count.data.dist)))
+	mds.cmdscale$names <- labels
+	mds.cmdscale$group <- grp
+
+	gp <- ggplot(mds.cmdscale, aes(V1, V2, label=names, color=group)) +
+	geom_point() +
+	geom_text() +
+	labs(x="", y="", title=main) + 
+	scale_fill_manual(values=col)
+	theme_bw()
+
+	return(gp)
+}
+
+
+### RNA-Seq analysis pipeline functions ###
+
 
