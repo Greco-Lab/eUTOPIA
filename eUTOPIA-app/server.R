@@ -3548,6 +3548,34 @@ shinyServer(
 			}
 		)
 
+		output$exportPheno <- shiny::downloadHandler(
+				filename = function(){
+						paste("Phenotype_Table_", Sys.Date(), '.txt', sep='')
+				},
+				content = function(con){
+				#screen loading screen
+						shinyjs::html(id="loadingText", "EXPORTING PHENOTYPE TABLE")
+						shinyjs::show(id="loading-content")
+
+						on.exit({
+										shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
+						})
+
+						ph <- gVars$phTable
+            rownames(ph) <- ph[,gVars$sampleColName]
+
+            if(!is.null(gVars$svaStep)){
+                if(gVars$svaStep==1){
+                    svaSV <- gVars$svaSV
+                    svaSVc <- gVars$svaSVc
+                    ph <- cbind(ph, svaSV, svaSVc)
+                }
+            }
+
+            write.table(ph, con, row.names=TRUE, col.names=TRUE, quote=FALSE, sep="\t")
+				}
+		)
+
                 gVars$volGGplot <- reactive({
                         if(is.null(gVars$deg.list)){
                                return(NULL)
@@ -4077,7 +4105,7 @@ shinyServer(
 					}
 					progress$set(value = value, detail = detail)
 				}
-				
+
 				#Start loading screen
 				shinyjs::html(id="loadingText", "CREATING QC REPORT")
 				shinyjs::show(id="loading-content")
@@ -4540,8 +4568,10 @@ shinyServer(
 
 			if(is.null(input$fPheno)){
 				shinyjs::disable("load_pheno_submit")
+				shinyjs::disable("exportPheno")
                         }else{
 				shinyjs::enable("load_pheno_submit")
+				shinyjs::enable("exportPheno")
                         }
 
 			if(is.null(gVars$phTable)){

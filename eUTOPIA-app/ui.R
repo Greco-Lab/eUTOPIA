@@ -32,7 +32,7 @@ shinyjs.init = function() {
 		var borderXPlot = parseFloat(csPlot.borderLeftWidth) + parseFloat(csPlot.borderRightWidth);
 		var borderYSizeable = parseFloat(csSizeable.borderTopWidth) + parseFloat(csSizeable.borderBottomWidth);
 		var borderYPlot = parseFloat(csPlot.borderTopWidth) + parseFloat(csPlot.borderBottomWidth);
-		
+
 		//nWidth = sizeableDiv.clientWidth;
 		//nHeight = sizeableDiv.clientHeight;
 		// Element width and height minus padding and border
@@ -40,7 +40,7 @@ shinyjs.init = function() {
 		nHeightDiv = sizeableDiv.offsetHeight - paddingYSizeable - borderYSizeable;
 		nWidthImg = nWidthDiv - paddingXPlot - borderXPlot;
 		nHeightImg = nHeightDiv - paddingYPlot - borderYPlot;
-		
+
 		if(nHeightImg==0){
                 	nHeightDiv = nWidthDiv;
                 	nHeightImg = nWidthImg;
@@ -49,7 +49,7 @@ shinyjs.init = function() {
                 nHeightDivStr = nHeightDiv + 'px';
                 nWidthImgStr = nWidthImg + 'px';
                 nHeightImgStr = nHeightImg + 'px';
-                
+
                 plotDiv.style.width = nWidthDivStr;
                 plotDiv.style.height = nHeightDivStr;
                 plotImg.style.width = nWidthImgStr;
@@ -72,7 +72,7 @@ shinyjs.init = function() {
 
                 var plotDiv = sizeableDiv.getElementsByClassName('shiny-plot-output')[0];
                 var plotImg = plotDiv.getElementsByTagName('IMG')[0];
-                
+
                 var csSizeable = getComputedStyle(sizeableDiv);
                 var csPlot = getComputedStyle(plotDiv);
                 var paddingXSizeable = parseFloat(csSizeable.paddingLeft) + parseFloat(csSizeable.paddingRight);
@@ -179,9 +179,9 @@ appCSS <- "
 		color: #black;
 	}
 
-	#loading-gif { 
+	#loading-gif {
 		//position: absolute;
-		opacity: 0.8; 
+		opacity: 0.8;
 		display: block;
 		margin-left: auto;
 		margin-right: auto;
@@ -204,7 +204,7 @@ appCSS <- "
 		text-align: center;
 		color: #FFFFFF;
 	}
-	
+
 	#widget-wrap {
 		position: absolute;
 		top: 40%;
@@ -293,14 +293,14 @@ fluidPage(
 						div(id="agSourceDiv",
 							fluidRow(
                                                                 column(12,
-                                                                        selectInput("selAgSource", "Source Image Analysis Program", 
+                                                                        selectInput("selAgSource", "Source Image Analysis Program",
                                                                             choices=c(
-                                                                                "agilent", 
+                                                                                "agilent",
                                                                                 "agilent.median",
                                                                                 "agilent.mean",
                                                                                 "genepix",
                                                                                 "genepix.median"
-                                                                            ), 
+                                                                            ),
                                                                             selected="agilent.median"
                                                                         )
                                                                 )
@@ -346,7 +346,7 @@ fluidPage(
                                                         )),
                                                         downloadButton("exportQC", "QC Report")
                                                 ),
-                                                hidden(div(id="methyl_QC_div", 
+                                                hidden(div(id="methyl_QC_div",
                                                         actionButton("qc_methyl_submit", "QC Report")
                                                 ))
                                         )
@@ -427,11 +427,11 @@ fluidPage(
                         ),bsCollapsePanel("ANNOTATION", style="danger",
                                 fluidRow(
                                         column(12, align="left",
-                                                selectInput("annType", "Select Annotation Type", 
+                                                selectInput("annType", "Select Annotation Type",
                                                         choices=c(
-                                                                "From Raw Data"="raw", 
+                                                                "From Raw Data"="raw",
                                                                 "Annotation File"="file"
-                                                        ), 
+                                                        ),
                                                         selected="file"
                                                 )
                                         )
@@ -497,6 +497,11 @@ fluidPage(
                                 )
                         ),bsCollapsePanel("REPORTING", style="info",
                                 fluidRow(
+																				column(12, align="center",
+																								downloadButton("exportPheno", "Phenotype Table"),
+																								p(" ")
+																							)
+																),fluidRow(
                                         column(12,
                                                 div(id="exportExprDiv", class="contentDiv",
                                                         h4("Export Expression Matrix"),
@@ -574,15 +579,15 @@ fluidPage(
 		),
 		shinyBS::bsModal("importAnnModal", "Import Annotation", "launch_ann_modal", size="large",
 			fluidRow(
-				column(12, 
-				#	selectInput("annType", "Select Annotation Type", 
+				column(12,
+				#	selectInput("annType", "Select Annotation Type",
 				#		choices=c(
-				#			"Ensembl Biomart"="mart", 
+				#			"Ensembl Biomart"="mart",
 				#			"Annotation File"="file"
-				#		), 
+				#		),
 				#		selected="file"
-				#	) 
-				#),column(12, 
+				#	)
+				#),column(12,
 					#hidden(div(id="annFile",
 					div(id="annFile",
                                                 fluidRow(
@@ -616,20 +621,20 @@ fluidPage(
                                                         )
                                                 )
 					#)),div(id="annQuery",
-					#	selectInput("org", "Select Organism", 
+					#	selectInput("org", "Select Organism",
 					#		choices=c(
-					#			"Human"="hsapiens_gene_ensembl", 
+					#			"Human"="hsapiens_gene_ensembl",
 					#			"Mouse"="mmusculus_gene_ensembl"
-					#		), 
+					#		),
 					#		selected="hsapiens_gene_ensembl"
 					#	),uiOutput("selProbeID"),
-					#	selectInput("mapID", "Select Mapping ID", 
+					#	selectInput("mapID", "Select Mapping ID",
 					#		choices=c(
-					#			"Ensembl Gene ID"="ensembl_gene_id", 
+					#			"Ensembl Gene ID"="ensembl_gene_id",
 					#			"Ensembl Transcript ID"="ensembl_transcript_id",
 					#			"EntrezGene ID"="entrezgene",
 					#			"Gene Symbol"="hgnc_symbol"
-					#		), 
+					#		),
 					#		selected="ensembl_gene_id"
 					#	)
 					#	#uiOutput("mapID")
@@ -648,7 +653,7 @@ fluidPage(
 		),
 		shinyBS::bsModal("installCDFModal", "Import Annotation", "launch_cdf_modal", size="large",
 			fluidRow(
-				column(12, 
+				column(12,
 					textInput("cdfURL", "URL of the CDF source R package", value=""),
 					actionButton("install_cdf_submit", label="Install")
 				)
@@ -656,7 +661,7 @@ fluidPage(
 		),
                 shinyBS::bsModal("svaModal", "Configure and Run SVA", "launch_sva_modal", size="large",
 			fluidRow(
-				column(12, 
+				column(12,
                                         uiOutput("selVarISva"),
                                         uiOutput("selCoVarSva"),
                                         #uiOutput("selBatchSva"),
@@ -666,7 +671,7 @@ fluidPage(
 		),
                 shinyBS::bsModal("combatModal", "Configure and Run ComBat", "launch_combat_modal", size="large",
 			fluidRow(
-				column(12, 
+				column(12,
                                         uiOutput("selVarICombat"),
                                         uiOutput("selCoVarCombat"),
                                         uiOutput("selBatchCombat"),
@@ -720,7 +725,7 @@ fluidPage(
 				),tabPanel(value="normTab", title="Normalization",
 					fluidRow(column(12,
 						tabBox(id="normTBox", title="", width=12,
-							tabPanel(value="boxPlotTab", title="Box Plot", 
+							tabPanel(value="boxPlotTab", title="Box Plot",
 								fluidRow(
 									column(6,
 										shinycssloaders::withSpinner(plotOutput('preBoxPlot'), type=6)
@@ -728,7 +733,7 @@ fluidPage(
 										shinycssloaders::withSpinner(plotOutput('postBoxPlot'), type=6)
 									)
 								)
-							),tabPanel(value="densityPlotTab", title="Density Plot", 
+							),tabPanel(value="densityPlotTab", title="Density Plot",
 								fluidRow(
 									column(6,
 										shinycssloaders::withSpinner(plotOutput('preDensityPlot'), type=6)
@@ -736,7 +741,7 @@ fluidPage(
 										shinycssloaders::withSpinner(plotOutput('postDensityPlot'), type=6)
 									)
 								)
-							),tabPanel(value="MDPlotTab", title="Mean-Difference Plot", 
+							),tabPanel(value="MDPlotTab", title="Mean-Difference Plot",
 								fluidRow(
 									column(6,
 										shinycssloaders::withSpinner(plotOutput('preMDPlot'), type=6)
@@ -750,11 +755,11 @@ fluidPage(
 				),tabPanel(value="tvTab", title="Technical Variation",
 					fluidRow(column(12,
 						tabBox(id="mtv", title="", width=12,
-							tabPanel(value="confPlotTab", title="Confounding Plot", 
+							tabPanel(value="confPlotTab", title="Confounding Plot",
 								fluidRow(
 									column(12,
-										#div(id="confPlotDiv", class="sizeable", 
-										div(id="confPlotDiv", class="jacket", 
+										#div(id="confPlotDiv", class="sizeable",
+										div(id="confPlotDiv", class="jacket",
 											shinycssloaders::withSpinner(plotOutput('confPlot', height="auto", width="auto"), type=6)
 										)
 									)
@@ -766,8 +771,8 @@ fluidPage(
                                                                                         tabPanel(value="prePrincePlotTab", title="Before Correction",
                                                                                                 fluidRow(
                                                                                                         column(12,
-                                                                                                                #div(id="princePlotDiv", class="sizeable", 
-                                                                                                                div(id="princePlotDiv", class="jacket", 
+                                                                                                                #div(id="princePlotDiv", class="sizeable",
+                                                                                                                div(id="princePlotDiv", class="jacket",
                                                                                                                         shinycssloaders::withSpinner(plotOutput('princePlot', height="auto", width="auto"), type=6)
                                                                                                                 )
                                                                                                         )
@@ -775,10 +780,10 @@ fluidPage(
                                                                                         ),tabPanel(value="postPrincePlotTab", title="After Correction",
                                                                                                 fluidRow(
                                                                                                         column(12,
-                                                                                                                #div(id="postPrincePlotDiv", class="sizeable", 
-                                                                                                                div(id="postPrincePlotDiv", class="jacket", 
+                                                                                                                #div(id="postPrincePlotDiv", class="sizeable",
+                                                                                                                div(id="postPrincePlotDiv", class="jacket",
                                                                                                                         shinycssloaders::withSpinner(plotOutput('postPrincePlot', height="auto", width="auto"), type=6)
-                                                                                                                )	
+                                                                                                                )
                                                                                                         )
                                                                                                 )
                                                                                         )
@@ -795,25 +800,25 @@ fluidPage(
                                                                                         tabPanel(value="preHcTab", title="Before Correction",
                                                                                                 fluidRow(
                                                                                                         column(12,
-                                                                                                                div(id="hcPlotDiv", class="jacket", 
+                                                                                                                div(id="hcPlotDiv", class="jacket",
                                                                                                                         shinycssloaders::withSpinner(plotOutput('hcPlot', height="auto", width="auto"), type=6)
                                                                                                                 )
-													)	
+													)
                                                                                                 )
                                                                                         ),tabPanel(value="postHcTab", title="After Correction",
                                                                                                 fluidRow(
                                                                                                         column(12,
-                                                                                                                #div(id="postHcPlotDiv", class="sizeable", 
-                                                                                                                div(id="postHcPlotDiv", class="jacket", 
+                                                                                                                #div(id="postHcPlotDiv", class="sizeable",
+                                                                                                                div(id="postHcPlotDiv", class="jacket",
                                                                                                                         shinycssloaders::withSpinner(plotOutput('postHcPlot', height="auto", width="auto"), type=6)
                                                                                                                 )
-													)	
+													)
                                                                                                 )
                                                                                         )
                                                                                 )
                                                                         )
                                                                 )
-                                                        ),tabPanel(value="mdsTab", title="MDS Plots", 
+                                                        ),tabPanel(value="mdsTab", title="MDS Plots",
                                                                 fluidRow(
                                                                         column(2,
                                                                                 uiOutput("selMdsLabel")
@@ -822,31 +827,31 @@ fluidPage(
                                                                         )
                                                                 ),fluidRow(column(12,
                                                                         tabBox(id="mdsBox", title="", width=12,
-                                                                                tabPanel(value="preCorTab", title="Before Correction", 
+                                                                                tabPanel(value="preCorTab", title="Before Correction",
                                                                                         fluidRow(
                                                                                                 column(12,
-													#div(id="preCorMDSDiv", class="sizeable", 
-													div(id="preCorMDSDiv", class="jacket", 
+													#div(id="preCorMDSDiv", class="sizeable",
+													div(id="preCorMDSDiv", class="jacket",
 														shinycssloaders::withSpinner(plotOutput('preCorMDS', height="auto", width="auto"), type=6)
-													)	
+													)
                                                                                                 )
                                                                                         )
-                                                                                ),tabPanel(value="postCorTab", title="After Correction", 
+                                                                                ),tabPanel(value="postCorTab", title="After Correction",
                                                                                         fluidRow(
                                                                                                 column(12,
-													#div(id="postCorMDSDiv", class="sizeable", 
-													div(id="postCorMDSDiv", class="jacket", 
+													#div(id="postCorMDSDiv", class="sizeable",
+													div(id="postCorMDSDiv", class="jacket",
 														shinycssloaders::withSpinner(plotOutput('postCorMDS', height="auto", width="auto"), type=6)
-													)	
+													)
                                                                                                 )
                                                                                         )
-                                                                                ),tabPanel(value="postAggTab", title="After Aggregation", 
+                                                                                ),tabPanel(value="postAggTab", title="After Aggregation",
                                                                                         fluidRow(
                                                                                                 column(12,
-													#div(id="postAggMDSDiv", class="sizeable", 
-													div(id="postAggMDSDiv", class="jacket", 
+													#div(id="postAggMDSDiv", class="sizeable",
+													div(id="postAggMDSDiv", class="jacket",
 														shinycssloaders::withSpinner(plotOutput('postAggMDS', height="auto", width="auto"), type=6)
-													)	
+													)
                                                                                                 )
                                                                                         )
                                                                                 )
@@ -880,47 +885,47 @@ fluidPage(
                                         ),
 					fluidRow(column(12,
 						tabBox(id="diffTBox", title="", width=12,
-							#tabPanel(value="diffSummTableTab", title="Differential Expression Summary", 
-							tabPanel(value="diffSummTableTab", title="Differential Summary", 
+							#tabPanel(value="diffSummTableTab", title="Differential Expression Summary",
+							tabPanel(value="diffSummTableTab", title="Differential Summary",
 								fluidRow(
 									column(12,
 										DT::dataTableOutput("deSummTable")
                                                                         )
 								)
-							#),tabPanel(value="diffTableTab", title="Differential Expression Tables", 
-							),tabPanel(value="diffTableTab", title="Differential Tables", 
+							#),tabPanel(value="diffTableTab", title="Differential Expression Tables",
+							),tabPanel(value="diffTableTab", title="Differential Tables",
 								fluidRow(
 									column(12,
 										DT::dataTableOutput("deTable")
                                                                         )
 								)
-							#),tabPanel(value="diffVenn", title="Differential Gene Sets Intersection", 
-							),tabPanel(value="diffVenn", title="Differential Sets Intersection", 
+							#),tabPanel(value="diffVenn", title="Differential Gene Sets Intersection",
+							),tabPanel(value="diffVenn", title="Differential Sets Intersection",
 								fluidRow(
 									column(4,
                                                                                 uiOutput("selIntersectComps"),
                                                                                 actionButton("venn_submit", "Replot")
 									),column(8,
-                                                                                ##div(id="intersectPlotDiv", class="sizeable", 
-                                                                                #div(id="intersectPlotDiv", class="jacket", 
+                                                                                ##div(id="intersectPlotDiv", class="sizeable",
+                                                                                #div(id="intersectPlotDiv", class="jacket",
                                                                                 #        shinycssloaders::withSpinner(plotOutput('intersectPlot', height="auto", width="auto"), type=6)
                                                                                 #)
                                                                                 div(id="vennContentDiv", class="contentDiv", align="center",
                                                                                         h4("Venn Representation"),
-                                                                                        div(id="vennPlotDiv", class="jacket", 
+                                                                                        div(id="vennPlotDiv", class="jacket",
                                                                                                 shinycssloaders::withSpinner(plotOutput('vennPlot', height="auto", width="auto"), type=6)
                                                                                         )
                                                                                 ),
                                                                                 h4(" "),
                                                                                 div(id="upsetContentDiv", class="contentDiv", align="center",
                                                                                         h4("UpSet Representation"),
-                                                                                        div(id="upsetPlotDiv", class="jacket", 
+                                                                                        div(id="upsetPlotDiv", class="jacket",
                                                                                                 shinycssloaders::withSpinner(plotOutput('upsetPlot', height="auto", width="auto"), type=6)
                                                                                         )
                                                                                 )
 									)
 								)
-							),tabPanel(value="diffVolcano", title="Volcano Plot", 
+							),tabPanel(value="diffVolcano", title="Volcano Plot",
 								fluidRow(
 									column(3,
 										sliderInput("xAxis", "X Axis Bounds", min=1, max=7, value=5, step=1)
@@ -945,7 +950,7 @@ fluidPage(
 				),tabPanel(value="visExp", title="Visualize Expression/Methylation",
 					fluidRow(column(12,
 						tabBox(id="visExpTBox", title="", width=12,
-                                                        tabPanel(value="expBoxplot", title="Box Plot", 
+                                                        tabPanel(value="expBoxplot", title="Box Plot",
                                                                 fluidRow(
                                                                         column(4,
                                                                                 #uiOutput("selExpGenes"),
@@ -957,7 +962,7 @@ fluidPage(
                                                                                 shinycssloaders::withSpinner(plotOutput("expressionBoxPlot", height="auto", width="auto"), type=6)
                                                                         )
                                                                 )
-                                                        ),tabPanel(value="expHeatmap", title="Heatmap", 
+                                                        ),tabPanel(value="expHeatmap", title="Heatmap",
                                                                 fluidRow(
                                                                         column(4,
                                                                                 #uiOutput("slidePercDE"),
