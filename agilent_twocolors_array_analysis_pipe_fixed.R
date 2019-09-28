@@ -2144,7 +2144,7 @@ install.bioc <- function(pkg){
 ### RNA-Seq analysis pipeline functions ###
 
 #' Given one or more .bam files, gives in output the row counts.
-#' 
+#'
 #' @param bam.files A vector of .bam file names
 #' @param annotation Annotation file. Typically in .gtf ot .gff format.
 #' @param paired.end Logical value indicating whether the reads are paired end.
@@ -2224,7 +2224,7 @@ diff.gene.expr.counts <- function(counts.matrix, des, contrasts, conditions, met
 		for(i in 1:length(contrasts)){
 			cont <- strsplit(contrasts[i], "-")[[1]]
 			if(replicates=="technical"){
-				DEG = NOISeq::noiseq(counts.matrix, k=0.5, norm="n", factor=conditions, conditions=cont, lc=0, replicates=replicates)  
+				DEG = NOISeq::noiseq(counts.matrix, k=0.5, norm="n", factor=conditions, conditions=cont, lc=0, replicates=replicates)
 			}else if(replicates=="biological"){
 				DEG = NOISeq::noiseqbio(counts.matrix, k=0.5, norm="n", factor=conditions, conditions=cont, lc=0, r=20, adj=1.5, filter=0)
 			}
@@ -2250,11 +2250,63 @@ diff.gene.expr.counts <- function(counts.matrix, des, contrasts, conditions, met
 	return(list.top.tables)
 }
 
+ll_to_mat <- function(ll.dt){
+    rLen <- length(ll.dt)
+    cLen <- max(unlist(lapply(ll.dt, length)))
+    cLen.max <- which.max(unlist(lapply(ll.dt, length)))
+    matNames <- list(names(ll.dt), names(ll.dt[[cLen.max]]))
+    mat.dt <- matrix(data=data.frame(), nrow=rLen, ncol=max(unlist(lapply(ll.dt, length))), dimnames=matNames)
+
+    rNames <- matNames[[1]]
+    cNames <- matNames[[2]]
+
+    for(rn in rNames){
+        for(cn in cNames){
+            mat.dt[[rn,cn]] <- ll.dt[[rn]][[cn]]
+        }
+    }
+
+    return(mat.dt)
+}
+
 diff.gene.expr.multi <- function(counts.matrix, des, contrasts, conditions, method, normalization="uqua", replicates="technical", p.adjust.method="none"){
 	master.deg.list <- list()
 	for(i.method in method){
-		master.deg.list[[i.method]] <- diff.gene.expr.counts(method=i.method, ...)
+		 list.top.tables <- diff.gene.expr.counts(method=i.method, ...)
+     master.deg.list[[i.method]] <- list.top.tables
 	}
+  deg.mat <- ll_to_mat(master.deg.list)
+  return(deg.mat)
+}
+
+diff.join.tables <- function(mat.dt, joinType="full"){
+    rNames <- rownames(mat.dt)
+    cNames <- colnames(mat.dt)
+    list.top.tables <- setNames(object=rep(list(NULL), length(rNames)), nm=rNames)
+    for(rName in rNames){
+        for(cName in cNames){
+            if(is.null(mat.dt[[rName,cName]])) next
+            cn <- colnames(mat.dt[[rName,cName]])
+            idx <- which(!cn=="ID")
+            colnames(mat.dt[[rName,cName]])[idx] <- paste0(cName, "_", cn[idx])
+        }
+
+        isValid <- unlist(lapply(mat.dt[rName,], function(x) isFALSE(is.null(x))))
+        nDTs <- sum(isValid)
+
+        if(nDTs>1){
+            list.dt <- mat.dt[rName,][isValid]
+            dtJoined <- plyr::join_all(list.dt, by="ID", type=joinType)
+            idx <- which(colnames(dtJoined)=="ID")
+            ordNames <- c("ID", colnames(dtJoined)[-idx])
+            dtJoined <- dtJoined[,ordNames]
+            list.top.tables[[rName]] <- dtJoined
+
+        }else if(nDTs==1){
+            list.top.tables[[rName]] <- mat.dt[rName,][isValid]
+        }
+    }
+    return(list.top.tables)
 }
 
 #Plotting functions
@@ -2321,7 +2373,7 @@ plotCountMDS <- function(count.data, labels, col, grp, main="MDS Plot"){
 	gp <- ggplot(mds.cmdscale, aes(V1, V2, label=names, color=group)) +
 	geom_point() +
 	geom_text() +
-	labs(x="", y="", title=main) + 
+	labs(x="", y="", title=main) +
 	scale_fill_manual(values=col)
 	theme_bw()
 
@@ -2330,5 +2382,3 @@ plotCountMDS <- function(count.data, labels, col, grp, main="MDS Plot"){
 
 
 ### RNA-Seq analysis pipeline functions ###
-
-

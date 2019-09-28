@@ -2687,8 +2687,14 @@ shinyServer(
                         comps <- comps[compCheck]
 
                         comps <- sapply(strsplit(comps, "-"), function(x){res<-make.names(x);res<-paste0(res, collapse="-")})
-			#deg.list <- diff.gene.expr(data, des, contrasts=input$comps, pvalue=1, fcvalue=0, p.adjust.method=pvAdjMethod, annot=annDF, plot=F, verbose=T)
-			deg.list <- diff.gene.expr(data, des, contrasts=comps, pvalue=1, fcvalue=0, p.adjust.method=pvAdjMethod, annot=annDF, plot=F, verbose=T)
+
+												if(arrType=="rna_seq"){
+														deg.mat <- diff.gene.expr.multi(data, des, contrasts=comps, conditions=phFactor[,varI], method=input$diffMethod, normalization="uqua", replicates=input$repType, p.adjust.method=pvAdjMethod)
+														deg.list <- diff.join.tables(deg.mat, joinType=input$joinType)
+												}else{
+														#deg.list <- diff.gene.expr(data, des, contrasts=input$comps, pvalue=1, fcvalue=0, p.adjust.method=pvAdjMethod, annot=annDF, plot=F, verbose=T)
+														deg.list <- diff.gene.expr(data, des, contrasts=comps, pvalue=1, fcvalue=0, p.adjust.method=pvAdjMethod, annot=annDF, plot=F, verbose=T)
+												}
 
                         print("Filtering Differential Expresssion Table...")
 			#comp <- input$comps[1]
@@ -4145,7 +4151,7 @@ shinyServer(
 					}
 					progress$set(value = value, detail = detail)
 				}
-				
+
 				#Start loading screen
 				shinyjs::html(id="loadingText", "CREATING QC REPORT")
 				shinyjs::show(id="loading-content")
@@ -5266,6 +5272,7 @@ shinyServer(
 				shinyjs::show("seqAnnDiv")
 				#shinyjs::hide("affAnnDiv")
 				shinyjs::hide("launch_ann_modal")
+				shinyjs::show("diffMethodDiv")
 
 				shinyjs::show("selVarIFilt")
 				shinyjs::show("filtCPM")
