@@ -1363,6 +1363,7 @@ shinyServer(
 				print("str(gVars$counts.data)")
 				print(str(gVars$counts.data))
 				gVars$geneLengths <- total_raw_counts[[2]]
+				gVars$QC_passed <- TRUE #QC shall pass
 			}
 
 			if(arrType=="rna_seq"){
