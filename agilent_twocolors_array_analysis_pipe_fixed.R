@@ -2273,7 +2273,7 @@ diff.gene.expr.multi <- function(counts.matrix, des, contrasts, conditions, meth
 	master.deg.list <- list()
 	for(i.method in method){
 		 #list.top.tables <- diff.gene.expr.counts(method=i.method, ...)
-		 list.top.tables <- diff.gene.expr.counts(counts.matrix, des=des, contrasts=contrasts, conditions=conditions, method=i.method, normalization=normalization, replicates=replicates, p.adjust.method=p.adjust.method)
+     list.top.tables <- diff.gene.expr.counts(counts.matrix=counts.matrix, des=des, contrasts=contrasts, conditions=conditions, method=i.method, normalization=normalization, replicates=replicates, p.adjust.method=p.adjust.method)
      master.deg.list[[i.method]] <- list.top.tables
 	}
   deg.mat <- ll_to_mat(master.deg.list)
