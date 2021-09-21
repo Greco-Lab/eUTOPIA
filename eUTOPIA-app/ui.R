@@ -232,7 +232,7 @@ appCSS <- "
 
 fluidPage(
 	useShinyjs(),
-	extendShinyjs(text=jsCode),
+	extendShinyjs(text=jsCode, functions=c("resizePlot", "replot")),
 	tags$head(tags$script(src="resizing.js")),
 	inlineCSS(appCSS),
 	div(id="loading-content",
