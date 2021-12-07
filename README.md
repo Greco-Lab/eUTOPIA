@@ -84,6 +84,9 @@ Cairo - [https://cairographics.org/download/](https://cairographics.org/download
   #Install latest version of GOSemSim from GitHub
   print("Installing GOSemSim from GitHub!")
   devtools::install_github("GuangchuangYu/GOSemSim")
+  
+  #Install Tex distribution
+  tinytex::install_tinytex()
 ```
 
 #### How to run eUTOPIA from GitHub
