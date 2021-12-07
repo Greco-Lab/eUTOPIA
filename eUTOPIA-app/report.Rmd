@@ -42,6 +42,114 @@ isConds <- !is.null(params$input$conditionsHeat)
 isExpr <- !is.null(params$gVars$expr.data)
 ```
 
+# Data
+```{r}
+print(paste("Selected array type: ",params$input$arrType,sep = ""))
+print(paste("Number of samples: ",nrow(params$gVars$phTable),sep = ""))
+
+# DT::renderDataTable(params$gVars$phTable)
+```
+
+# Filtering
+```{r}
+print(paste("Quantile Based Cutoff: ",params$input$filtDist,sep = ""))
+print(paste("Percentage of Samples: ",params$input$perSamples,sep = ""))
+
+if(params$input$arrType=="il_methyl"){
+  print(paste("P.value detection threshold: ",params$input$detectPV,sep = ""))
+
+}
+```
+
+
+# Normalization
+```{r}
+
+if(params$input$arrType =="af_exp"){
+  print("No normalization for affymetrix data")
+}else{
+  if(params$input$arrType=="il_methyl"){
+  print(paste("Normalization Method: ",params$input$normMethod,sep = ""))
+}else{
+  print(paste("Normalization Type: ",params$input$normMethod,sep = ""))
+  print(paste("Normalization Method: ",params$input$normMethod2,sep = ""))
+}
+}
+
+```
+
+# Annotation
+```{r}
+  print(paste("Annotation type: ",params$input$annType,sep = ""))
+```
+
+
+# Batch correction
+```{r}
+
+if(params$input$corrType=="sc") {
+  print("SVA+ComBat correction")
+
+  print(paste("SVA variables of interests: ", params$input$varISva))
+  print("SVA covariates: ")
+  print(paste(params$input$coVarSva, collapse = ";"))
+  print("SVA batches: ")
+  print(paste(params$input$batchSva, collapse = ";"))
+  
+  print(paste("Combat variables of interests: ", params$input$varICombat))
+  print("Combat covariates: ")
+  print(paste(params$input$coVarCombat, collapse = ";"))
+  print("Combat batches: ")
+  print(paste(params$input$batchCombat, collapse = ";"))
+  
+}
+
+if(params$input$corrType=="c"){
+  print("ComBat correction")
+  print(paste("variables of interests: ", params$input$varICombat))
+  print("covariates: ")
+  print(paste(params$input$coVarCombat, collapse = ";"))
+  print("batches: ")
+  print(paste(params$input$batchCombat, collapse = ";"))
+
+}
+
+if(params$input$corrType=="s"){
+  print("SVA correction")
+  print(paste("variables of interests: ", params$input$varISva))
+  print("covariates: ")
+  print(paste(params$input$coVarSva, collapse = ";"))
+  print("batches: ")
+  print(paste(params$input$batchSva, collapse = ";"))
+  
+  
+}
+
+if(params$input$corrType=="n") print("No correction")
+
+```
+
+#Differential analysis
+```{r}
+print("Limma:")
+print(paste("variable of interests: ",params$input$varILimma, sep = ""))
+print("covariates: ")
+print(paste(params$input$coVarLimma, collapse  = ";"))
+print("Contrasts: ")
+print(paste(params$input$comps, collapse = ";"))
+print(paste("P.adj method: ",params$input$pvAdjMethod, sep = ""))
+
+
+if(!is.null(params$gVars$filteredDeTable)){
+  print("Differential gene selection criteria:")
+  print(paste("Log-fold-change threshold: ", params$gVars$lfcFilt, sep = ""))
+  print(paste("Pvlue threshold: ",as.numeric(params$input$pvThr), sep = ""))
+  print(paste("Selection based on pvalue: ",params$gVars$pvType, sep = ""))
+}
+
+```
+
+
 # Box Plot
 
 ## Before Normalization
@@ -188,7 +296,10 @@ if(isNorm){
         phFactor <- phFactor[,test]
         if(!is.null(params$gVars$svaStep)){
                 if(params$gVars$svaStep==1){
-                        svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
+                        svaSV = params$gVars$svaSV
+                        for(i in 1:ncol(svaSV))svaSV[,i] = as.factor(svaSV[,i])
+
+                        # svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
                         svaSVc <- params$gVars$svaSVc
                         phFactor <- cbind(phFactor, svaSV, svaSVc)
                 }
@@ -219,7 +330,9 @@ if(isNorm){
         phFactor <- phFactor[,test]
         if(!is.null(params$gVars$svaStep)){
                 if(params$gVars$svaStep==1){
-                        svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
+                        svaSV = params$gVars$svaSV
+                        for(i in 1:ncol(svaSV))svaSV[,i] = as.factor(svaSV[,i])
+                        # svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
                         svaSVc <- params$gVars$svaSVc
                         #ph <- cbind(ph, svaSV)
                         phFactor <- cbind(phFactor, svaSV, svaSVc)
@@ -253,7 +366,9 @@ if(isCorr){
         phFactor <- phFactor[,test]
         if(!is.null(params$gVars$svaStep)){
                 if(params$gVars$svaStep==1){
-                        svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
+                        svaSV = params$gVars$svaSV
+                        for(i in 1:ncol(svaSV))svaSV[,i] = as.factor(svaSV[,i])
+                        # svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
                         svaSVc <- params$gVars$svaSVc
                         #ph <- cbind(ph, svaSV)
                         phFactor <- cbind(phFactor, svaSV, svaSVc)
@@ -290,7 +405,9 @@ if(isNorm){
         phFactor <- phFactor[,test]
         if(!is.null(params$gVars$svaStep)){
                 if(params$gVars$svaStep==1){
-                        svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
+                        svaSV = params$gVars$svaSV
+                        for(i in 1:ncol(svaSV))svaSV[,i] = as.factor(svaSV[,i])
+                        # svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
                         svaSVc <- params$gVars$svaSVc
                         #ph <- cbind(ph, svaSV)
                         phFactor <- cbind(phFactor, svaSV, svaSVc)
@@ -319,7 +436,9 @@ if(isCorr){
         phFactor <- phFactor[,test]
         if(!is.null(params$gVars$svaStep)){
                 if(params$gVars$svaStep==1){
-                        svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
+                        svaSV = params$gVars$svaSV
+                        for(i in 1:ncol(svaSV))svaSV[,i] = as.factor(svaSV[,i])
+                        # svaSV <- as.data.frame(apply(params$gVars$svaSV, 2, factor))
                         svaSVc <- params$gVars$svaSVc
                         phFactor <- cbind(phFactor, svaSV, svaSVc)
                 }

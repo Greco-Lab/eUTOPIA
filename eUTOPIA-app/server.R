@@ -3555,8 +3555,8 @@ shinyServer(
                                 oldw <- getOption("warn")
                                 options(warn = -1)
 
-				tempReport <- file.path(tempdir(), "complete_report.Rmd")
-				file.copy("complete_report.Rmd", tempReport, overwrite=TRUE)
+				tempReport <- file.path(tempdir(), "report.Rmd")
+				file.copy("report.Rmd", tempReport, overwrite=TRUE)
 
 				#params <- list(gVars=gVars, input=input)
 				params <- list(gVars=gVars, input=input, srcDir=srcDir)
