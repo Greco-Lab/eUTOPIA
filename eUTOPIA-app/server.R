@@ -146,7 +146,7 @@ shinyServer(
                 ## Get raw data directory
 								roots <- shinyFiles::getVolumes()
 								tryCatch({
-									shinyFiles::shinyDirChoose(input, "dirButton", roots=roots)
+									shinyFiles::shinyDirChoose(input, "dirButton", roots=roots())
 								},
 								error = function(e){
 									shinyjs::info(paste0("Following error was encountered\n", e$message))
