@@ -665,7 +665,9 @@ shinyServer(
                         return(c("NA"))
 
                         if(!is.null(gVars$svaSV)){
-                                svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
+                                svaSV = gVars$svaSV
+                                for(i in 1:ncol(svaSV))svaSV[,i] = as.factor(svaSV[,i])
+                                # svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
                                 #svaSVc <- as.data.frame(apply(gVars$svaSVc, 2, factor))
                                 svaSVc <- gVars$svaSVc
                                 phTable <- cbind(phTable, svaSV, svaSVc)
@@ -2074,7 +2076,9 @@ shinyServer(
 
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
-                                        svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
+                                        svaSV = gVars$svaSV
+                                        for(i in 1:ncol(svaSV))svaSV[,i] = as.factor(svaSV[,i])
+                                        # svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
                                         svaSVc <- gVars$svaSVc
                                         phTable <- cbind(phTable, svaSV, svaSVc)
                                         phFactor <- cbind(phFactor, svaSV, svaSVc)
@@ -2565,7 +2569,9 @@ shinyServer(
                                                 svaSV <- as.data.frame(apply(svaSV, 2, factor))
                                                 svaSVc <- gVars$svaSVc[-remSampleIdx,]
                                         }else{
-                                                svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
+                                                svaSV = gVars$svaSV
+                                                for(i in 1:ncol(svaSV))svaSV[,i] = as.factor(svaSV[,i])
+                                                # svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
                                                 svaSVc <- gVars$svaSVc
                                         }
                                                 #phTable <- cbind(phTable, svaSV, svaSVc)
@@ -2786,7 +2792,9 @@ shinyServer(
 
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
-                                        svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
+                                        svaSV = gVars$svaSV
+                                        for(i in 1:ncol(svaSV))svaSV[,i] = as.factor(svaSV[,i])
+                                        # svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
                                         svaSVc <- gVars$svaSVc
                                         #ph <- cbind(ph, svaSV, svaSVc)
                                         phFactor <- cbind(phFactor, svaSV, svaSVc)
@@ -2795,6 +2803,10 @@ shinyServer(
                         print("Printing str(phFactor):")
                         print(str(phFactor))
 			#confounding(ph, margins = c(10,10))
+                        
+      # test <- sapply(colnames(phFactor), function(b) length(table(phFactor[,b])) > 1 & length(table(phFactor[,b])) != length(phFactor[,b]))
+      # phFactor <- phFactor[,test]
+      
 			swamp::confounding(phFactor, margins=c(10,10))
 		},
 		height=function(){
@@ -2840,7 +2852,9 @@ shinyServer(
                         print(str(ph))
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
-                                        svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
+                                        svaSV = gVars$svaSV
+                                        for(i in 1:ncol(svaSV))svaSV[,i] = as.factor(svaSV[,i])
+                                        # svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
                                         svaSVc <- gVars$svaSVc
                                         #ph <- cbind(ph, svaSV, svaSVc)
                                         phFactor <- cbind(phFactor, svaSV, svaSVc)
@@ -2897,7 +2911,9 @@ shinyServer(
                         phFactor <- phFactor[,test]
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
-                                        svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
+                                        svaSV = gVars$svaSV
+                                        for(i in 1:ncol(svaSV))svaSV[,i] = as.factor(svaSV[,i])
+                                        # svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
                                         svaSVc <- gVars$svaSVc
                                         #ph <- cbind(ph, svaSV, svaSVc)
                                         phFactor <- cbind(phFactor, svaSV, svaSVc)
@@ -3102,7 +3118,9 @@ shinyServer(
                         phFactor <- phFactor[,test]
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
-                                        svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
+                                        svaSV = gVars$svaSV
+                                        for(i in 1:ncol(svaSV))svaSV[,i] = as.factor(svaSV[,i])
+                                        # svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
                                         svaSVc <- gVars$svaSVc
                                         #ph <- cbind(ph, svaSV, svaSVc)
                                         phFactor <- cbind(phFactor, svaSV, svaSVc)
@@ -3146,7 +3164,9 @@ shinyServer(
                         phFactor <- phFactor[,test]
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
-                                        svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
+                                        svaSV = gVars$svaSV
+                                        for(i in 1:ncol(svaSV))svaSV[,i] = as.factor(svaSV[,i])
+                                        # svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
                                         svaSVc <- gVars$svaSVc
                                         #ph <- cbind(ph, svaSV, svaSVc)
                                         phFactor <- cbind(phFactor, svaSV, svaSVc)
@@ -3189,7 +3209,9 @@ shinyServer(
                         phFactor <- phFactor[,test]
                         if(!is.null(gVars$svaStep)){
                                 if(gVars$svaStep==1){
-                                        svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
+                                        svaSV = gVars$svaSV
+                                        for(i in 1:ncol(svaSV))svaSV[,i] = as.factor(svaSV[,i])
+                                        # svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
                                         svaSVc <- gVars$svaSVc
                                         #ph <- cbind(ph, svaSV, svaSVc)
                                         phFactor <- cbind(phFactor, svaSV, svaSVc)
@@ -3533,8 +3555,8 @@ shinyServer(
                                 oldw <- getOption("warn")
                                 options(warn = -1)
 
-				tempReport <- file.path(tempdir(), "report.Rmd")
-				file.copy("report.Rmd", tempReport, overwrite=TRUE)
+				tempReport <- file.path(tempdir(), "complete_report.Rmd")
+				file.copy("complete_report.Rmd", tempReport, overwrite=TRUE)
 
 				#params <- list(gVars=gVars, input=input)
 				params <- list(gVars=gVars, input=input, srcDir=srcDir)
@@ -4311,7 +4333,9 @@ shinyServer(
                                 sel <- tmpChoices[1]
                         }else{
                                 if(!is.null(gVars$svaSV)){
-                                        svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
+                                        svaSV = gVars$svaSV
+                                        for(i in 1:ncol(svaSV))svaSV[,i] = as.factor(svaSV[,i])
+                                        # svaSV <- as.data.frame(apply(gVars$svaSV, 2, factor))
                                         svaSVc <- gVars$svaSVc
                                         phTable <- cbind(phTable, svaSV, svaSVc)
                                 }
