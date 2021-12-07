@@ -46,7 +46,7 @@ Cairo - [https://cairographics.org/download/](https://cairographics.org/download
   cran_pkgs <- c("bibtex", "RMySQL", "progress", "swamp", "infotheo", "gplots", "RColorBrewer",
   "shiny", "shinyjs", "shinyBS", "shinydashboard", "shinyFiles", "DT", "shinycssloaders", "cowplot",
   "ggplot2", "ggrepel", "WriteXLS", "rmarkdown", "VennDiagram", "grid", "futile.logger", "base2grob",
-  "reshape2", "htmlTable", "devtools", "httr", "randomcoloR", "doParallel", "foreach", "import")
+  "reshape2", "htmlTable", "devtools", "httr", "randomcoloR", "doParallel", "foreach", "import","calibrate")
   cran_pkgs.inst <- cran_pkgs[!(cran_pkgs %in% rownames(installed.packages()))]
   if(length(cran_pkgs.inst)>0){
     print(paste0("Missing ", length(cran_pkgs.inst), " CRAN Packages:"))
