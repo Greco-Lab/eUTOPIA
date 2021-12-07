@@ -81,6 +81,7 @@ if(params$input$arrType =="af_exp"){
 # Annotation
 ```{r}
   print(paste("Annotation type: ",params$input$annType,sep = ""))
+  print(paste("Annotation to: ", params$input$ID,sep = ""))
 ```
 
 
