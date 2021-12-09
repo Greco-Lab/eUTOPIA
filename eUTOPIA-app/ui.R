@@ -357,6 +357,11 @@ fluidPage(
                                 )
                         ),bsCollapsePanel("PROBE FILTERING", style="danger",
                                 fluidRow(
+                                  column(12,
+                                         textAreaInput(inputId="filtering_description", label="Filtering parameter description", value = "Add here a justification of the filtering parameter selection!", width = NULL, placeholder = NULL)
+                                  )
+                                ),
+                                fluidRow(
                                         column(12,
                                                 sliderInput("filtDist", "Quantile Based Cutoff", min=0.10, max=1.0, value=0.75, step=0.05, round=2),
                                                 selectInput("detectPV", "P.value detection threshold", choices=c(0.01, 0.05), selected=0.01),
@@ -377,6 +382,11 @@ fluidPage(
                                 )
                         ),bsCollapsePanel("NORMALIZATION", style="danger",
                                 fluidRow(
+                                  column(12,
+                                         textAreaInput(inputId="normalization_description", label="Filtering normalization description", value = "Add here a justification of the normalization parameter selection!", width = NULL, placeholder = NULL)
+                                  )
+                                ),
+                                fluidRow(
                                         column(12,
                                                 uiOutput("selNormMethod"),
                                                 uiOutput("selNormMethod2"),
@@ -391,6 +401,11 @@ fluidPage(
                                         )
                                 )
                         ),bsCollapsePanel("BATCH CORRECTION", style="danger",
+                                fluidRow(
+                                  column(12,
+                                         textAreaInput(inputId="batch_description", label="Batch correction description", value = "Add here a justification of the choice made!", width = NULL, placeholder = NULL)
+                                  )
+                                ),
                                 fluidRow(
                                         column(12,
                                                 ##uiOutput("selVarI"),
@@ -426,6 +441,11 @@ fluidPage(
                                 )
                         ),bsCollapsePanel("ANNOTATION", style="danger",
                                 fluidRow(
+                                  column(12,
+                                         textAreaInput(inputId="annotation_description", label="Annotation description", value = "Add here information about annotation. e.g. If you use an annotation file specify which one is it and where does it comes from!", width = NULL, placeholder = NULL)
+                                  )
+                                ),
+                                fluidRow(
                                         column(12, align="left",
                                                 selectInput("annType", "Select Annotation Type",
                                                         choices=c(
@@ -455,6 +475,11 @@ fluidPage(
                                         )
                                 )
                         ),bsCollapsePanel("DIFFERENTIAL ANALYSIS", style="danger",
+                                fluidRow(
+                                  column(12,
+                                         textAreaInput(inputId="DEG_description", label="Annotation description", value = "Add here information about the limma test and DEG selection", width = NULL, placeholder = NULL)
+                                  )
+                                ),
                                 fluidRow(
                                         column(12,
                                                 div(id="limmaModelDiv", class="contentDiv",
@@ -525,11 +550,38 @@ fluidPage(
                                                 downloadButton("exportRpt", "Analysis Report")
                                         )
                                 )
-                        )
+                        ),
+					              bsCollapsePanel("DATA CONVERSION", style="info",
+                            
+                            column(12, align="left",
+                                   div(id="combatDiv",
+                                       shinyBS::bsButton("launch_export_funmappone", label="Export for FunMappOne", icon=icon("exclamation-circle")),
+                                       p(" ")
+                                   )
+                            ),
+                            column(12, align="left",
+                                   div(id="combatDiv",
+                                       shinyBS::bsButton("launch_export_inform", label="Export for INfORM", icon=icon("exclamation-circle")),
+                                       p(" ")
+                                   )
+                            ),
+                            column(12, align="left",
+                                   div(id="combatDiv",
+                                       shinyBS::bsButton("launch_export_bmdx", label="Export for BMDx", icon=icon("exclamation-circle")),
+                                       p(" ")
+                                   )
+                            )
+					              )
                 )
          ),
 	dashboardBody(
 		shinyBS::bsModal("importPhenoModal", "Import Phenotype Data", "import_pheno_submit", size="large",
+		  fluidRow(
+		    column(12,
+		           textAreaInput(inputId="experiment_description", label="Experiment Description", value = "Add here the description of the experiment!", width = NULL, placeholder = NULL)
+		    )
+		  ),
+		  
 			fluidRow(
 				column(3,
 					fileInput("fPheno", label="Phenotype File")
@@ -669,7 +721,7 @@ fluidPage(
 				)
 			)
 		),
-                shinyBS::bsModal("combatModal", "Configure and Run ComBat", "launch_combat_modal", size="large",
+      shinyBS::bsModal("combatModal", "Configure and Run ComBat", "launch_combat_modal", size="large",
 			fluidRow(
 				column(12,
                                         uiOutput("selVarICombat"),
@@ -679,6 +731,100 @@ fluidPage(
 				)
 			)
 		),
+		
+		shinyBS::bsModal("downloadFunmappone", "Configure download for FunMappOne", "launch_export_funmappone", size="large",
+      fluidRow(
+        column(12, align="center",
+               textInput('funmapponeGroup', 'Enter a vector for grouping (comma delimited)', "1,2,2")
+        )
+      ),
+      fluidRow(
+        column(12, align="center",
+               # textInput('funmapponeColumns', 'Enter column names of geneID and logFC from limma ouput  (comma delimited) ', "GeneSymbol,logFC")
+               uiOutput("funColumns")
+        )
+      ),
+      fluidRow(
+        column(12, align="center",
+               checkboxInput(inputId="funmappone_filtered", label="Only DEG", value=TRUE)
+        )
+      ),
+      fluidRow(
+        column(12, align="center",
+               downloadButton("exportFunmappone", "Export for FunMappOne"),
+               p(" ")
+        )
+      )
+		      
+		),
+		
+		shinyBS::bsModal("downloadInform", "Configure download for INfORM", "launch_export_inform", size="large",
+		                 fluidRow(
+		                   column(12, align="center",
+		                          checkboxInput(inputId="only_deg_inform", label="Only DEG", value=TRUE)
+		                   )
+		                 ),
+		                 fluidRow(
+		                   column(12, align="center",
+		                          uiOutput("phenoGroup")
+		                   )
+		                 ),
+		                 fluidRow(
+		                   column(12, align="center",
+		                          uiOutput("phenoSample")
+		                   )
+		                 ),
+		                 fluidRow(
+		                   column(12, align="center",
+		                          uiOutput("contrasts")
+		                   )
+		                 ),
+		                 fluidRow(
+		                   column(12, align="center",
+		                          downloadButton("exportInform", "Export for INfORM"),
+		                          p(" ")
+		                   )
+		                 )
+		                 
+		),
+		shinyBS::bsModal("downloadBMDx", "Configure download for BMDx", "launch_export_bmdx", size="large",
+		                 # fluidRow(
+		                 #   column(12, align="center",
+		                 #          checkboxInput(inputId="all_genes_bmdx", label="Filtered DEG", value=TRUE)
+		                 #   )
+		                 # ),
+		                 fluidRow(
+		                   column(12, align="center",
+		                          uiOutput("bmdx_dose")
+		                   )
+		                 ),
+		                 fluidRow(
+		                   column(12, align="center",
+		                          uiOutput("bmdx_time")
+		                   )
+		                 ),
+		                 fluidRow(
+		                   column(12, align="center",
+		                          uiOutput("bmdx_sample_id")
+		                   )
+		                 ),
+		                 fluidRow(
+		                   column(6, align="center",
+		                          uiOutput("bmdx_groups")
+		                   ),
+		                   column(6, align="center",
+		                          textInput(inputId = "bmdx_group_name",label = "In case of one experiment, please type here the name (e.g. MWCNT)")
+		                   )
+		                 ),
+		                 fluidRow(
+		                   column(12, align="center",
+		                          downloadButton("exportBMDx", "Export for BMDx"),
+		                          p(" ")
+		                   )
+		                 )
+		                 
+		),
+		
 		#div(id="loading-content",
 		#	img(id="loading-gif", src="screen-loading.gif")
 		#),
