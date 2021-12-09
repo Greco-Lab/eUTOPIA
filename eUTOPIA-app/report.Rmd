@@ -1,11 +1,22 @@
 ---
 title: "REPORT"
-output: pdf_document
+output: html_document
 params:
   gVars: NA
   input: NA
   srcDir: NA
 ---
+
+# R version and platform
+```{r}
+version
+```
+
+# Timestamp
+```{r}
+print(Sys.time())
+```
+
 
 ```{r setup, echo=FALSE}
 library(knitr)
@@ -42,12 +53,17 @@ isConds <- !is.null(params$input$conditionsHeat)
 isExpr <- !is.null(params$gVars$expr.data)
 ```
 
+# Experiment description
+```{r}
+params$input$experiment_description
+```
+
+
 # Data
 ```{r}
 print(paste("Selected array type: ",params$input$arrType,sep = ""))
 print(paste("Number of samples: ",nrow(params$gVars$phTable),sep = ""))
 
-# DT::renderDataTable(params$gVars$phTable)
 ```
 
 # Filtering
@@ -57,8 +73,10 @@ print(paste("Percentage of Samples: ",params$input$perSamples,sep = ""))
 
 if(params$input$arrType=="il_methyl"){
   print(paste("P.value detection threshold: ",params$input$detectPV,sep = ""))
-
 }
+
+print("Description of parameter selection:")
+print(params$input$filtering_description)
 ```
 
 
@@ -76,12 +94,18 @@ if(params$input$arrType =="af_exp"){
 }
 }
 
+print("Description of parameter selection:")
+print(params$input$normalization_description)
+
 ```
 
 # Annotation
 ```{r}
   print(paste("Annotation type: ",params$input$annType,sep = ""))
   print(paste("Annotation to: ", params$input$ID,sep = ""))
+  
+  print("Description of parameter selection:")
+  print(params$input$annotation_description)
 ```
 
 
@@ -127,10 +151,11 @@ if(params$input$corrType=="s"){
 }
 
 if(params$input$corrType=="n") print("No correction")
-
+print("Description of parameter selection:")
+print(params$input$batch_description)
 ```
 
-#Differential analysis
+# Differential analysis
 ```{r}
 print("Limma:")
 print(paste("variable of interests: ",params$input$varILimma, sep = ""))
@@ -148,6 +173,8 @@ if(!is.null(params$gVars$filteredDeTable)){
   print(paste("Selection based on pvalue: ",params$gVars$pvType, sep = ""))
 }
 
+print("Description of parameter selection:")
+print(params$input$DEG_description)
 ```
 
 
