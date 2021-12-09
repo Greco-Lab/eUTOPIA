@@ -2456,7 +2456,7 @@ shinyServer(
 		})
 
 		observeEvent(input$de_submit, {
-                        progress <- shiny::Progress$new()
+      progress <- shiny::Progress$new()
 			updateProgress <- function(value=NULL, detail=NULL){
 				if(is.null(value)) {
 					value <- progress$getValue()
@@ -2465,27 +2465,27 @@ shinyServer(
 				progress$set(value = value, detail = detail)
 			}
 
-												#start loading screen
-												shinyjs::html(id="loadingText", "DIFFERENTIAL ANALYSIS")
-												shinyjs::show(id="loading-content")
+			#start loading screen
+			shinyjs::html(id="loadingText", "DIFFERENTIAL ANALYSIS")
+			shinyjs::show(id="loading-content")
 
-                        on.exit({
-                                progress$close()
-                                shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
-                        })
+      on.exit({
+              progress$close()
+              shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
+      })
 
 			arrType <- input$arrType
-                        correctionLvl <- gVars$correctionLvl
+      correctionLvl <- gVars$correctionLvl
 
-                        #shiny::validate(need(!is.null(gVars$expr.data), "No expression data to analyze!"))
-                        if(is.null(gVars$expr.data))
-                        return(NULL)
+      #shiny::validate(need(!is.null(gVars$expr.data), "No expression data to analyze!"))
+      if(is.null(gVars$expr.data))
+      return(NULL)
 
-                        shinyjs::html(id="loadingText", "DIFFERENTIAL ANALYSIS")
+      shinyjs::html(id="loadingText", "DIFFERENTIAL ANALYSIS")
 
-                        progress$set(message="Differential Analysis:", value=0)
+      progress$set(message="Differential Analysis:", value=0)
 
-                        pvAdjMethod <- input$pvAdjMethod
+      pvAdjMethod <- input$pvAdjMethod
 			phTable <- gVars$phTable
                         sampleColName <- gVars$sampleColName
                         rownames(phTable) <- phTable[,sampleColName]
@@ -3445,115 +3445,331 @@ shinyServer(
 			}
 		)
 
-                output$exportMat <- shiny::downloadHandler(
+     output$exportMat <- shiny::downloadHandler(
 			filename = function(){
 				paste("Expression_Matrix_", Sys.Date(), '.txt', sep='')
 			},
 			content = function(con){
 				#screen loading screen
-                                shinyjs::html(id="loadingText", "EXPORTING MATRIX")
-                                shinyjs::show(id="loading-content")
+        shinyjs::html(id="loadingText", "EXPORTING MATRIX")
+        shinyjs::show(id="loading-content")
 
-                                on.exit({
-                                        shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
-                                })
-                                data <- gVars$expr.data
+        on.exit({
+                shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
+        })
+        data <- gVars$expr.data
 				write.table(data, con, row.names=TRUE, col.names=TRUE, quote=FALSE, sep="\t")
 			}
 		)
 
-                output$exportNormMat <- shiny::downloadHandler(
+     output$exportNormMat <- shiny::downloadHandler(
 			filename = function(){
 				paste("Expression_Matrix_Normalized_", Sys.Date(), '.txt', sep='')
 			},
 			content = function(con){
 				#screen loading screen
-                                shinyjs::html(id="loadingText", "EXPORTING NORAMLIZED MATRIX")
-                                shinyjs::show(id="loading-content")
+        shinyjs::html(id="loadingText", "EXPORTING NORAMLIZED MATRIX")
+        shinyjs::show(id="loading-content")
 
-                                on.exit({
-                                        shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
-                                })
-                                data <- gVars$norm.data
+        on.exit({
+                shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
+        })
+        data <- gVars$norm.data
 				write.table(data, con, row.names=TRUE, col.names=TRUE, quote=FALSE, sep="\t")
 			}
 		)
 
-                output$exportFiltMat <- shiny::downloadHandler(
+      output$exportFiltMat <- shiny::downloadHandler(
 			filename = function(){
 				paste("Expression_Matrix_Filtered_", Sys.Date(), '.txt', sep='')
 			},
 			content = function(con){
 				#screen loading screen
-                                shinyjs::html(id="loadingText", "EXPORTING FILTERED MATRIX")
-                                shinyjs::show(id="loading-content")
+        shinyjs::html(id="loadingText", "EXPORTING FILTERED MATRIX")
+        shinyjs::show(id="loading-content")
 
-                                on.exit({
-                                        shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
-                                })
-				if(input$arrType=="il_methyl"){
-                                        if(is.null(gVars$methFilt.data)){
-                                                data <- "Something went wrong while preparing filtered object..."
-                                        }else{
-                                                data <- gVars$methFilt.data
-                                        }
-                                }else{
-                                        data <- gVars$filt.data
-                                }
+        on.exit({
+                shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
+        })
+        if(input$arrType=="il_methyl"){
+                if(is.null(gVars$methFilt.data)){
+                        data <- "Something went wrong while preparing filtered object..."
+                }else{
+                        data <- gVars$methFilt.data
+                }
+        }else{
+                data <- gVars$filt.data
+        }
 				write.table(data, con, row.names=TRUE, col.names=TRUE, quote=FALSE, sep="\t")
 			}
 		)
 
-                output$exportCorrMat <- shiny::downloadHandler(
+      output$exportCorrMat <- shiny::downloadHandler(
 			filename = function(){
 				paste("Expression_Matrix_Corrected_", Sys.Date(), '.txt', sep='')
 			},
 			content = function(con){
 				#screen loading screen
-                                shinyjs::html(id="loadingText", "EXPORTING CORRECTED MATRIX")
-                                shinyjs::show(id="loading-content")
+        shinyjs::html(id="loadingText", "EXPORTING CORRECTED MATRIX")
+        shinyjs::show(id="loading-content")
 
-                                on.exit({
-                                        shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
-                                })
-                                data <- gVars$comb.data
+        on.exit({
+                shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
+        })
+        data <- gVars$comb.data
 				write.table(data, con, row.names=TRUE, col.names=TRUE, quote=FALSE, sep="\t")
 			}
 		)
+                
+    output$exportFunmappone <- shiny::downloadHandler(
+      filename = function(){
+        paste("data_for_funmappone", Sys.Date(), '.xlsx', sep='')
+      },
+      content = function(con){
+        
+        shinyjs::html(id="loadingText", "EXPORTING DATA FOR FunMappOne")
+        shinyjs::show(id="loading-content")
+        
+        on.exit({
+          shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
+        })
+        # data <- gVars$expr.data
+        
+        # shiny::validate(shiny::need(!is.null(gVars$deg.list), "Waiting for Differential Analysis Results..."))
+        
+        if(!is.null(gVars$deg.list)){
+          
+          if(input$funmappone_filtered){
+            lfc <- as.numeric(input$lfcThr)
+            pvThr <- -log10(as.numeric(input$pvThr))
+            pvType <- input$pvType
+          
+            deg.list.filt <- lapply(gVars$deg.list, function(degDF){
+              selVec <- which(-log10(degDF[,pvType])>pvThr & abs(degDF$logFC)>lfc)
+              if(length(selVec>0)){
+                degDF[selVec,]
+              }else{NULL}
+            })
+            
+            deg = deg.list.filt
+          }else{
+            deg<- gVars$deg.list
+            
+          }
+        
+          group_contrasts = as.numeric(unlist(strsplit(input$funmapponeGroup,",")))
+          columns_selected = unlist(strsplit(input$funmapponeColumns,","))
+          
+          # shiny::validate(shiny::need(length(group_contrasts)!=length(deg), "Please insert a vector of the same length of the number of contrasts!"))
+          # shiny::validate(shiny::need(length(columns_selected)<1, "Please select at least the column of gene ID!"))
+          # shiny::validate(shiny::need(sum(columns_selected %in% colnames(deg[[1]]))!=length(columns_selected), "Please select column names available in the limma result!"))
+          
+          GList = list()
+          for(i in 1:length(deg)){
+            GList[[names(deg)[i]]] = deg[[i]][,columns_selected]
+          }
+          
+          GList[["group"]] = data.frame(samples = names(GList), groups = group_contrasts)
+          
+          writexl::write_xlsx(x = GList,path = con)
+        }
+        
+        shinyBS::toggleModal(session, "downloadFunmappone", toggle="close")
+        
+      }
+    )
+    
+    output$exportInform <- shiny::downloadHandler(
+      filename = function(){
+        paste("data_for_inform", Sys.Date(), '.zip', sep='')
+      },
+      content = function(con){
+        
+        shinyjs::html(id="loadingText", "EXPORTING DATA FOR INfORM")
+        shinyjs::show(id="loading-content")
+        
+        on.exit({
+          shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
+        })
+        
+        # shiny::validate(shiny::need(!is.null(gVars$deg.list), "Waiting for Differential Analysis Results..."))
+        
+        if(!is.null(gVars$deg.list)){
+            
+            deg = gVars$deg.list
+            data <- gVars$expr.data
+            pheno = gVars$phTable
+            
+            only_deg  = input$only_deg_inform
+            
+            p.value <- as.numeric(input$pvThr)
+            pvType <- input$pvType
+            logFC <- as.numeric(input$lfcThr)
+            
+            # # column of the pheno data containing the values used when creating 
+            # # the contrasts in limma
+            pheno_group_col = input$inform_pheno_group
+            pheno_sample_col = input$inform_pheno_sample
+            
+            # this is a vector of contrasts ID. This script will save 2*length(contrast) files
+            contrast = input$inform_contrasts #example c("rCNT-Ctrl")
+            
+            colnames(data) = pheno[,pheno_sample_col]
+            
+            files = NULL
+            
+            for(cr in contrast){
+              elem = unlist(strsplit(x = cr,split = "-"))
+              idx = which(pheno[,pheno_group_col] %in% elem)
+              ph_cr = pheno[idx,]
+              
+              exp_cr = data[,ph_cr[,pheno_sample_col]]
+              di = deg[[cr]]
+              
+              if(only_deg){
+                selVec <- which(di[,pvType]<p.value & abs(di$logFC)>logFC)
+                di = di[selVec,]
+                exp_cr = exp_cr[rownames(di),]
+              }
+              
+              di = di[,c("logFC",pvType)]
+              
+              path_output_files = tempdir()
+              exp_out_file = paste(path_output_files,"/", cr,"_exp.txt",sep = "")
+              files = c(files,exp_out_file)
+              write.table(exp_cr, exp_out_file, quote = FALSE, sep = "\t")
+              
+              deg_out_file = paste(path_output_files,"/", cr,"_deg.txt",sep = "")
+              files = c(files,deg_out_file)
+              
+              write.table(di, deg_out_file, quote = FALSE, sep = "\t")
+            }
+            
+            zip(con,files)
+        }
+        shinyBS::toggleModal(session, "downloadInform", toggle="close")
+        
+      }
+    )
 
-                output$exportAggMat <- shiny::downloadHandler(
+    
+    output$exportBMDx <- shiny::downloadHandler(
+      filename = function(){
+        paste("data_for_BMDx", Sys.Date(), '.zip', sep='')
+      },
+      content = function(con){
+
+        shinyjs::html(id="loadingText", "EXPORTING DATA FOR BMDx")
+        shinyjs::show(id="loading-content")
+
+        on.exit({
+          shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
+        })
+
+        shiny::validate(shiny::need(input$bmdx_pheno_dose!="NA", "BMDx needs experiments with multiple doses..."))
+
+        if(!is.null(gVars$expr.data)){
+
+          deg = gVars$deg.list
+          data <- gVars$expr.data
+          pheno = gVars$phTable
+
+          p.value <- as.numeric(input$pvThr)
+          pvType <- input$pvType
+          logFC <- as.numeric(input$lfcThr)
+          exp_name = input$bmdx_group_name
+
+          # # column of the pheno data containing the values used when creating
+          # # the contrasts in limma
+          pheno_dose_col = input$bmdx_pheno_dose
+          pheno_time_col = input$bmdx_pheno_time
+          pheno_sample_col = input$bmdx_pheno_sample_id
+          pheno_group_col = input$bmdx_pheno_groups
+
+          if(pheno_group_col=="NA"){
+            pheno = cbind(pheno, rep(exp_name,nrow(pheno)))
+            colnames(pheno)[ncol(pheno)] = "fake_group"
+            pheno_group_col = "fake_group"
+          }
+
+          if(pheno_time_col=="NA"){
+            pheno = cbind(pheno, rep(1:nrow(pheno)))
+            colnames(pheno)[ncol(pheno)] = "time"
+            pheno_time_col = "time"
+          }
+
+          colnames(data) = pheno[,pheno_sample_col]
+
+
+          files = NULL
+
+          exp_list = list()
+          pheno_list = list()
+
+          for(cr in unique(pheno[,pheno_group_col])){
+
+            idx = which(pheno[,pheno_group_col] %in% cr)
+            ph_cr = pheno[idx,c(pheno_sample_col,pheno_dose_col, pheno_time_col)]
+            exp_cr = data[,ph_cr[,pheno_sample_col]]
+
+            exp_list[[cr]] = as.data.frame(exp_cr)
+            exp_list[[cr]] = cbind(" "=rownames(data), exp_list[[cr]])
+            
+            pheno_list[[cr]] = as.data.frame(ph_cr)
+
+          }
+
+
+          path_output_files = tempdir()
+          exp_out_file = paste(path_output_files,"/expression_data.xlsx",sep = "")
+          pheno_out_file = paste(path_output_files,"/pheno_data.xlsx",sep = "")
+
+          writexl::write_xlsx(x = exp_list,path = exp_out_file)
+          writexl::write_xlsx(x = pheno_list,path = pheno_out_file)
+
+          files = c(files,pheno_out_file,exp_out_file)
+
+
+          zip(con,files)
+        }
+        shinyBS::toggleModal(session, "downloadBMDx", toggle="close")
+        
+      }
+    )
+
+     output$exportAggMat <- shiny::downloadHandler(
 			filename = function(){
 				paste("Expression_Matrix_Aggregated_", Sys.Date(), '.txt', sep='')
 			},
 			content = function(con){
 				#screen loading screen
-                                shinyjs::html(id="loadingText", "EXPORTING AGGREGATED FEATURES MARIX")
-                                shinyjs::show(id="loading-content")
+        shinyjs::html(id="loadingText", "EXPORTING AGGREGATED FEATURES MARIX")
+        shinyjs::show(id="loading-content")
 
-                                on.exit({
-                                        shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
-                                })
-                                data <- gVars$agg.data
-				write.table(data, con, row.names=TRUE, col.names=TRUE, quote=FALSE, sep="\t")
+        on.exit({
+                shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
+        })
+        data <- gVars$agg.data
+        write.table(data, con, row.names=TRUE, col.names=TRUE, quote=FALSE, sep="\t")
 			}
 		)
 
-                output$exportRpt <- shiny::downloadHandler(
+    output$exportRpt <- shiny::downloadHandler(
 			filename = function(){
-				paste("eUTOPIA_Analysis_Report_", Sys.Date(), '.pdf', sep='')
+				paste("eUTOPIA_Analysis_Report_", Sys.Date(), '.html', sep='')
 			},
 			content = function(con){
 
-																#start loading screen
-																shinyjs::html(id="loadingText", "CREATING ANALYSIS REPORT")
-																shinyjs::show(id="loading-content")
-
-                                on.exit({
-                                        shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
-                                })
-                                #Disable Warning
-                                oldw <- getOption("warn")
-                                options(warn = -1)
+  			#start loading screen
+  			shinyjs::html(id="loadingText", "CREATING ANALYSIS REPORT")
+  			shinyjs::show(id="loading-content")
+  
+        on.exit({
+                shinyjs::hide(id="loading-content", anim=TRUE, animType="fade")
+        })
+        #Disable Warning
+        oldw <- getOption("warn")
+        options(warn = -1)
 
 				tempReport <- file.path(tempdir(), "report.Rmd")
 				file.copy("report.Rmd", tempReport, overwrite=TRUE)
@@ -3565,8 +3781,8 @@ shinyServer(
 					envir=new.env(parent=globalenv())
 				)
 
-                                #Enable Warning
-                                options(warn = oldw)
+        #Enable Warning
+        options(warn = oldw)
 			}
 		)
 
@@ -4455,6 +4671,93 @@ shinyServer(
 			shiny::selectInput("pvAdjMethod", "P.Value Adjustment Method", choices=gVars$pvAdjChoices, multiple=FALSE, selected="none")
 		})
 
+		### INTERACTIVE OUTPUTS FOR INfORM EXPORTING
+		output$contrasts <- renderUI({
+		  #selectInput("compDE", "Select Comparison", choices=gVars$compChoices(), multiple=FALSE)
+		  if(is.null(gVars$deComps)){
+		    deChoices <- c("NA")
+		  }else{
+		    deChoices <- gVars$deComps
+		  }
+		  shiny::selectInput("inform_contrasts", "Select the contrast/s of interest", choices=deChoices, multiple=TRUE)
+		})
+		
+		output$phenoSample <- renderUI({
+		  #selectInput("compDE", "Select Comparison", choices=gVars$compChoices(), multiple=FALSE)
+		  if(is.null(gVars$phTable)){
+		    deChoices <- c("NA")
+		  }else{
+		    deChoices <- colnames(gVars$phTable)
+		  }
+		  shiny::selectInput("inform_pheno_sample", "Select the column name of the samples ID", choices=deChoices, multiple=FALSE)
+		})
+		
+		output$phenoGroup <- renderUI({
+		  #selectInput("compDE", "Select Comparison", choices=gVars$compChoices(), multiple=FALSE)
+		  if(is.null(gVars$phTable)){
+		    deChoices <- c("NA")
+		  }else{
+		    deChoices <- colnames(gVars$phTable)
+		  }
+		  shiny::selectInput("inform_pheno_group", "Select the column name of the variable used to define the contrasts", choices=deChoices, multiple=FALSE)
+		})
+		
+		### INTERACTIVE OUTPUTS FOR FunMappOne EXPORTING
+		output$funColumns <- renderUI({
+		  #selectInput("compDE", "Select Comparison", choices=gVars$compChoices(), multiple=FALSE)
+		  if(is.null(gVars$deg.list)){
+		    deChoices <- c("NA")
+		  }else{
+		    deChoices <- colnames(gVars$deg.list[[1]])
+		  }
+		  shiny::selectInput("funmapponeColumns", "Enter column names of geneID and logFC from limma ouput. Note: follow this order!", choices=deChoices, multiple=TRUE)
+		})
+		
+		### INTERACTIVE OUTPUTS FOR BMDx EXPORTING
+		output$bmdx_dose <- renderUI({
+		  #selectInput("compDE", "Select Comparison", choices=gVars$compChoices(), multiple=FALSE)
+		  if(is.null(gVars$phTable)){
+		    deChoices <- c("NA")
+		  }else{
+		    deChoices <- c("NA",colnames(gVars$phTable))
+		  }
+		  shiny::selectInput("bmdx_pheno_dose", "Select the column name of the variable used to define the doses/concentrations", choices=deChoices, multiple=FALSE)
+		})
+		
+		output$bmdx_time <- renderUI({
+		  #selectInput("compDE", "Select Comparison", choices=gVars$compChoices(), multiple=FALSE)
+		  if(is.null(gVars$phTable)){
+		    deChoices <- c("NA")
+		  }else{
+		    deChoices <- c("NA",colnames(gVars$phTable))
+		  }
+		  shiny::selectInput("bmdx_pheno_time", "Select the column name of the variable used to define the time-points", choices=deChoices, multiple=FALSE)
+		})
+		
+		output$bmdx_sample_id <- renderUI({
+		  #selectInput("compDE", "Select Comparison", choices=gVars$compChoices(), multiple=FALSE)
+		  if(is.null(gVars$phTable)){
+		    deChoices <- c("NA")
+		  }else{
+		    deChoices <- colnames(gVars$phTable)
+		  }
+		  shiny::selectInput("bmdx_pheno_sample_id", "Select the column name of the variable used to define the samples ID", choices=deChoices, multiple=FALSE)
+		})
+		
+		output$bmdx_groups <- renderUI({
+		  #selectInput("compDE", "Select Comparison", choices=gVars$compChoices(), multiple=FALSE)
+		  if(is.null(gVars$phTable)){
+		    deChoices <- c("NA")
+		  }else{
+		    deChoices <-c("NA",colnames(gVars$phTable))
+		  }
+		  shiny::selectInput("bmdx_pheno_groups", "Select the column name of the variable used to define the different experiment groups. 
+		                     This is going to be used to split the data in different excel sheets. 
+		                     Usually in BMDx analysis this refer to different exposures (e.g. chemicals/ENMs)", choices=deChoices, multiple=FALSE)
+		})
+		
+		
+		
 		output$selCompDeTable <- renderUI({
 			#selectInput("compDE", "Select Comparison", choices=gVars$compChoices(), multiple=FALSE)
                         if(is.null(gVars$deComps)){
