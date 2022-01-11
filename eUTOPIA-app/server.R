@@ -4753,6 +4753,7 @@ shinyServer(
 		  }
 		  shiny::selectInput("bmdx_pheno_groups", "Select the column name of the variable used to define the different experiment groups. 
 		                     This is going to be used to split the data in different excel sheets. 
+		                     In case of one experiment only please select NA and fill the text box on the right.
 		                     Usually in BMDx analysis this refer to different exposures (e.g. chemicals/ENMs)", choices=deChoices, multiple=FALSE)
 		})
 		
